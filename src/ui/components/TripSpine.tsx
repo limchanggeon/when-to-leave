@@ -1,53 +1,67 @@
+import { diffMin, formatClock, humanDuration } from '../../engine/time'
 import type { Leg } from '../../engine/types'
-import { hhmm } from '../../engine/time'
 import type { I18nShape } from '../../i18n'
 
-function seatLabel(leg: Leg, t: I18nShape): { text: string; cls: string } | null {
+const UNIT = { h: '시간', m: '분' }
+
+function Seat({ leg, t }: { leg: Leg; t: I18nShape }) {
   if (!leg.seat) return null
-  if (leg.seat.available === null) return { text: t.warning['seat-unknown'], cls: 'spine__seat--unknown' }
-  if (leg.seat.available === false) return { text: t.warning['seat-sold-out'], cls: 'spine__seat--no' }
-  return { text: `${leg.seat.className ?? ''} OK`.trim(), cls: 'spine__seat--ok' }
+  if (leg.seat.available === null)
+    return <span className="chip chip--muted">{t.warning['seat-unknown']}</span>
+  if (leg.seat.available === false)
+    return <span className="chip chip--bad">{t.warning['seat-sold-out']}</span>
+  return <span className="chip chip--good">{leg.seat.className ?? ''} 좌석 있음</span>
 }
 
-export function TripSpine({ legs, t }: { legs: Leg[]; t: I18nShape }) {
+/**
+ * 여정을 시각 축으로 그린다.
+ * 각 구간은 "언제 출발 → 무엇을 타고 몇 분 → 언제 도착"이 한 줄에 읽혀야 한다.
+ */
+export function TripSpine({ legs, now, t }: { legs: Leg[]; now: Date; t: I18nShape }) {
+  if (legs.length === 0) return null
+  const clock = (d: Date) => formatClock(d, now, t.clock)
+
   return (
-    <div className="spine">
+    <ol className="spine">
       {legs.map((leg, i) => {
-        const seat = seatLabel(leg, t)
+        const rideMin = diffMin(leg.arriveAt, leg.departAt)
         return (
-          <div className="spine__leg" key={i}>
-            <div className="spine__time">{hhmm(leg.departAt)}</div>
+          <li className="spine__row" key={i}>
+            <div className="spine__clock">{clock(leg.departAt)}</div>
             <div className="spine__rail">
-              <div className={`spine__dot ${leg.discrete ? 'spine__dot--discrete' : ''}`} />
-              {i < legs.length - 1 && <div className="spine__line" />}
+              <span className={`spine__dot ${leg.discrete ? 'spine__dot--stop' : ''}`} />
+              <span className="spine__line" />
             </div>
-            <div className="spine__body">
+            <div className="spine__content">
               <div className="spine__place">{leg.from.name}</div>
-              <div className="spine__mode">
-                <span>{t.leg[leg.kind]}</span>
-                {leg.carrier && <span>· {leg.carrier}</span>}
-                <span className={`spine__badge spine__badge--${leg.confidence}`}>
-                  {t.confidence[leg.confidence]}
-                </span>
-                {leg.origin === 'mock' && <span className="spine__badge spine__badge--estimated">MOCK</span>}
+              <div className="spine__ride">
+                <span className={`spine__kind spine__kind--${leg.kind}`}>{t.leg[leg.kind]}</span>
+                {leg.carrier && <span className="spine__carrier">{leg.carrier}</span>}
+                <span className="spine__dur">{humanDuration(rideMin, UNIT)}</span>
               </div>
-              {leg.waitMin > 0 && <div className="spine__mode">{t.leg.wait(leg.waitMin)}</div>}
-              {seat && <div className={`spine__seat ${seat.cls}`}>{seat.text}</div>}
+              <div className="spine__tags">
+                <span className={`chip chip--${leg.confidence}`}>{t.confidence[leg.confidence]}</span>
+                {leg.waitMin > 0 && <span className="chip chip--muted">{t.leg.wait(leg.waitMin)}</span>}
+                {leg.bufferMin > 0 && (
+                  <span className="chip chip--muted">{t.result.buffer(leg.bufferMin)}</span>
+                )}
+                <Seat leg={leg} t={t} />
+              </div>
             </div>
-          </div>
+          </li>
         )
       })}
-      {legs.length > 0 && (
-        <div className="spine__leg">
-          <div className="spine__time">{hhmm(legs[legs.length - 1].arriveAt)}</div>
-          <div className="spine__rail">
-            <div className="spine__dot" />
-          </div>
-          <div className="spine__body">
-            <div className="spine__place">{legs[legs.length - 1].to.name}</div>
-          </div>
+      <li className="spine__row spine__row--end">
+        <div className="spine__clock spine__clock--end">
+          {clock(legs[legs.length - 1].arriveAt)}
         </div>
-      )}
-    </div>
+        <div className="spine__rail">
+          <span className="spine__dot spine__dot--final" />
+        </div>
+        <div className="spine__content">
+          <div className="spine__place spine__place--final">{legs[legs.length - 1].to.name}</div>
+        </div>
+      </li>
+    </ol>
   )
 }

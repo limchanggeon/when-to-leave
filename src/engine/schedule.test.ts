@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { solveBackward, solveForward } from './schedule'
+import { compact, solveBackward, solveForward } from './schedule'
 import { DEFAULT_POLICY } from './buffer'
 import { at } from './time'
 import type { LegSpec } from './types'
@@ -78,5 +78,25 @@ describe('solveForward', () => {
     const [, subway] = result.legs
     expect(subway.departAt).toEqual(at(day, '08:00'))
     expect(subway.waitMin).toBe(9) // 07:51 역 도착 → 08:00 승차
+  })
+})
+
+describe('compact', () => {
+  it('마지막 연속 구간에 숨은 대기를 이산 구간 쪽으로 드러낸다', () => {
+    // 목표를 아주 늦게 잡으면 역산은 마지막 도보를 목표 직전으로 밀어버린다.
+    const target = at(day, '20:00')
+    const solved = solveBackward(specs(), target, DEFAULT_POLICY)
+    expect(solved.ok).toBe(true)
+    if (!solved.ok) return
+
+    const raw = solved.legs
+    // 역산 그대로: 마지막 도보가 목표 시각에 딱 맞춰 끝난다
+    expect(raw[raw.length - 1].arriveAt).toEqual(at(day, '20:00'))
+
+    const tidy = compact(raw)
+    // 정돈 후: 열차 도착(10:00+167분=12:47) 직후 도보 8분 → 12:55 실제 도착
+    expect(tidy[tidy.length - 1].arriveAt).toEqual(at(day, '12:55'))
+    // 첫 구간 출발 시각은 "언제 나가야 하는가"이므로 바뀌지 않는다
+    expect(tidy[0].departAt).toEqual(raw[0].departAt)
   })
 })

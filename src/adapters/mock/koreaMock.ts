@@ -21,13 +21,25 @@ const OFFICE = P('사무실')
 
 const SOURCE = 'mock:korea'
 
-/** 하루치 배차를 만든다. */
+/** 오늘부터 DAYS 일치 배차를 만든다. 하루치만 만들면 자정을 넘는 여정이 풀리지 않는다. */
+const DAYS = 3
+
+function eachDay(base: Date): Date[] {
+  return Array.from({ length: DAYS }, (_, i) => {
+    const d = new Date(base)
+    d.setDate(d.getDate() + i)
+    return d
+  })
+}
+
 function everyMinutes(base: Date, from: string, to: string, gap: number): Departure[] {
   const out: Departure[] = []
-  const start = at(base, from)
-  const end = at(base, to)
-  for (let t = start.getTime(); t <= end.getTime(); t += gap * 60_000) {
-    out.push({ at: new Date(t) })
+  for (const day of eachDay(base)) {
+    const start = at(day, from)
+    const end = at(day, to)
+    for (let t = start.getTime(); t <= end.getTime(); t += gap * 60_000) {
+      out.push({ at: new Date(t) })
+    }
   }
   return out
 }
@@ -40,12 +52,18 @@ function runs(
   seats: (boolean | null)[],
   bookingUrl: string,
 ): Departure[] {
-  return times.map((t, i) => ({
-    at: at(base, t),
-    carrier: carrier(i),
-    seat: { available: seats[i % seats.length], className: '일반실' },
-    bookingUrl,
-  }))
+  const out: Departure[] = []
+  for (const day of eachDay(base)) {
+    times.forEach((t, i) => {
+      out.push({
+        at: at(day, t),
+        carrier: carrier(i),
+        seat: { available: seats[i % seats.length], className: '일반실' },
+        bookingUrl,
+      })
+    })
+  }
+  return out.sort((a, b) => a.at.getTime() - b.at.getTime())
 }
 
 const KORAIL = 'https://www.letskorail.com/'

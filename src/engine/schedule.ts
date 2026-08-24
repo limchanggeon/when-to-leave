@@ -128,3 +128,35 @@ export function solveForward(specs: LegSpec[], from: Date, policy: BufferPolicy)
 
   return { ok: true, legs }
 }
+
+/**
+ * 역산 결과를 실제 여정으로 정돈한다.
+ *
+ * solveBackward 는 "늦어도 언제까지"를 준다. 그래서 이산 구간이 목표보다
+ * 한참 일찍 끝나면, 남는 시간이 뒤쪽 연속 구간(도보 등)에 숨어버린다 —
+ * 4시간짜리 버스가 20시간 걸린 것처럼 보이는 이유다.
+ *
+ * 첫 구간의 출발 시각("언제 나가야 하는가")은 그대로 두고, 그 뒤를 앞으로
+ * 당겨 붙여 실제 도착 시각과 대기시간을 드러낸다.
+ */
+export function compact(legs: Leg[]): Leg[] {
+  if (legs.length === 0) return legs
+  const out: Leg[] = [{ ...legs[0] }]
+
+  for (let i = 1; i < legs.length; i++) {
+    const prev = out[i - 1]
+    const leg = { ...legs[i] }
+
+    if (leg.discrete) {
+      // 시간표가 고정이므로 출발 시각은 못 옮긴다. 앞 구간 도착과의 간격이 곧 대기.
+      leg.waitMin = Math.max(0, diffMin(leg.departAt, prev.arriveAt))
+    } else {
+      const duration = diffMin(leg.arriveAt, leg.departAt)
+      leg.departAt = prev.arriveAt
+      leg.arriveAt = addMin(leg.departAt, duration)
+      leg.waitMin = 0
+    }
+    out.push(leg)
+  }
+  return out
+}

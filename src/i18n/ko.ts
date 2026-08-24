@@ -15,10 +15,33 @@ export const ko = {
   },
   result: {
     departAt: (t: string) => `${t}에 나가세요`,
-    arriveAt: (t: string) => `${t} 도착 예정`,
+    arriveAt: (t: string) => `${t} 도착`,
     leaveIn: (m: string) => `${m} 후 출발`,
+    leaveNow: '지금 나가세요',
+    overdue: (m: string) => `${m} 지났어요`,
+    countdownLabel: '출발까지',
+    totalDuration: (m: string) => `총 ${m}`,
     alreadyLate: '이미 늦었어요 — 다음 편으로 다시 계산했어요',
     buffer: (m: number) => `여유 ${m}분 포함`,
+  },
+  clock: {
+    tomorrow: '내일',
+    dayAfter: '모레',
+    nDays: (n: number) => `${n}일 뒤`,
+  },
+  alternatives: {
+    title: '대안',
+    subtitle: '표가 없거나 더 나은 길이 있을 때',
+    arriveAt: (t: string) => `${t} 도착`,
+    departAt: (t: string) => `${t} 출발`,
+    earlier: (m: string) => `${m} 일찍`,
+    later: (m: string) => `${m} 늦게`,
+    same: '같은 시각',
+  },
+  empty: {
+    title: '어디로 가세요?',
+    body: '목적지와 도착 시각을 말하면 몇 시에 나가야 하는지 계산합니다.',
+    examples: '이렇게 물어보세요',
   },
   leg: {
     walk: '도보',
@@ -45,7 +68,7 @@ export const ko = {
     label: '표가 없다면',
     'fallback.station': '다른 역에서 타기',
     'fallback.bus': '고속버스로 바꾸기',
-  },
+  } as Record<string, string>,
   dataGap: {
     title: '데이터를 가져오지 못했습니다',
     'not-implemented': (adapter: string) => `${adapter} 어댑터가 아직 연결되지 않았습니다`,
