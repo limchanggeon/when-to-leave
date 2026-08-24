@@ -1,0 +1,73 @@
+/* 디자인 토큰 — 설계 문서 아티팩트와 팔레트를 맞췄다.
+   redwerk 가이드 원칙: hex로 명시, 타이포 스케일 고정, 상태별 색까지 토큰화. */
+:root {
+  --paper: #EDEFEB;
+  --surface: #F7F8F5;
+  --sunk: #E3E6E0;
+  --ink: #1B2530;
+  --ink-soft: #5C6873;
+  --ink-faint: #8A949C;
+  --rule: #D4D9D2;
+  --rule-strong: #B9C0B7;
+
+  --brass: #8F6310;
+  --teal: #2C6659;
+  --rust: #99392B;
+  --brass-wash: #EDE3CE;
+  --teal-wash: #DCE8E3;
+  --rust-wash: #EEDCD8;
+
+  --font-display: 'Gowun Batang', 'Nanum Myeongjo', Georgia, serif;
+  --font-body: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* 스페이싱 스케일. 4의 배수 — RN 으로 옮겨도 그대로 쓸 수 있게 */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px; --sp-12: 48px;
+
+  --radius-sm: 4px; --radius-md: 8px;
+
+  /* 브레이크포인트(참고용 — 미디어쿼리에는 리터럴로 씀) */
+  --bp-sm: 480px;
+  --bp-md: 768px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper: #131719; --surface: #1B2126; --sunk: #0E1214;
+    --ink: #E3E7E2; --ink-soft: #98A3A8; --ink-faint: #6C777D;
+    --rule: #2B333A; --rule-strong: #3D474E;
+    --brass: #DDA33E; --teal: #5FB09B; --rust: #D97263;
+    --brass-wash: #2E2718; --teal-wash: #172A26; --rust-wash: #2E1D1A;
+  }
+}
+:root[data-theme='dark'] {
+  --paper: #131719; --surface: #1B2126; --sunk: #0E1214;
+  --ink: #E3E7E2; --ink-soft: #98A3A8; --ink-faint: #6C777D;
+  --rule: #2B333A; --rule-strong: #3D474E;
+  --brass: #DDA33E; --teal: #5FB09B; --rust: #D97263;
+  --brass-wash: #2E2718; --teal-wash: #172A26; --rust-wash: #2E1D1A;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 포커스 상태 — redwerk 가이드의 접근성 항목. 절대 outline:none 만 하지 않는다. */
+:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
