@@ -3,8 +3,11 @@ import { resolveBuffer, type BufferPolicy } from './buffer'
 import type { Leg, LegSpec } from './types'
 
 export type SolveFailure = {
-  /** no-departure: 창 안에 탈 수 있는 편이 없다. */
-  reason: 'no-departure'
+  /**
+   * no-departure: 창 안에 탈 수 있는 편이 아예 없다.
+   * too-late: 편은 있지만 전부 이미 지나갔다 — 목표 시각을 재협상해야 한다.
+   */
+  reason: 'no-departure' | 'too-late'
   /** 몇 번째 구간에서 막혔는지 — 폴백 사다리가 이 구간을 노려 대안을 만든다. */
   atIndex: number
 }
@@ -41,6 +44,12 @@ export function solveBackward(
   specs: LegSpec[],
   targetArrival: Date,
   policy: BufferPolicy,
+  /**
+   * 이 시각보다 이르게 출발하는 편은 고르지 않는다. 보통 "지금".
+   * 없으면 엔진이 이미 지나간 열차를 답으로 내놓는다 —
+   * "언제 나가야 하나"에 과거를 답하는 셈이라 반드시 넘겨야 한다.
+   */
+  notBefore?: Date,
 ): SolveResult {
   let deadline = targetArrival
   const legs: Leg[] = []
@@ -59,16 +68,26 @@ export function solveBackward(
     const buffer = resolveBuffer(s, policy)
     // 도착이 데드라인 이내인 편 중 가장 늦게 떠나는 것.
     let best: { departAt: Date; arriveAt: Date; idx: number } | null = null
+    let sawAnyInTime = false
     s.departures!.forEach((dep, idx) => {
       const dur = dep.durationMin ?? s.durationMin
       const arriveAt = addMin(dep.at, dur)
       if (arriveAt.getTime() > deadline.getTime()) return
+      sawAnyInTime = true
+      // 이미 지나간 편은 탈 수 없다.
+      if (notBefore && dep.at.getTime() < notBefore.getTime()) return
       if (!best || dep.at.getTime() > best.departAt.getTime()) {
         best = { departAt: dep.at, arriveAt, idx }
       }
     })
 
-    if (!best) return { ok: false, failure: { reason: 'no-departure', atIndex: i } }
+    if (!best) {
+      // 제 시간에 닿는 편은 있었는데 전부 과거였다면 "너무 늦음"으로 구분한다.
+      return {
+        ok: false,
+        failure: { reason: sawAnyInTime ? 'too-late' : 'no-departure', atIndex: i },
+      }
+    }
 
     const picked = best as { departAt: Date; arriveAt: Date; idx: number }
     const dep = s.departures![picked.idx]
@@ -82,6 +101,11 @@ export function solveBackward(
       bookingUrl: dep.bookingUrl,
     })
     deadline = legDeadline
+  }
+
+  // 이산 구간이 하나도 없거나 도보만으로 이어진 경우에도 과거 출발은 막는다.
+  if (notBefore && legs.length > 0 && legs[0].departAt.getTime() < notBefore.getTime()) {
+    return { ok: false, failure: { reason: 'too-late', atIndex: 0 } }
   }
 
   return { ok: true, legs }

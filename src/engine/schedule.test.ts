@@ -100,3 +100,23 @@ describe('compact', () => {
     expect(tidy[0].departAt).toEqual(raw[0].departAt)
   })
 })
+
+describe('solveBackward — notBefore', () => {
+  it('이미 지나간 편은 고르지 않는다', () => {
+    // 목표 11:30 이면 08:35 열차가 답이지만, 지금이 09:00 이면 못 탄다.
+    const now = at(day, '09:00')
+    const result = solveBackward(specs(), at(day, '11:30'), DEFAULT_POLICY, now)
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    // 제 시간에 닿는 편은 있었으나 전부 과거 → 목표 재협상 신호
+    expect(result.failure.reason).toBe('too-late')
+  })
+
+  it('notBefore 이후 편이 남아 있으면 정상적으로 푼다', () => {
+    const now = at(day, '05:00')
+    const result = solveBackward(specs(), at(day, '11:30'), DEFAULT_POLICY, now)
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.legs[0].departAt.getTime()).toBeGreaterThanOrEqual(now.getTime())
+  })
+})

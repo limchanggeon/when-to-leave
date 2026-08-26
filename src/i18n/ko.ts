@@ -22,6 +22,7 @@ export const ko = {
     countdownLabel: '출발까지',
     totalDuration: (m: string) => `총 ${m}`,
     alreadyLate: '이미 늦었어요 — 다음 편으로 다시 계산했어요',
+    renegotiated: (t: string) => `${t}까지는 이미 늦었어요. 지금 나가면 이게 가장 빠릅니다.`,
     buffer: (m: number) => `여유 ${m}분 포함`,
   },
   clock: {

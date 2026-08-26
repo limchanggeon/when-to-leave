@@ -121,6 +121,13 @@ export default function App() {
               <Countdown departAt={shown.legs[0].departAt} t={t} />
             </section>
 
+            {outcome.renegotiated && (
+              <div className="notice notice--warn" role="status">
+                <span aria-hidden="true">↻</span>
+                <span>{t.result.renegotiated(clock(outcome.target))}</span>
+              </div>
+            )}
+
             <Warnings warnings={deriveWarnings(shown.legs, now, shown.legs[0].departAt)} t={t} />
 
             <div className="columns">
