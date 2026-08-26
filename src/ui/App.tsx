@@ -13,6 +13,7 @@ import { TripSpine } from './components/TripSpine'
 import { Warnings } from './components/Warnings'
 import { Countdown } from './components/Countdown'
 import { Alternatives, type AlternativeView } from './components/Alternatives'
+import { Hero } from './components/Hero'
 
 const EXAMPLES = ['수서에서 부산 11시까지', '지금 나가면 부산 몇시 도착?']
 const UNIT = { h: '시간', m: '분' }
@@ -59,17 +60,16 @@ export default function App() {
 
   const clock = (d: Date) => formatClock(d, now, t.clock)
 
+  const hasResult = outcome !== null
+
   return (
     <div className="page">
-      <div className="shell">
-        <header className="masthead">
-          <h1 className="masthead__title">{t.app.title}</h1>
-          <p className="masthead__tagline">{t.app.tagline}</p>
-        </header>
-
-        {hasMockAdapters() && <MockBanner t={t} />}
-
+      <Hero t={t} compact={hasResult}>
         <SearchBar t={t} onSubmit={run} pending={pending} examples={EXAMPLES} />
+      </Hero>
+
+      <div className="shell">
+        {hasMockAdapters() && <MockBanner t={t} />}
 
         {outcome?.kind === 'gap' && (
           <DataGap
@@ -88,8 +88,6 @@ export default function App() {
 
         {!outcome && (
           <section className="empty">
-            <h2 className="empty__title">{t.empty.title}</h2>
-            <p className="empty__body">{t.empty.body}</p>
             <p className="empty__label">{t.empty.examples}</p>
             <div className="empty__chips">
               {EXAMPLES.map((e) => (

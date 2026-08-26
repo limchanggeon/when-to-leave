@@ -4,7 +4,13 @@ import type { I18nShape } from './ko'
 export const ja: I18nShape = {
   app: {
     title: 'いつ出れば間に合うか',
+    eyebrow: '出発時刻の逆算',
     tagline: '目的地を伝えると、出発時刻を計算します',
+    heroLines: [
+      '到着したい時刻を教えてください。',
+      '列車の時刻表・乗り換え・徒歩の時間まで逆算して',
+      '何時に家を出ればいいかをお知らせします。',
+    ],
   },
   search: {
     placeholder: '例: 新宿から東京駅まで11時までに',

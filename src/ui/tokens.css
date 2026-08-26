@@ -25,7 +25,14 @@
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
   --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px; --sp-12: 48px;
 
-  --radius-sm: 4px; --radius-md: 8px;
+  --radius-sm: 4px; --radius-md: 8px; --radius-pill: 999px;
+
+  /* 히어로 — 새벽 출발의 하늘. 밤(인디고) → 동틀녘(코발트) */
+  --hero-from: #2B3A8F;
+  --hero-to:   #4C6BE8;
+  --hero-ink:  #FFFFFF;
+  --hero-ink-soft: #C9D4FF;
+  --hero-accent: #52E0A6;
 
   /* 브레이크포인트(참고용 — 미디어쿼리에는 리터럴로 씀) */
   --bp-sm: 480px;
@@ -34,6 +41,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
+    --hero-from: #16205A; --hero-to: #2B3E9E;
+    --hero-ink-soft: #A9B8F0;
     --paper: #131719; --surface: #1B2126; --sunk: #0E1214;
     --ink: #E3E7E2; --ink-soft: #98A3A8; --ink-faint: #6C777D;
     --rule: #2B333A; --rule-strong: #3D474E;
@@ -42,6 +51,8 @@
   }
 }
 :root[data-theme='dark'] {
+  --hero-from: #16205A; --hero-to: #2B3E9E;
+  --hero-ink-soft: #A9B8F0;
   --paper: #131719; --surface: #1B2126; --sunk: #0E1214;
   --ink: #E3E7E2; --ink-soft: #98A3A8; --ink-faint: #6C777D;
   --rule: #2B333A; --rule-strong: #3D474E;

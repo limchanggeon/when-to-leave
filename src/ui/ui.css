@@ -1,9 +1,95 @@
 /* 레이아웃은 flex 위주 — RN 이식 대비(docs/PLATFORM.md). */
 
-.page { min-height: 100%; padding: var(--sp-8) var(--sp-4) var(--sp-12); }
+.page { min-height: 100%; display: flex; flex-direction: column; }
 .shell {
-  max-width: 1040px; margin: 0 auto;
+  width: 100%; max-width: 1040px; margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4) var(--sp-12);
   display: flex; flex-direction: column; gap: var(--sp-5);
+}
+
+
+/* ================= HERO ================= */
+.hero {
+  position: relative; overflow: hidden;
+  background: linear-gradient(160deg, var(--hero-from) 0%, var(--hero-to) 100%);
+  color: var(--hero-ink);
+  padding: var(--sp-12) var(--sp-4) 0;
+  display: flex; flex-direction: column; align-items: center;
+  min-height: 520px;
+  transition: min-height 0.35s ease, padding 0.35s ease;
+}
+.hero--compact { min-height: 0; padding: var(--sp-6) var(--sp-4); }
+
+/* 별·유성 — 정적 그라디언트라 애니메이션 비용이 없다 */
+.hero__stars {
+  position: absolute; inset: 0; pointer-events: none; opacity: 0.55;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 22%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 78% 14%, #fff, transparent),
+    radial-gradient(2px 2px   at 34% 8%,  var(--hero-accent), transparent),
+    radial-gradient(1.5px 1.5px at 91% 38%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 6% 52%, var(--hero-accent), transparent),
+    radial-gradient(1.5px 1.5px at 58% 30%, #fff, transparent),
+    radial-gradient(2px 2px   at 24% 44%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 68% 52%, var(--hero-accent), transparent);
+}
+
+.hero__inner {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 720px;
+  display: flex; flex-direction: column; align-items: center; gap: var(--sp-4);
+  text-align: center;
+}
+.hero__eyebrow {
+  margin: 0; font-family: var(--font-mono);
+  font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--hero-accent);
+}
+.hero__title {
+  margin: 0; font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(2.1rem, 6vw, 3.4rem); line-height: 1.15;
+  letter-spacing: -0.02em; text-wrap: balance;
+}
+.hero--compact .hero__title { font-size: clamp(1.4rem, 3.5vw, 1.8rem); }
+.hero__sub {
+  margin: 0; display: flex; flex-direction: column; gap: 2px;
+  color: var(--hero-ink-soft); font-size: 0.98rem; line-height: 1.6;
+}
+.hero__action { width: 100%; margin-top: var(--sp-2); }
+
+/* 히어로 안의 검색 — 알약형, 참조 사이트의 CTA 무게감 */
+.hero .search { flex-direction: row; gap: var(--sp-2); }
+.hero .search__input {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: transparent; border-radius: var(--radius-pill);
+  padding: var(--sp-4) var(--sp-6); color: #1B2530;
+}
+.hero .search__input:hover { border-color: rgba(255,255,255,0.8); }
+.hero .search__submit {
+  border-radius: var(--radius-pill); padding: 0 var(--sp-8);
+  background: var(--hero-accent); border-color: var(--hero-accent);
+  color: #10321F; font-weight: 700; letter-spacing: 0.02em;
+}
+.hero .search__submit:hover:not(:disabled) { filter: brightness(1.08); opacity: 1; }
+.hero .search__submit:disabled { background: rgba(255,255,255,0.25); border-color: transparent; color: rgba(255,255,255,0.6); }
+
+/* 경로 일러스트 */
+.hero__art { position: relative; z-index: 0; width: 100%; max-width: 1200px; height: 220px; margin-top: auto; }
+.hero__art-city rect { fill: rgba(255,255,255,0.12); }
+.hero__art-route {
+  stroke: rgba(255,255,255,0.85); stroke-width: 2.5;
+  stroke-dasharray: 7 9;
+}
+.hero__art-pin path { fill: #fff; }
+.hero__art-pin--end path { fill: var(--hero-accent); }
+.hero__art-pin-eye { fill: var(--hero-from); }
+.hero__art-dot { fill: var(--hero-accent); }
+
+@media (max-width: 640px) {
+  .hero { min-height: 440px; padding-top: var(--sp-10); }
+  .hero .search { flex-direction: column; }
+  .hero .search__submit { padding: var(--sp-4); }
+  .hero__art { height: 150px; }
 }
 
 /* ---------- masthead ---------- */
