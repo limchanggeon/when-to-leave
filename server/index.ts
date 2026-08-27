@@ -98,7 +98,8 @@ app.post('/api/route', async (req, res) => {
       })
       return
     }
-    res.json({ legs: route.legs, totalMin: route.totalMin, from: start, to: end })
+    // 첫 경로가 추천안, 나머지는 대안으로 쓴다
+    res.json({ routes: route.routes, from: start, to: end })
   } catch (e) {
     // 여기까지 온 건 예상 못 한 오류다. 원본은 서버 로그에만 남기고
     // 화면에는 사람이 읽을 수 있는 문장을 보낸다.

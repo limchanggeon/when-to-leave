@@ -4,16 +4,24 @@ export type SeatState = 'ok' | 'unknown' | 'sold-out'
 
 /**
  * 여정 전체의 좌석 상태.
- * null(조회 불가)과 false(매진)는 다르다 — KTX 는 계획 시간표뿐이라
- * 늘 null 인데, 이걸 매진과 같이 취급하면 KTX 가 영영 안 뽑힌다.
+ *
+ * null(조회 불가)과 false(매진)는 다르다 — 계획 시간표만 있는 편은 늘 null 인데,
+ * 이걸 매진과 같이 취급하면 그 편이 영영 안 뽑힌다.
+ *
+ * 좌석 정보가 **아예 없으면 'ok' 가 아니라 'unknown'** 이다.
+ * ODsay 처럼 좌석을 주지 않는 소스에서 'ok' 를 내면
+ * 화면에 "좌석 있음"이라는 근거 없는 말이 뜬다.
  */
 export function seatStateOf(legs: Leg[]): SeatState {
+  let sawSeatInfo = false
   let sawUnknown = false
   for (const leg of legs) {
-    if (!leg.discrete || !leg.seat) continue
+    if (!leg.seat) continue
+    sawSeatInfo = true
     if (leg.seat.available === false) return 'sold-out'
     if (leg.seat.available === null) sawUnknown = true
   }
+  if (!sawSeatInfo) return 'unknown'
   return sawUnknown ? 'unknown' : 'ok'
 }
 
@@ -61,8 +69,22 @@ export function compareRoutes(a: Rankable, b: Rankable, mode: Mode): number {
   return SEAT_TIEBREAK[seatStateOf(a.legs)] - SEAT_TIEBREAK[seatStateOf(b.legs)]
 }
 
-/** 경로를 사람이 알아볼 이름으로. 이름표를 따로 두지 않고 데이터에서 뽑는다. */
+/**
+ * 경로를 사람이 알아볼 이름으로. 이름표를 따로 두지 않고 데이터에서 뽑는다.
+ *
+ * 이산 구간만 보면 안 된다 — 시각표 없이 소요시간만 주는 소스(ODsay)에서는
+ * 모든 구간이 연속 구간이라 이름이 하나도 안 잡힌다.
+ * 가장 오래 타는 비(非)도보 구간을 대표로 쓴다.
+ */
 export function describeRoute(legs: Leg[]): { carrier: string | null; origin: string | null } {
-  const main = legs.find((l) => l.discrete && l.kind !== 'subway') ?? legs.find((l) => l.discrete)
+  const rides = legs.filter((l) => l.kind !== 'walk')
+  const main = rides.reduce<Leg | null>(
+    (best, leg) =>
+      !best || leg.arriveAt.getTime() - leg.departAt.getTime() >
+      best.arriveAt.getTime() - best.departAt.getTime()
+        ? leg
+        : best,
+    null,
+  )
   return { carrier: main?.carrier ?? null, origin: main?.from.name ?? null }
 }

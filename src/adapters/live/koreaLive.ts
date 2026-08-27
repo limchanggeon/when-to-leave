@@ -1,16 +1,66 @@
 import type { LegSpec, Place } from '../../engine/types'
-import type { AdapterResult, RouteAdapter, RouteRequest } from '../types'
+import type { AdapterResult, LabeledRoute, RouteAdapter, RouteRequest } from '../types'
 import { fail } from '../types'
 
 const SOURCE = 'odsay:korea'
 
 interface WireLeg {
-  kind: 'walk' | 'subway' | 'bus'
+  kind: LegSpec['kind']
   from: Place
   to: Place
   durationMin: number
   carrier?: string
-  confidence: 'live' | 'scheduled' | 'estimated'
+  confidence: LegSpec['confidence']
+  frequencyMin?: number
+  runsPerDay?: number
+  fare?: number
+}
+
+interface WireRoute {
+  legs: WireLeg[]
+  totalMin: number
+}
+
+const toSpecs = (legs: WireLeg[]): LegSpec[] =>
+  legs.map((leg) => ({
+    kind: leg.kind,
+    from: leg.from,
+    to: leg.to,
+    durationMin: leg.durationMin,
+    confidence: leg.confidence,
+    carrier: leg.carrier,
+    frequencyMin: leg.frequencyMin,
+    source: SOURCE,
+    origin: 'live' as const,
+  }))
+
+/** /api/route 응답을 한 번만 받아 route()/alternatives() 가 나눠 쓴다. */
+async function fetchRoutes(
+  req: RouteRequest,
+): Promise<AdapterResult<WireRoute[]>> {
+  try {
+    const res = await fetch('/api/route', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: req.from, to: req.to }),
+    })
+    const json = (await res.json()) as
+      | { routes: WireRoute[] }
+      | { error: { code: string; message: string } }
+
+    if (!res.ok || 'error' in json) {
+      const err = 'error' in json ? json.error : { code: 'upstream-error', message: '' }
+      const known = ['no-credentials', 'no-data', 'network', 'upstream-error'] as const
+      const code = (known as readonly string[]).includes(err.code)
+        ? (err.code as (typeof known)[number])
+        : 'upstream-error'
+      return fail(code, SOURCE, err.message)
+    }
+    if (json.routes.length === 0) return fail('no-data', SOURCE, '경로를 찾지 못했습니다')
+    return { ok: true, data: json.routes }
+  } catch (e) {
+    return fail('network', SOURCE, `서버에 연결하지 못했습니다 (${String(e)})`)
+  }
 }
 
 /**
@@ -28,42 +78,21 @@ export const liveKoreaAdapter: RouteAdapter = {
   supports: (req) => req.fromCountry === 'KR' && req.toCountry === 'KR',
 
   async route(req: RouteRequest): Promise<AdapterResult<LegSpec[]>> {
-    try {
-      const res = await fetch('/api/route', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: req.from, to: req.to }),
-      })
-      const json = (await res.json()) as
-        | { legs: WireLeg[] }
-        | { error: { code: string; message: string } }
+    const routes = await fetchRoutes(req)
+    return routes.ok ? { ok: true, data: toSpecs(routes.data[0].legs) } : routes
+  },
 
-      if (!res.ok || 'error' in json) {
-        const err = 'error' in json ? json.error : { code: 'upstream-error', message: '' }
-        // 서버가 준 코드를 그대로 쓴다. 모르는 코드만 upstream-error 로 접는다.
-        const known = ['no-credentials', 'no-data', 'network', 'upstream-error'] as const
-        const code = (known as readonly string[]).includes(err.code)
-          ? (err.code as (typeof known)[number])
-          : 'upstream-error'
-        return fail(code, SOURCE, err.message)
-      }
-
-      if (json.legs.length === 0) return fail('no-data', SOURCE, '경로 구간이 비어 있습니다')
-
-      return {
-        ok: true,
-        data: json.legs.map((leg) => ({
-          kind: leg.kind,
-          from: leg.from,
-          to: leg.to,
-          durationMin: leg.durationMin,
-          confidence: leg.confidence,
-          source: SOURCE,
-          origin: 'live' as const,
-        })),
-      }
-    } catch (e) {
-      return fail('network', SOURCE, `서버에 연결하지 못했습니다 (${String(e)})`)
+  /** ODsay 가 준 나머지 경로를 그대로 대안으로 쓴다. */
+  async alternatives(req: RouteRequest): Promise<AdapterResult<LabeledRoute[]>> {
+    const routes = await fetchRoutes(req)
+    if (!routes.ok) return { ok: true, data: [] }
+    return {
+      ok: true,
+      data: routes.data.slice(1).map((r, i) => ({
+        rung: i + 2,
+        labelKey: 'route.alt',
+        specs: toSpecs(r.legs),
+      })),
     }
   },
 }

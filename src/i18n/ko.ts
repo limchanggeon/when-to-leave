@@ -154,6 +154,7 @@ export const ko = {
     bus: '버스',
     train: '열차',
     flight: '항공',
+    frequency: (m: number) => `평균 ${m}분 간격`,
     wait: (m: number) => `대기 ${m}분`,
   },
   confidence: {

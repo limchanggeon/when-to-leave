@@ -41,6 +41,9 @@ export function TripSpine({ legs, now, t }: { legs: Leg[]; now: Date; t: I18nSha
               <div className="spine__tags">
                 <span className={`chip chip--${leg.confidence}`}>{t.confidence[leg.confidence]}</span>
                 {leg.waitMin > 0 && <span className="chip chip--muted">{t.leg.wait(leg.waitMin)}</span>}
+                {leg.frequencyMin ? (
+                  <span className="chip chip--muted">{t.leg.frequency(leg.frequencyMin)}</span>
+                ) : null}
                 {leg.bufferMin > 0 && (
                   <span className="chip chip--muted">{t.result.buffer(leg.bufferMin)}</span>
                 )}

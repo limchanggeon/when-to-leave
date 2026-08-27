@@ -2,8 +2,15 @@ export type HttpResult<T> =
   | { ok: true; status: number; data: T }
   | { ok: false; kind: 'network' | 'timeout' | 'status'; status?: number; message: string }
 
-const DEFAULT_TIMEOUT_MS = 8000
-const DEFAULT_RETRIES = 1
+/*
+ * 카카오·ODsay 는 DNS 라운드로빈으로 요청마다 다른 IP 를 준다.
+ * 그중 일부가 특정 네트워크에서 안 붙어 연결이 간헐적으로 멈춘다.
+ *
+ * 그래서 한 번에 오래 기다리기보다 **빨리 포기하고 다시 시도**하는 편이 낫다.
+ * 재시도할 때 DNS 가 다시 풀리면서 대개 다른(붙는) IP 를 잡는다.
+ */
+const DEFAULT_TIMEOUT_MS = 4000
+const DEFAULT_RETRIES = 3
 
 /**
  * 외부 API 호출. 타임아웃과 재시도를 붙인다.
@@ -49,7 +56,11 @@ export async function fetchJson<T>(
         ? `${label} 응답이 ${timeoutMs / 1000}초 안에 오지 않았습니다`
         : `${label}에 연결하지 못했습니다`
       if (attempt === retries) {
-        return { ok: false, kind: aborted ? 'timeout' : 'network', message: lastMessage }
+        return {
+          ok: false,
+          kind: aborted ? 'timeout' : 'network',
+          message: `${lastMessage} (${retries + 1}회 시도)`,
+        }
       }
     }
   }

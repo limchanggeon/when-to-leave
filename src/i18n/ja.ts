@@ -153,6 +153,7 @@ export const ja: I18nShape = {
     bus: 'バス',
     train: '列車',
     flight: '飛行機',
+    frequency: (m: number) => `平均 ${m}分間隔`,
     wait: (m) => `待ち時間 ${m}分`,
   },
   confidence: {

@@ -3,7 +3,7 @@ import { compact, solveBackward, solveForward } from './schedule'
 import { DEFAULT_POLICY } from './buffer'
 import { at } from './time'
 import type { Leg, LegSpec } from './types'
-import { compareRoutes } from './rank'
+import { compareRoutes, seatStateOf } from './rank'
 
 const day = new Date('2026-08-24T00:00:00')
 const P = (name: string) => ({ name })
@@ -156,5 +156,28 @@ describe('compareRoutes', () => {
     const unknown = route('09:30', '11:50', null)
     const available = route('07:00', '11:00', true)
     expect(compareRoutes(unknown, available, 'arriveBy')).toBeLessThan(0)
+  })
+})
+
+describe('seatStateOf', () => {
+  const bare = (): Leg => ({
+    kind: 'train', discrete: false, from: P('A'), to: P('B'),
+    departAt: at(day, '08:00'), arriveAt: at(day, '11:00'),
+    bufferMin: 0, waitMin: 0, confidence: 'estimated', source: SRC, origin: 'live',
+  })
+
+  it('좌석 정보가 아예 없으면 unknown 이다', () => {
+    // ODsay 는 좌석을 주지 않는다. 여기서 ok 를 내면 화면에
+    // "좌석 있음"이라는 근거 없는 말이 뜬다.
+    expect(seatStateOf([bare()])).toBe('unknown')
+  })
+
+  it('좌석이 확인되면 ok', () => {
+    expect(seatStateOf([{ ...bare(), seat: { available: true } }])).toBe('ok')
+  })
+
+  it('하나라도 매진이면 sold-out', () => {
+    expect(seatStateOf([{ ...bare(), seat: { available: true } }, { ...bare(), seat: { available: false } }]))
+      .toBe('sold-out')
   })
 })

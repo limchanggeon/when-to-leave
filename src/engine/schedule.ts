@@ -27,6 +27,8 @@ function baseLeg(s: LegSpec, departAt: Date, arriveAt: Date, bufferMin: number):
     bufferMin,
     waitMin: 0,
     confidence: s.confidence,
+    carrier: s.carrier,
+    frequencyMin: s.frequencyMin,
     source: s.source,
     origin: s.origin,
   }

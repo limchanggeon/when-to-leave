@@ -33,6 +33,13 @@ export interface LegSpec {
   durationMin: number
   /** 이산 구간의 출발 시각 목록. 오름차순 정렬 전제. */
   departures?: Departure[]
+  /** 연속 구간이지만 운행편 이름이 있는 경우(예: KTX). 화면 표시용. */
+  carrier?: string
+  /**
+   * 평균 배차 간격(분). 시각표가 없을 때 "얼마나 기다릴 수 있는지"를 알린다.
+   * 시각표가 있으면 departures 를 쓰고 이건 안 쓴다.
+   */
+  frequencyMin?: number
   confidence: Confidence
   /**
    * 이 구간에 적용할 여유(분). 어댑터가 직접 지정할 수 있다.
@@ -74,6 +81,8 @@ export interface Leg {
   /** 이산 구간에서 앞 구간 도착 후 대기한 시간(분). 순방향 계산에서만 생긴다. */
   waitMin: number
   carrier?: string
+  /** 시각표가 없는 구간의 평균 배차 간격(분). */
+  frequencyMin?: number
   seat?: SeatInfo
   confidence: Confidence
   source: string

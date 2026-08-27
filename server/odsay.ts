@@ -4,25 +4,59 @@ import type { GeoPoint } from './geocode'
 
 const PATH_URL = 'https://api.odsay.com/v1/api/searchPubTransPathT'
 
-/** 클라이언트로 넘길 구간. LegSpec 과 같은 모양이되 JSON 으로 안전한 것만 담는다. */
+/** 클라이언트로 넘길 구간. JSON 으로 안전한 값만 담는다(시각은 ISO 문자열). */
 export interface WireLeg {
-  kind: 'walk' | 'subway' | 'bus'
+  kind: 'walk' | 'subway' | 'bus' | 'train' | 'flight'
   from: { name: string; lat?: number; lng?: number }
   to: { name: string; lat?: number; lng?: number }
   durationMin: number
   carrier?: string
   confidence: 'live' | 'scheduled' | 'estimated'
+  /**
+   * 평균 배차 간격(분)과 하루 운행 편수.
+   *
+   * ODsay 는 **시각표를 주지 않는다.** 문서에는 startDateTime 이 있다고
+   * 적혀 있지만 실제 응답에는 오지 않았고, 대신 이 두 값이 온다.
+   * 그래서 구간은 연속 구간으로 두되, 배차 간격만큼 기다릴 수 있다는 사실은
+   * 화면에 알린다. 진짜 시각표는 별도 소스가 붙어야 한다.
+   */
+  frequencyMin?: number
+  runsPerDay?: number
+  fare?: number
+  /** 특실 운영 여부(기차). */
+  premiumSeat?: boolean
+}
+
+export interface WireRoute {
+  legs: WireLeg[]
+  totalMin: number
 }
 
 export type RouteResult =
-  | { ok: true; legs: WireLeg[]; totalMin: number }
+  | { ok: true; routes: WireRoute[] }
   | { ok: false; code: 'no-credentials' | 'no-data' | 'network' | 'upstream-error'; message: string }
 
-const TRAFFIC = { 1: 'subway', 2: 'bus', 3: 'walk' } as const
+/** 시내: 1=지하철 2=버스 3=도보 / 시외: 4=기차 5=고속버스 6=시외버스 7=항공 */
+const TRAFFIC: Record<number, WireLeg['kind']> = {
+  1: 'subway',
+  2: 'bus',
+  3: 'walk',
+  4: 'train',
+  5: 'bus',
+  6: 'bus',
+  7: 'flight',
+}
+
+/**
+ * trainType. 1~3 은 ODsay 문서 기준이고, 8 은 실제 응답에서 관측했다
+ * (수서 → 부산 이 8 로 오는데 수서발 고속열차는 SRT 뿐이다).
+ * 모르는 값은 지어내지 않고 그냥 "기차" 로 둔다.
+ */
+const TRAIN_TYPE: Record<number, string> = { 1: 'KTX', 2: '새마을', 3: '무궁화', 8: 'SRT' }
 
 interface OdsaySubPath {
-  trafficType: 1 | 2 | 3
-  sectionTime: number
+  trafficType: number
+  sectionTime?: number
   startName?: string
   endName?: string
   startX?: number
@@ -30,70 +64,37 @@ interface OdsaySubPath {
   endX?: number
   endY?: number
   lane?: { name?: string; busNo?: string }[]
+  trainType?: number
+  payment?: number
+  intervalTime?: number
+  intervalCount?: number
+  trainSpSeatYn?: string
 }
 
 interface OdsayResponse {
   error?: { code?: string; message?: string; msg?: string }
-  result?: {
-    path?: { info: { totalTime: number }; subPath: OdsaySubPath[] }[]
-  }
+  result?: { path?: { info?: { totalTime?: number }; subPath?: OdsaySubPath[] }[] }
 }
 
-const laneName = (sub: OdsaySubPath): string | undefined => {
+function carrierOf(sub: OdsaySubPath): string | undefined {
+  if (sub.trafficType === 4) {
+    const type = sub.trainType ? TRAIN_TYPE[sub.trainType] : undefined
+    return type ?? '기차'
+  }
+  if (sub.trafficType === 5) return '고속버스'
+  if (sub.trafficType === 6) return '시외버스'
+  if (sub.trafficType === 7) return '항공'
   const lane = sub.lane?.[0]
   return lane?.name ?? lane?.busNo
 }
 
-/**
- * ODsay 대중교통 길찾기.
- *
- * 한계: 이 API 는 구간 소요시간만 주고 **출발 시각표는 주지 않는다.**
- * 그래서 모든 구간이 연속 구간(durationMin)으로 온다 — 역산 엔진의
- * 데드라인 전파는 열차 시간표가 붙어야 제 몫을 한다.
- * 지금은 "실제 소요시간"까지가 이 어댑터가 줄 수 있는 전부다.
- */
-export async function searchTransitRoute(from: GeoPoint, to: GeoPoint): Promise<RouteResult> {
-  if (!serverEnv.odsayKey) {
-    return { ok: false, code: 'no-credentials', message: 'ODSAY_API_KEY 가 없습니다' }
-  }
-
-  const url =
-    `${PATH_URL}?apiKey=${encodeURIComponent(serverEnv.odsayKey)}` +
-    `&SX=${from.lng}&SY=${from.lat}&EX=${to.lng}&EY=${to.lat}&OPT=0&output=json`
-
-  const res = await fetchJson<OdsayResponse>(
-    url,
-    // Web 키는 도메인으로 식별하므로 등록한 Service URI 를 Referer 로 보낸다.
-    { headers: { Referer: serverEnv.odsayReferer } },
-    { label: 'ODsay 길찾기' },
-  )
-  if (!res.ok) {
-    return {
-      ok: false,
-      code: res.kind === 'status' ? 'upstream-error' : 'network',
-      message: res.message,
-    }
-  }
-  const json = res.data
-
-  if (json.error) {
-    return {
-      ok: false,
-      code: 'upstream-error',
-      message: json.error.message ?? json.error.msg ?? `ODsay 오류 ${json.error.code ?? ''}`.trim(),
-    }
-  }
-
-  const best = json.result?.path?.[0]
-  if (!best || best.subPath.length === 0) {
-    return { ok: false, code: 'no-data', message: '이 구간의 대중교통 경로를 찾지 못했습니다' }
-  }
-
-  const legs: WireLeg[] = best.subPath
-    // 소요시간 0분짜리 자투리 구간은 화면만 어지럽힌다
-    .filter((sub) => sub.sectionTime > 0)
+function toLegs(subPaths: OdsaySubPath[], from: GeoPoint, to: GeoPoint): WireLeg[] {
+  return subPaths
+    .filter((sub) => (sub.sectionTime ?? 0) > 0)
     .map((sub, i, arr) => {
-      const kind = TRAFFIC[sub.trafficType]
+      // 모르는 trafficType 이 와도 구간을 통째로 버리지 않는다.
+      // 다만 무엇인지 모른다는 사실은 carrier 로 남긴다.
+      const kind = TRAFFIC[sub.trafficType] ?? 'bus'
       return {
         kind,
         from: {
@@ -106,16 +107,91 @@ export async function searchTransitRoute(from: GeoPoint, to: GeoPoint): Promise<
           lat: sub.endY,
           lng: sub.endX,
         },
-        durationMin: sub.sectionTime,
-        carrier: kind === 'walk' ? undefined : laneName(sub),
-        // ODsay 시간은 평시 기준 추정치다. 실시간이 아니다.
-        confidence: kind === 'walk' ? 'estimated' : 'scheduled',
+        durationMin: sub.sectionTime ?? 0,
+        carrier: kind === 'walk' ? undefined : carrierOf(sub),
+        // 시각표가 아니라 평시 소요시간이므로 실시간이라고 말하지 않는다
+        confidence: 'estimated',
+        frequencyMin: sub.intervalTime,
+        runsPerDay: sub.intervalCount,
+        fare: sub.payment,
+        premiumSeat: sub.trainSpSeatYn === 'Y' ? true : undefined,
       }
     })
+}
 
-  if (legs.length === 0) {
-    return { ok: false, code: 'no-data', message: '경로 구간이 비어 있습니다' }
+/** 두 지점 사이 거리(km). 시내/시외 검색을 가르는 데 쓴다. */
+function distanceKm(a: GeoPoint, b: GeoPoint): number {
+  const R = 6371
+  const rad = (d: number) => (d * Math.PI) / 180
+  const dLat = rad(b.lat - a.lat)
+  const dLng = rad(b.lng - a.lng)
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(h))
+}
+
+const INTERCITY_KM = 40
+
+async function call(from: GeoPoint, to: GeoPoint, searchType: 0 | 1): Promise<RouteResult> {
+  const url =
+    `${PATH_URL}?apiKey=${encodeURIComponent(serverEnv.odsayKey!)}` +
+    `&SX=${from.lng}&SY=${from.lat}&EX=${to.lng}&EY=${to.lat}` +
+    `&OPT=0&SearchType=${searchType}&output=json`
+
+  const res = await fetchJson<OdsayResponse>(
+    url,
+    { headers: { Referer: serverEnv.odsayReferer } },
+    { label: 'ODsay 길찾기' },
+  )
+  if (!res.ok) {
+    return {
+      ok: false,
+      code: res.kind === 'status' ? 'upstream-error' : 'network',
+      message: res.message,
+    }
   }
 
-  return { ok: true, legs, totalMin: best.info.totalTime }
+  const json = res.data
+  if (json.error) {
+    return {
+      ok: false,
+      code: 'upstream-error',
+      message: json.error.message ?? json.error.msg ?? `ODsay 오류 ${json.error.code ?? ''}`.trim(),
+    }
+  }
+
+  const paths = json.result?.path ?? []
+  const routes: WireRoute[] = paths
+    .slice(0, 3) // 대안까지 최대 3개
+    .map((p) => ({ legs: toLegs(p.subPath ?? [], from, to), totalMin: p.info?.totalTime ?? 0 }))
+    .filter((r) => r.legs.length > 0)
+
+  if (routes.length === 0) {
+    return { ok: false, code: 'no-data', message: '이 구간의 대중교통 경로를 찾지 못했습니다' }
+  }
+  return { ok: true, routes }
+}
+
+/**
+ * ODsay 대중교통 길찾기.
+ *
+ * 시내(SearchType=0)와 시외(1)는 응답이 다르다. 시외에만 실제 출발·도착
+ * 시각(startDateTime)이 오고, 그래야 역산 엔진의 데드라인 전파가 의미를 가진다.
+ * 거리로 먼저 고르고, 결과가 없으면 반대쪽도 시도한다.
+ */
+export async function searchTransitRoute(from: GeoPoint, to: GeoPoint): Promise<RouteResult> {
+  if (!serverEnv.odsayKey) {
+    return { ok: false, code: 'no-credentials', message: 'ODSAY_API_KEY 가 없습니다' }
+  }
+
+  const first: 0 | 1 = distanceKm(from, to) >= INTERCITY_KM ? 1 : 0
+  const primary = await call(from, to, first)
+  if (primary.ok) return primary
+
+  // 거리 판단이 빗나갈 수 있다(섬, 광역 경계 등). 반대쪽도 한 번 본다.
+  if (primary.code === 'no-data') {
+    const fallback = await call(from, to, first === 1 ? 0 : 1)
+    if (fallback.ok) return fallback
+  }
+  return primary
 }
