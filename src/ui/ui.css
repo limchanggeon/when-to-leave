@@ -46,7 +46,7 @@
   color: var(--hero-accent);
 }
 .hero__title {
-  margin: 0; font-family: var(--font-display); font-weight: 700;
+  margin: 0; font-family: var(--font-display); font-weight: 800;
   font-size: clamp(2.1rem, 6vw, 3.4rem); line-height: 1.15;
   letter-spacing: -0.02em; text-wrap: balance;
 }
@@ -145,7 +145,7 @@
   display: flex; flex-direction: column; gap: var(--sp-2);
   padding: var(--sp-4) var(--sp-4) 0; text-align: center;
 }
-.empty__title { font-family: var(--font-display); font-size: 1.5rem; margin: 0; font-weight: 700; }
+.empty__title { font-family: var(--font-display); font-size: 1.5rem; margin: 0; font-weight: 800; }
 .empty__body { color: var(--ink-soft); margin: 0; font-size: 0.95rem; }
 .empty__label {
   margin: 0 0 var(--sp-1); font-family: var(--font-mono);
@@ -168,7 +168,7 @@
 }
 .verdict__main { display: flex; align-items: baseline; gap: var(--sp-4); min-width: 0; flex-wrap: wrap; }
 .verdict__depart {
-  font-family: var(--font-display); font-weight: 700;
+  font-family: var(--font-display); font-weight: 800;
   font-size: clamp(1.4rem, 3.2vw, 1.9rem); margin: 0; letter-spacing: -0.02em;
 }
 .verdict__arrive {
@@ -413,7 +413,7 @@
   letter-spacing: 0.18em; text-transform: uppercase; color: var(--brass);
 }
 .login__title {
-  margin: 0; font-family: var(--font-display); font-weight: 700;
+  margin: 0; font-family: var(--font-display); font-weight: 800;
   font-size: 1.8rem; letter-spacing: -0.02em; color: var(--ink);
 }
 .login__sub { margin: var(--sp-1) 0 var(--sp-5); color: var(--ink-soft); font-size: 0.88rem; line-height: 1.6; }
@@ -479,7 +479,7 @@
   color: inherit; text-decoration: none;
 }
 .siteheader__logo { width: 26px; height: 26px; color: var(--hero-accent); flex: 0 0 auto; }
-.siteheader__name { font-family: var(--font-display); font-weight: 700; font-size: 1.02rem; letter-spacing: -0.01em; }
+.siteheader__name { font-family: var(--font-display); font-weight: 700; font-size: 1rem; letter-spacing: -0.015em; }
 .siteheader__nav { display: flex; align-items: center; gap: var(--sp-4); }
 .siteheader__link {
   color: var(--hero-ink-soft); font-size: 0.86rem; text-decoration: none;
@@ -590,7 +590,7 @@
   letter-spacing: 0.16em; text-transform: uppercase; color: var(--brass);
 }
 .how__title {
-  margin: 0; font-family: var(--font-display); font-weight: 700;
+  margin: 0; font-family: var(--font-display); font-weight: 800;
   font-size: clamp(1.5rem, 3.5vw, 2rem); letter-spacing: -0.02em;
 }
 .how__lead { margin: var(--sp-2) 0 var(--sp-6); color: var(--ink-soft); max-width: 62ch; }
