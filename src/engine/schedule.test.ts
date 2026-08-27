@@ -11,7 +11,7 @@ const SRC = 'test'
 
 function specs(): LegSpec[] {
   return [
-    { kind: 'walk', from: P('집'), to: P('역'), durationMin: 6, confidence: 'estimated', source: SRC, origin: 'mock' },
+    { kind: 'walk', from: P('집'), to: P('역'), durationMin: 6, confidence: 'estimated', source: SRC, origin: 'live' },
     {
       kind: 'subway',
       from: P('역'),
@@ -24,7 +24,7 @@ function specs(): LegSpec[] {
       ],
       confidence: 'live',
       source: SRC,
-      origin: 'mock',
+      origin: 'live',
     },
     {
       kind: 'train',
@@ -34,9 +34,9 @@ function specs(): LegSpec[] {
       departures: [{ at: at(day, '08:35') }, { at: at(day, '10:00') }],
       confidence: 'scheduled',
       source: SRC,
-      origin: 'mock',
+      origin: 'live',
     },
-    { kind: 'walk', from: P('부산역'), to: P('사무실'), durationMin: 8, confidence: 'estimated', source: SRC, origin: 'mock' },
+    { kind: 'walk', from: P('부산역'), to: P('사무실'), durationMin: 8, confidence: 'estimated', source: SRC, origin: 'live' },
   ]
 }
 
@@ -127,7 +127,7 @@ describe('compareRoutes', () => {
     kind: 'train', discrete: true, from: P('A'), to: P('B'),
     departAt: at(day, '08:00'), arriveAt: at(day, '11:00'),
     bufferMin: 9, waitMin: 0, seat: { available: seat },
-    confidence: 'live', source: SRC, origin: 'mock',
+    confidence: 'live', source: SRC, origin: 'live',
   })
   const route = (depart: string, arrive: string, seat: boolean | null) => ({
     legs: [leg(seat)], departAt: at(day, depart), arriveAt: at(day, arrive),

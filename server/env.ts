@@ -29,6 +29,6 @@ export function missingServerEnv(): { name: string; breaks: string }[] {
   if (!serverEnv.kakaoRestKey)
     out.push({ name: 'KAKAO_REST_API_KEY', breaks: '카카오 로그인, 장소 검색' })
   if (!serverEnv.odsayKey)
-    out.push({ name: 'ODSAY_API_KEY', breaks: '실제 경로 조회 (목업으로 대체됨)' })
+    out.push({ name: 'ODSAY_API_KEY', breaks: '경로 조회 전체 — 이 키가 없으면 경로가 나오지 않습니다' })
   return out
 }

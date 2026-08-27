@@ -181,5 +181,4 @@ export const ja: I18nShape = {
     'upstream-error': (a) => `${a} がエラーを返しました`,
     retry: '再試行',
   },
-  mockBanner: '現在表示中の時刻表はモックデータです。実際の値ではありません。',
 }

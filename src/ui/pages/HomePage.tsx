@@ -10,7 +10,6 @@ import { SearchPanel, type QueryInput } from '../components/SearchPanel'
 import { SiteHeader } from '../components/SiteHeader'
 import { HowItWorks } from '../components/HowItWorks'
 import { SiteFooter } from '../components/SiteFooter'
-import { MockBanner } from '../components/MockBanner'
 import { DataGap } from '../components/DataGap'
 import { TripSpine } from '../components/TripSpine'
 import { Warnings } from '../components/Warnings'
@@ -86,9 +85,6 @@ export function HomePage() {
       </Hero>
 
       <div className="shell">
-        {/* 등록 여부가 아니라 실제로 쓰인 데이터를 보고 띄운다.
-            ODsay 키가 있으면 실제 경로가 오고, 그때는 이 배너가 사라져야 한다. */}
-        {shown?.legs.some((l) => l.origin === 'mock') && <MockBanner t={t} />}
         <SetupNotice />
 
         {outcome?.kind === 'gap' && (

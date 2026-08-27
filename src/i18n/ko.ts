@@ -182,7 +182,6 @@ export const ko = {
     'upstream-error': (adapter: string) => `${adapter}가 오류를 반환했습니다`,
     retry: '다시 시도',
   },
-  mockBanner: '지금 보는 시간표는 목업 데이터입니다. 실제 값이 아닙니다.',
 }
 
 export type I18nShape = typeof ko

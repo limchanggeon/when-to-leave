@@ -2,23 +2,18 @@ import type { AdapterResult, RouteAdapter, RouteRequest } from './types'
 import { fail } from './types'
 import type { LegSpec } from '../engine/types'
 
-/* ------------------------------------------------------------------ *
- * 목업 제거 방법
- *   1. 아래 import 한 줄과 adapters 배열의 mock 항목을 지운다
- *   2. src/adapters/mock/ 폴더를 통째로 지운다
- * 그러면 실제 어댑터가 없는 구간은 자동으로 'not-implemented' 를 내고,
- * 화면에는 <DataGap> 이 떠서 데이터가 안 들어왔음을 그대로 보여준다.
- * ------------------------------------------------------------------ */
-import { mockKoreaAdapter } from './mock/koreaMock'
 import { liveKoreaAdapter } from './live/koreaLive'
 
-const adapters: RouteAdapter[] = [
-  liveKoreaAdapter, // 실제 데이터(ODsay). 키가 없으면 실패를 내고 아래로 넘어간다.
-  mockKoreaAdapter, // ← 목업. 실제 어댑터가 자리를 잡으면 이 줄을 지운다.
-]
-
-/** 등록된 어댑터 중 목업이 하나라도 있으면 화면 상단에 배너를 띄운다. */
-export const hasMockAdapters = (): boolean => adapters.some((a) => a.origin === 'mock')
+/*
+ * 목업은 제거했다.
+ *
+ * 목업이 있으면 실제 데이터가 없을 때 그럴듯한 가짜가 대신 나온다.
+ * 그 가짜는 자기가 아는 범위를 벗어나면 조용히 헛소리를 하고
+ * (예: 대전에서 서울 동네역까지 "도보 6분"),
+ * 그때마다 목업의 한계를 하나씩 막는 코드가 늘어난다.
+ * 데이터가 없으면 없다고 말하는 편이 낫다 — 그러면 <DataGap> 이 뜬다.
+ */
+const adapters: RouteAdapter[] = [liveKoreaAdapter]
 
 export const registeredAdapters = (): ReadonlyArray<RouteAdapter> => adapters
 
@@ -33,9 +28,8 @@ export async function resolveRoute(req: RouteRequest): Promise<AdapterResult<Leg
     )
   }
 
-  // 실제 어댑터를 먼저 시도한다. 실패하면 목업으로 이어가되,
-  // 어떤 어댑터가 답했는지는 각 구간의 origin 에 남아 화면에 그대로 표시된다.
-  // "실제인 줄 알았는데 목업이었다" 가 되지 않게 하는 장치다.
+  // 실제 어댑터를 먼저 시도한다. 어떤 어댑터가 답했는지는 각 구간의 origin 에
+  // 남아 화면에 그대로 표시된다.
   const ordered = [...candidates].sort(
     (a, b) => (a.origin === 'live' ? -1 : 1) - (b.origin === 'live' ? -1 : 1),
   )
