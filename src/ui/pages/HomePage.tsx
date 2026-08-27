@@ -47,7 +47,12 @@ export function HomePage() {
 
     const result = await planTrip(
       {
-        from: { name: query.from || '집' },
+        // 좌표가 있으면 함께 넘긴다 — 지도와 경로 계산 모두 지명보다 좌표가 정확하다
+        from: {
+          name: query.from || '집',
+          lat: query.fromCoords?.lat,
+          lng: query.fromCoords?.lng,
+        },
         to: { name: query.to },
         around: at,
         fromCountry: 'KR',

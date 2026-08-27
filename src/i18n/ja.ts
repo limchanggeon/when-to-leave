@@ -63,6 +63,19 @@ export const ja: I18nShape = {
     failed: 'ログインできませんでした',
     retry: '再試行',
   },
+  geo: {
+    use: '現在地',
+    locating: '位置を確認中…',
+    currentLocation: '現在地',
+    accuracy: (m: number) => `誤差 約${m}m`,
+    err: {
+      unsupported: 'このブラウザは位置情報に対応していません',
+      denied: '位置情報が拒否されています。アドレスバーの鍵アイコンから位置情報を許可に変更してください。',
+      unavailable: '位置を取得できませんでした。しばらくしてからお試しください。',
+      timeout: '位置の確認に時間がかかっています。もう一度お試しください。',
+      'no-address': '座標は取得できましたが、地名を特定できませんでした',
+    },
+  },
   route: {
     chosen: {
       'latest-departure': '最も遅く出発できる経路',

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { I18nShape } from '../../i18n'
 import { parseUtterance } from '../../parse/parse'
+import { currentPlace, type Coords, type GeoFailure } from '../../geo'
 
 export interface QueryInput {
   mode: 'arriveBy' | 'departNow'
@@ -8,6 +9,8 @@ export interface QueryInput {
   to: string
   /** "HH:mm" — departNow 모드에서는 null */
   when: string | null
+  /** 현재 위치로 잡았다면 좌표가 함께 간다. 지명보다 좌표가 정확하다. */
+  fromCoords?: Coords
 }
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -37,6 +40,22 @@ export function SearchPanel({
   const [to, setTo] = useState('')
   const [when, setWhen] = useState('')
   const [text, setText] = useState('')
+  const [fromCoords, setFromCoords] = useState<Coords | undefined>()
+  const [locating, setLocating] = useState(false)
+  const [geoError, setGeoError] = useState<GeoFailure | null>(null)
+
+  async function useCurrentLocation() {
+    setLocating(true)
+    setGeoError(null)
+    const r = await currentPlace(t.geo.currentLocation)
+    if (r.ok) {
+      setFrom(r.data.name)
+      setFromCoords(r.data.coords)
+    } else {
+      setGeoError(r.failure)
+    }
+    setLocating(false)
+  }
 
   const canSubmit = freeform ? text.trim().length > 0 : to.trim().length > 0
 
@@ -60,6 +79,7 @@ export function SearchPanel({
       from: from.trim(),
       to: to.trim(),
       when: mode === 'arriveBy' ? when || null : null,
+      fromCoords,
     })
   }
 
@@ -102,11 +122,25 @@ export function SearchPanel({
         <>
           <div className="panel__row">
             <label className="field">
-              <span className="field__label">{t.search.from}</span>
+              <span className="field__label">
+                {t.search.from}
+                <button
+                  type="button"
+                  className="field__geo"
+                  onClick={useCurrentLocation}
+                  disabled={locating}
+                >
+                  {locating ? t.geo.locating : `◎ ${t.geo.use}`}
+                </button>
+              </span>
               <input
                 className="field__input"
                 value={from}
-                onChange={(e) => setFrom(e.target.value)}
+                onChange={(e) => {
+                  setFrom(e.target.value)
+                  // 직접 고쳐 적으면 아까 잡은 좌표는 더 이상 그 지명이 아니다
+                  setFromCoords(undefined)
+                }}
                 placeholder={t.search.fromPlaceholder}
               />
             </label>
@@ -166,6 +200,12 @@ export function SearchPanel({
             </div>
           )}
         </>
+      )}
+
+      {geoError && (
+        <p className="panel__geoerror" role="alert">
+          {t.geo.err[geoError.code]}
+        </p>
       )}
 
       <button className="panel__submit" type="submit" disabled={!canSubmit || pending}>

@@ -64,6 +64,19 @@ export const ko = {
     failed: '로그인하지 못했습니다',
     retry: '다시 시도',
   },
+  geo: {
+    use: '현재 위치',
+    locating: '위치 확인 중…',
+    currentLocation: '현재 위치',
+    accuracy: (m: number) => `오차 약 ${m}m`,
+    err: {
+      unsupported: '이 브라우저는 위치 기능을 지원하지 않습니다',
+      denied: '위치 권한이 거부돼 있습니다. 브라우저 주소창의 자물쇠 아이콘에서 위치 권한을 허용으로 바꿔주세요.',
+      unavailable: '위치를 잡지 못했습니다. 잠시 후 다시 시도해 주세요.',
+      timeout: '위치 확인이 오래 걸립니다. 다시 시도해 주세요.',
+      'no-address': '좌표는 찾았지만 지명을 알아내지 못했습니다',
+    },
+  },
   route: {
     chosen: {
       'latest-departure': '가장 늦게 나가도 되는 경로',

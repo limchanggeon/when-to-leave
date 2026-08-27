@@ -670,3 +670,18 @@
 .alt.is-on { border-color: var(--brass); background: var(--brass-wash); }
 .alt__origin { color: var(--ink-faint); font-weight: 400; }
 .verdict__tag--alt { background: var(--sunk); color: var(--ink-soft); }
+
+/* ---------- 현재 위치 ---------- */
+.field__label { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+.field__geo {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-family: inherit; font-size: 0.7rem; font-weight: 600;
+  color: var(--brass); letter-spacing: 0; text-transform: none;
+}
+.field__geo:hover:not(:disabled) { text-decoration: underline; text-underline-offset: 2px; }
+.field__geo:disabled { color: var(--ink-faint); cursor: progress; }
+.panel__geoerror {
+  margin: 0; padding: var(--sp-2) var(--sp-3);
+  background: var(--rust-wash); border-left: 3px solid var(--rust);
+  border-radius: var(--radius-sm); font-size: 0.82rem; color: var(--ink);
+}

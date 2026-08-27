@@ -75,6 +75,17 @@ function runs(
 const KORAIL = 'https://www.letskorail.com/'
 const KOBUS = 'https://www.kobus.co.kr/'
 
+/**
+ * 요청받은 출발지를 쓴다. 좌표가 있으면 그대로 살려야 지도에 실제 위치가 찍힌다.
+ * 이름만 있고 좌표가 없으면 기본 좌표(HOME)를 빌려 쓴다 — 목업이라 그만큼만 안다.
+ */
+function originOf(req: RouteRequest): Place {
+  const from = req.from
+  if (!from?.name) return HOME
+  const hasCoords = typeof from.lat === 'number' && typeof from.lng === 'number'
+  return hasCoords ? from : { ...HOME, name: from.name }
+}
+
 const walk = (from: Place, to: Place, durationMin: number): LegSpec => ({
   kind: 'walk',
   from,
@@ -85,9 +96,9 @@ const walk = (from: Place, to: Place, durationMin: number): LegSpec => ({
   origin: 'mock',
 })
 
-function baseRoute(base: Date): LegSpec[] {
+function baseRoute(base: Date, origin: Place): LegSpec[] {
   return [
-    walk(HOME, LOCAL, 6),
+    walk(origin, LOCAL, 6),
     {
       kind: 'subway',
       from: LOCAL,
@@ -118,9 +129,9 @@ function baseRoute(base: Date): LegSpec[] {
   ]
 }
 
-function suseoRoute(base: Date): LegSpec[] {
+function suseoRoute(base: Date, origin: Place): LegSpec[] {
   return [
-    walk(HOME, LOCAL, 6),
+    walk(origin, LOCAL, 6),
     {
       kind: 'subway',
       from: LOCAL,
@@ -151,9 +162,9 @@ function suseoRoute(base: Date): LegSpec[] {
   ]
 }
 
-function busRoute(base: Date): LegSpec[] {
+function busRoute(base: Date, origin: Place): LegSpec[] {
   return [
-    walk(HOME, TERMINAL, 21),
+    walk(origin, TERMINAL, 21),
     {
       kind: 'bus',
       from: TERMINAL,
@@ -192,15 +203,15 @@ export const mockKoreaAdapter: RouteAdapter = {
         `이 목업은 "부산"행 경로만 알고 있습니다 (입력: "${req.to.name}")`,
       )
     }
-    return { ok: true, data: baseRoute(req.around) }
+    return { ok: true, data: baseRoute(req.around, originOf(req)) }
   },
 
   async alternatives(req: RouteRequest): Promise<AdapterResult<LabeledRoute[]>> {
     return {
       ok: true,
       data: [
-        { rung: 2, labelKey: 'fallback.station', specs: suseoRoute(req.around) },
-        { rung: 3, labelKey: 'fallback.bus', specs: busRoute(req.around) },
+        { rung: 2, labelKey: 'fallback.station', specs: suseoRoute(req.around, originOf(req)) },
+        { rung: 3, labelKey: 'fallback.bus', specs: busRoute(req.around, originOf(req)) },
       ],
     }
   },
