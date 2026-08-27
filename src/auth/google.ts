@@ -8,6 +8,7 @@ type GoogleGlobal = {
     id: {
       initialize(o: { client_id: string; callback: (r: { credential: string }) => void }): void
       prompt(cb?: (n: { isNotDisplayed(): boolean; isSkippedMoment(): boolean }) => void): void
+      renderButton(el: HTMLElement, o: Record<string, string | number>): void
       disableAutoSelect(): void
     }
   }
@@ -47,6 +48,52 @@ function decodeIdToken(jwt: string): Account | null {
   } catch {
     return null
   }
+}
+
+/**
+ * 구글이 직접 그려주는 공식 로그인 버튼.
+ *
+ * 브랜드 가이드라인상 구글 로고를 임의로 그려 쓰면 안 되는데,
+ * renderButton 을 쓰면 규격에 맞는 버튼을 구글이 렌더해준다.
+ * 로그인 페이지처럼 버튼을 크게 보여주는 자리에서 이걸 쓴다.
+ */
+export async function mountGoogleButton(
+  el: HTMLElement,
+  onResult: (r: AuthResult) => void,
+): Promise<{ ok: boolean }> {
+  const clientId = config.google.clientId
+  if (!clientId) return { ok: false }
+
+  try {
+    await loadScript(SDK)
+  } catch {
+    return { ok: false }
+  }
+
+  const google = window.google
+  if (!google) return { ok: false }
+
+  google.accounts.id.initialize({
+    client_id: clientId,
+    callback: (res) => {
+      const account = decodeIdToken(res.credential)
+      onResult(
+        account
+          ? { ok: true, account }
+          : { ok: false, failure: { code: 'failed', provider: 'google', detail: 'ID 토큰을 읽지 못했습니다' } },
+      )
+    },
+  })
+  google.accounts.id.renderButton(el, {
+    type: 'standard',
+    theme: 'outline',
+    size: 'large',
+    text: 'continue_with',
+    shape: 'pill',
+    locale: 'ko',
+    width: 320,
+  })
+  return { ok: true }
 }
 
 export const googleAuth: AuthProvider = {

@@ -1,22 +1,9 @@
-import { providers, useAuth } from '../../auth/useAuth'
-import type { AuthFailure } from '../../auth/types'
+import { Link } from 'react-router-dom'
+import { useAuthContext } from '../../auth/AuthContext'
 
-function failureText(f: AuthFailure): string {
-  switch (f.code) {
-    case 'not-configured':
-      return `${f.envVar} 가 .env 에 없습니다 — 키를 넣으면 바로 동작합니다`
-    case 'cancelled':
-      return '로그인을 취소했습니다'
-    case 'sdk-unavailable':
-      return 'SDK를 불러오지 못했습니다 (네트워크 또는 도메인 등록 확인)'
-    case 'failed':
-      return f.detail ?? '로그인에 실패했습니다'
-  }
-}
-
-/** 로그인 상태 표시 + 카카오/구글 로그인 버튼. */
+/** 상단바. 로그인 자체는 /login 페이지에서 한다. */
 export function AuthBar() {
-  const { account, failure, busy, signIn, signOut } = useAuth()
+  const { account, signOut } = useAuthContext()
 
   if (account) {
     return (
@@ -32,21 +19,9 @@ export function AuthBar() {
 
   return (
     <div className="authbar">
-      {providers.map((p) => (
-        <button
-          key={p.id}
-          className={`authbar__btn authbar__btn--${p.id}`}
-          type="button"
-          onClick={() => signIn(p.id)}
-          disabled={busy !== null}
-          // 키가 없어도 눌러볼 수 있게 둔다 — 왜 안 되는지 안내가 떠야 하니까
-          title={p.configured ? p.label : '키가 설정되지 않았습니다'}
-        >
-          {busy === p.id ? '…' : p.label}
-          {!p.configured && <span className="authbar__dot" aria-label="설정 필요" />}
-        </button>
-      ))}
-      {failure && <p className="authbar__error">{failureText(failure)}</p>}
+      <Link className="authbar__btn authbar__btn--solid" to="/login">
+        로그인
+      </Link>
     </div>
   )
 }

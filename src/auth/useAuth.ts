@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { webStorage } from '../ui/storage'
-import { kakaoAuth } from './kakao'
-import { googleAuth } from './google'
-import type { Account, AuthFailure, AuthProvider, ProviderId } from './types'
+import { providers } from './providers'
+import type { Account, AuthFailure, AuthResult, ProviderId } from './types'
 
-export const providers: AuthProvider[] = [kakaoAuth, googleAuth]
+export { providers }
 
 const KEY = 'wtl.account'
 
@@ -29,20 +28,28 @@ export function useAuth() {
     }
   }, [])
 
-  const signIn = useCallback(async (id: ProviderId) => {
-    const provider = providers.find((p) => p.id === id)
-    if (!provider) return
-    setBusy(id)
-    setFailure(null)
-    const result = await provider.signIn()
+  /** 로그인 결과를 반영한다. 구글 공식 버튼처럼 콜백으로 결과가 오는 경우에도 쓴다. */
+  const applyResult = useCallback((result: AuthResult) => {
     if (result.ok) {
       setAccount(result.account)
+      setFailure(null)
       webStorage.set(KEY, JSON.stringify(result.account))
     } else {
       setFailure(result.failure)
     }
-    setBusy(null)
   }, [])
+
+  const signIn = useCallback(
+    async (id: ProviderId) => {
+      const provider = providers.find((p) => p.id === id)
+      if (!provider) return
+      setBusy(id)
+      setFailure(null)
+      applyResult(await provider.signIn())
+      setBusy(null)
+    },
+    [applyResult],
+  )
 
   const signOut = useCallback(async () => {
     if (account) await providers.find((p) => p.id === account.provider)?.signOut()
@@ -51,5 +58,5 @@ export function useAuth() {
     webStorage.remove(KEY)
   }, [account])
 
-  return { account, failure, busy, signIn, signOut }
+  return { account, failure, busy, signIn, signOut, applyResult }
 }
