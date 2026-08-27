@@ -666,3 +666,7 @@
 @media (max-width: 560px) {
   .langswitch__btn { padding: 4px var(--sp-2); font-size: 0.7rem; }
 }
+
+.alt.is-on { border-color: var(--brass); background: var(--brass-wash); }
+.alt__origin { color: var(--ink-faint); font-weight: 400; }
+.verdict__tag--alt { background: var(--sunk); color: var(--ink-soft); }

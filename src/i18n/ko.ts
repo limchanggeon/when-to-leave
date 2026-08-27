@@ -64,6 +64,15 @@ export const ko = {
     failed: '로그인하지 못했습니다',
     retry: '다시 시도',
   },
+  route: {
+    chosen: {
+      'latest-departure': '가장 늦게 나가도 되는 경로',
+      'earliest-arrival': '가장 빨리 도착하는 경로',
+    },
+    others: '다른 경로',
+    othersSub: '표가 없거나 다른 역에서 타고 싶을 때',
+    unnamed: '경로',
+  },
   units: { hour: '시간', minute: '분' },
   sections: { journey: '여정', map: '지도' },
   seat: { ok: '좌석 있음', soldOut: '매진' },

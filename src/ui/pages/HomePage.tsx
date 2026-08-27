@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { resolveWhen } from '../../parse/parse'
 import { hasMockAdapters } from '../../adapters/registry'
 import { diffMin, formatClock, humanDuration } from '../../engine/time'
-import type { Leg } from '../../engine/types'
 import { dictionaries } from '../../i18n'
-import { planTrip, type PlanOutcome } from '../planTrip'
+import { planTrip, type PlanOutcome, type RouteOption } from '../planTrip'
+import { describeRoute } from '../../engine/rank'
 import { usePrefs } from '../PrefsContext'
 import { deriveWarnings } from '../deriveWarnings'
 import { SearchPanel, type QueryInput } from '../components/SearchPanel'
@@ -16,7 +16,7 @@ import { DataGap } from '../components/DataGap'
 import { TripSpine } from '../components/TripSpine'
 import { Warnings } from '../components/Warnings'
 import { Countdown } from '../components/Countdown'
-import { Alternatives, type AlternativeView } from '../components/Alternatives'
+import { Alternatives } from '../components/Alternatives'
 import { Hero } from '../components/Hero'
 import { JourneyMap } from '../components/JourneyMap'
 import { SetupNotice } from '../components/SetupNotice'
@@ -33,7 +33,7 @@ export function HomePage() {
   const [pending, setPending] = useState(false)
   const [outcome, setOutcome] = useState<PlanOutcome | null>(null)
   const [lastQuery, setLastQuery] = useState<QueryInput | null>(null)
-  const [shown, setShown] = useState<{ legs: Leg[]; label?: string } | null>(null)
+  const [shown, setShown] = useState<RouteOption | null>(null)
   const [now, setNow] = useState(() => new Date())
 
   async function run(query: QueryInput) {
@@ -59,12 +59,12 @@ export function HomePage() {
     )
 
     setOutcome(result)
-    setShown(result.kind === 'trip' ? { legs: result.legs } : null)
+    setShown(result.kind === 'trip' ? result.chosen : null)
     setPending(false)
   }
 
-  function selectAlternative(a: AlternativeView) {
-    setShown({ legs: a.legs, label: t.fallback[a.labelKey] ?? a.labelKey })
+  function selectRoute(option: RouteOption) {
+    setShown(option)
   }
 
   const clock = (d: Date) => formatClock(d, now, t.clock)
@@ -126,7 +126,13 @@ export function HomePage() {
                     ),
                   )}
                 </p>
-                {shown.label && <p className="verdict__tag">{shown.label}</p>}
+                {shown.rung === outcome.chosen.rung ? (
+                  <p className="verdict__tag">{t.route.chosen[outcome.reason]}</p>
+                ) : (
+                  <p className="verdict__tag verdict__tag--alt">
+                    {describeRoute(shown.legs).carrier ?? t.route.unnamed}
+                  </p>
+                )}
               </div>
               <Countdown departAt={shown.legs[0].departAt} t={t} />
             </section>
@@ -149,11 +155,12 @@ export function HomePage() {
               <aside className="col col--side">
                 <JourneyMap legs={shown.legs} country="KR" t={t} />
                 <Alternatives
-                  items={outcome.alternatives}
-                  baselineArrival={outcome.legs[outcome.legs.length - 1].arriveAt}
+                  items={outcome.others}
+                  baselineArrival={outcome.chosen.arriveAt}
                   now={now}
                   t={t}
-                  onSelect={selectAlternative}
+                  onSelect={selectRoute}
+                  selectedRung={shown.rung}
                 />
               </aside>
             </div>

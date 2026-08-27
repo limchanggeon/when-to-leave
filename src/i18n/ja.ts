@@ -3,7 +3,7 @@ import type { I18nShape } from './ko'
 /** 뼈대만. M2a(일본어 UI)에서 채운다 — 설계 문서 "언어" 섹션 참조. */
 export const ja: I18nShape = {
   app: {
-    title: '언제나가',
+    title: 'いつ出る',
     eyebrow: '出発時刻の逆算',
     tagline: '目的地を伝えると、出発時刻を計算します',
     heroLines: [
@@ -62,6 +62,15 @@ export const ja: I18nShape = {
     doneBody: (name: string) => `${name ? name + 'さん、' : ''}まもなくホームに移動します。`,
     failed: 'ログインできませんでした',
     retry: '再試行',
+  },
+  route: {
+    chosen: {
+      'latest-departure': '最も遅く出発できる経路',
+      'earliest-arrival': '最も早く到着する経路',
+    },
+    others: 'ほかの経路',
+    othersSub: 'チケットがない・別の駅から乗りたいとき',
+    unnamed: '経路',
   },
   units: { hour: '時間', minute: '分' },
   sections: { journey: '行程', map: '地図' },

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { compact, solveBackward, solveForward } from './schedule'
 import { DEFAULT_POLICY } from './buffer'
 import { at } from './time'
-import type { LegSpec } from './types'
+import type { Leg, LegSpec } from './types'
+import { compareRoutes } from './rank'
 
 const day = new Date('2026-08-24T00:00:00')
 const P = (name: string) => ({ name })
@@ -118,5 +119,42 @@ describe('solveBackward — notBefore', () => {
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.legs[0].departAt.getTime()).toBeGreaterThanOrEqual(now.getTime())
+  })
+})
+
+describe('compareRoutes', () => {
+  const leg = (seat: boolean | null): Leg => ({
+    kind: 'train', discrete: true, from: P('A'), to: P('B'),
+    departAt: at(day, '08:00'), arriveAt: at(day, '11:00'),
+    bufferMin: 9, waitMin: 0, seat: { available: seat },
+    confidence: 'live', source: SRC, origin: 'mock',
+  })
+  const route = (depart: string, arrive: string, seat: boolean | null) => ({
+    legs: [leg(seat)], departAt: at(day, depart), arriveAt: at(day, arrive),
+  })
+
+  it('도착 시각 모드에서는 늦게 나가도 되는 쪽이 이긴다', () => {
+    const early = route('07:54', '11:30', null)
+    const late = route('08:00', '11:36', true)
+    expect(compareRoutes(late, early, 'arriveBy')).toBeLessThan(0)
+  })
+
+  it('지금 출발 모드에서는 빨리 도착하는 쪽이 이긴다', () => {
+    const slow = route('08:00', '12:30', true)
+    const fast = route('08:00', '11:36', null)
+    expect(compareRoutes(fast, slow, 'departNow')).toBeLessThan(0)
+  })
+
+  it('매진은 아무리 늦게 나가도 뒤로 밀린다', () => {
+    const soldOut = route('09:30', '11:50', false)
+    const available = route('07:00', '11:00', true)
+    expect(compareRoutes(available, soldOut, 'arriveBy')).toBeLessThan(0)
+  })
+
+  it('조회 불가(null)는 매진과 다르게 취급한다', () => {
+    // KTX 는 늘 null 이라 매진 취급하면 영영 안 뽑힌다
+    const unknown = route('09:30', '11:50', null)
+    const available = route('07:00', '11:00', true)
+    expect(compareRoutes(unknown, available, 'arriveBy')).toBeLessThan(0)
   })
 })
