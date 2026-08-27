@@ -1,12 +1,15 @@
 import { useState } from 'react'
-import { parseUtterance, resolveWhen } from '../../parse/parse'
+import { resolveWhen } from '../../parse/parse'
 import { hasMockAdapters } from '../../adapters/registry'
 import { diffMin, formatClock, humanDuration } from '../../engine/time'
 import type { Leg } from '../../engine/types'
 import { dictionaries, type Lang } from '../../i18n'
 import { planTrip, type PlanOutcome } from '../planTrip'
 import { deriveWarnings } from '../deriveWarnings'
-import { SearchBar } from '../components/SearchBar'
+import { SearchPanel, type QueryInput } from '../components/SearchPanel'
+import { SiteHeader } from '../components/SiteHeader'
+import { HowItWorks } from '../components/HowItWorks'
+import { SiteFooter } from '../components/SiteFooter'
 import { MockBanner } from '../components/MockBanner'
 import { DataGap } from '../components/DataGap'
 import { TripSpine } from '../components/TripSpine'
@@ -14,11 +17,13 @@ import { Warnings } from '../components/Warnings'
 import { Countdown } from '../components/Countdown'
 import { Alternatives, type AlternativeView } from '../components/Alternatives'
 import { Hero } from '../components/Hero'
-import { AuthBar } from '../components/AuthBar'
 import { JourneyMap } from '../components/JourneyMap'
 import { SetupNotice } from '../components/SetupNotice'
 
-const EXAMPLES = ['수서에서 부산 11시까지', '지금 나가면 부산 몇시 도착?']
+const EXAMPLES: { label: string; query: QueryInput }[] = [
+  { label: '부산 11시까지', query: { mode: 'arriveBy', from: '집', to: '부산', when: '11:00' } },
+  { label: '지금 나가면 부산 언제?', query: { mode: 'departNow', from: '집', to: '부산', when: null } },
+]
 const UNIT = { h: '시간', m: '분' }
 
 export function HomePage() {
@@ -26,28 +31,28 @@ export function HomePage() {
   const t = dictionaries[lang]
   const [pending, setPending] = useState(false)
   const [outcome, setOutcome] = useState<PlanOutcome | null>(null)
-  const [lastQuery, setLastQuery] = useState<string | null>(null)
+  const [lastQuery, setLastQuery] = useState<QueryInput | null>(null)
   const [shown, setShown] = useState<{ legs: Leg[]; label?: string } | null>(null)
   const [now, setNow] = useState(() => new Date())
 
-  async function run(text: string) {
-    setLastQuery(text)
+  async function run(query: QueryInput) {
+    setLastQuery(query)
     setPending(true)
     const at = new Date()
     setNow(at)
 
-    const intent = parseUtterance(text)
-    const target = resolveWhen(intent.when, at) ?? new Date(at.getTime() + 3 * 60 * 60_000)
+    // "HH:mm" 도 "11시" 도 같은 함수가 오늘/내일 기준 Date 로 바꾼다
+    const target = resolveWhen(query.when, at) ?? new Date(at.getTime() + 3 * 60 * 60_000)
 
     const result = await planTrip(
       {
-        from: { name: intent.from ?? '집' },
-        to: { name: intent.to ?? '' },
+        from: { name: query.from || '집' },
+        to: { name: query.to },
         around: at,
         fromCountry: 'KR',
         toCountry: 'KR',
       },
-      intent.mode,
+      query.mode,
       target,
       at,
     )
@@ -67,12 +72,10 @@ export function HomePage() {
 
   return (
     <div className="page">
-      <div className="topbar">
-        <AuthBar />
-      </div>
+      <SiteHeader t={t} solid={hasResult} />
 
       <Hero t={t} compact={hasResult}>
-        <SearchBar t={t} onSubmit={run} pending={pending} examples={EXAMPLES} />
+        <SearchPanel t={t} onSubmit={run} pending={pending} />
       </Hero>
 
       <div className="shell">
@@ -99,8 +102,8 @@ export function HomePage() {
             <p className="empty__label">{t.empty.examples}</p>
             <div className="empty__chips">
               {EXAMPLES.map((e) => (
-                <button key={e} className="example" type="button" onClick={() => run(e)}>
-                  {e}
+                <button key={e.label} className="example" type="button" onClick={() => run(e.query)}>
+                  {e.label}
                 </button>
               ))}
             </div>
@@ -156,6 +159,9 @@ export function HomePage() {
           </>
         )}
       </div>
+
+      {!hasResult && <HowItWorks t={t} />}
+      <SiteFooter t={t} />
     </div>
   )
 }

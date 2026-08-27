@@ -36,10 +36,13 @@ export function parseUtterance(text: string): ParsedIntent {
   }
 }
 
-/** "11시" 같은 원문을 오늘/내일 기준 Date 로 바꾼다. 이건 코드의 일이다. */
+/**
+ * 시각 표현을 오늘/내일 기준 Date 로 바꾼다. 이건 코드의 일이다.
+ * "11시", "11시 30분" 같은 문장 표현과 <input type="time"> 의 "23:05" 를 모두 받는다.
+ */
 export function resolveWhen(when: string | null, now: Date): Date | null {
   if (!when) return null
-  const m = when.match(/(\d{1,2})\s*시(?:\s*(\d{1,2})\s*분)?/)
+  const m = when.match(/(\d{1,2})\s*시(?:\s*(\d{1,2})\s*분)?/) ?? when.match(/^(\d{1,2}):(\d{2})$/)
   if (!m) return null
   const h = Number(m[1])
   const min = m[2] ? Number(m[2]) : 0
