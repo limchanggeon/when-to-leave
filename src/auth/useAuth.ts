@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { webStorage } from '../ui/storage'
+import { fetchMe, serverLogout } from './api'
 import { providers } from './providers'
 import type { Account, AuthFailure, AuthResult, ProviderId } from './types'
 
@@ -19,12 +20,24 @@ export function useAuth() {
   const [busy, setBusy] = useState<ProviderId | null>(null)
 
   useEffect(() => {
+    // 1) 로컬 값으로 먼저 그린다 (깜빡임 방지)
     const raw = webStorage.get(KEY)
-    if (!raw) return
-    try {
-      setAccount(JSON.parse(raw) as Account)
-    } catch {
-      webStorage.remove(KEY)
+    if (raw) {
+      try {
+        setAccount(JSON.parse(raw) as Account)
+      } catch {
+        webStorage.remove(KEY)
+      }
+    }
+    // 2) 서버 세션이 진실이다. 로컬 값은 사용자가 고칠 수 있으므로 덮어쓴다.
+    let cancelled = false
+    fetchMe().then((server) => {
+      if (cancelled || !server) return
+      setAccount(server)
+      webStorage.set(KEY, JSON.stringify(server))
+    })
+    return () => {
+      cancelled = true
     }
   }, [])
 
@@ -52,6 +65,7 @@ export function useAuth() {
   )
 
   const signOut = useCallback(async () => {
+    await serverLogout()
     if (account) await providers.find((p) => p.id === account.provider)?.signOut()
     setAccount(null)
     setFailure(null)

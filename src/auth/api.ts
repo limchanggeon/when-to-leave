@@ -1,0 +1,49 @@
+import type { Account } from './types'
+
+/**
+ * 서버와 주고받는 인증 API.
+ * 토큰은 서버가 쥐고 있고, 브라우저에는 httpOnly 세션 쿠키만 남는다 —
+ * 그래서 이 함수들은 전부 credentials: 'include' 가 필요하다.
+ */
+type ApiError = { error: { code: string; message: string } }
+
+export async function fetchMe(): Promise<Account | null> {
+  try {
+    const res = await fetch('/api/auth/me', { credentials: 'include' })
+    if (!res.ok) return null
+    const json = (await res.json()) as { account: Account | null }
+    return json.account
+  } catch {
+    return null // 서버가 안 떠 있어도 앱은 계속 동작해야 한다
+  }
+}
+
+export async function exchangeKakaoCode(
+  code: string,
+  redirectUri: string,
+): Promise<{ ok: true; account: Account } | { ok: false; message: string }> {
+  try {
+    const res = await fetch('/api/auth/kakao', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ code, redirectUri }),
+    })
+    const json = (await res.json()) as { account: Account } | ApiError
+    if (!res.ok || 'error' in json) {
+      const message = 'error' in json ? json.error.message : '로그인에 실패했습니다'
+      return { ok: false, message }
+    }
+    return { ok: true, account: json.account }
+  } catch {
+    return { ok: false, message: '서버에 연결하지 못했습니다 — pnpm server 가 떠 있는지 확인하세요' }
+  }
+}
+
+export async function serverLogout(): Promise<void> {
+  try {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+  } catch {
+    /* 서버가 없어도 클라이언트 상태는 지운다 */
+  }
+}
