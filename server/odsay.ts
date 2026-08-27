@@ -71,9 +71,28 @@ interface OdsaySubPath {
   trainSpSeatYn?: string
 }
 
+interface OdsayError {
+  code?: string
+  message?: string
+  msg?: string
+}
+
 interface OdsayResponse {
-  error?: { code?: string; message?: string; msg?: string }
+  /** 객체로 올 때도 있고 배열로 올 때도 있다(쿼터 초과는 배열). */
+  error?: OdsayError | OdsayError[]
   result?: { path?: { info?: { totalTime?: number }; subPath?: OdsaySubPath[] }[] }
+}
+
+function readError(err: OdsayResponse['error']): { code: string; message: string } | null {
+  const first = Array.isArray(err) ? err[0] : err
+  if (!first) return null
+  const code = first.code ?? ''
+  const raw = first.message ?? first.msg ?? ''
+  // 쿼터 초과는 사용자가 손 쓸 수 없는 상태라 그대로 알려준다.
+  if (code === '429' || /quota/i.test(raw)) {
+    return { code, message: 'ODsay 일일 호출 한도를 초과했습니다. 내일 다시 시도하거나 요금제를 올려야 합니다.' }
+  }
+  return { code, message: raw || `ODsay 오류 ${code}`.trim() }
 }
 
 function carrierOf(sub: OdsaySubPath): string | undefined {
@@ -132,7 +151,34 @@ function distanceKm(a: GeoPoint, b: GeoPoint): number {
 
 const INTERCITY_KM = 40
 
+/**
+ * 같은 구간을 짧은 시간 안에 다시 물으면 저장해둔 답을 준다.
+ *
+ * ODsay 는 **일일 호출 한도**가 있다. 화면을 새로 고치거나 대안을 눌러볼 때마다
+ * 새로 호출하면 개발 중에도 금방 한도를 태운다.
+ * 시각표가 아니라 소요시간·배차 간격이라 몇 분 사이에 달라지지 않는다.
+ */
+const CACHE_TTL_MS = 5 * 60_000
+const cache = new Map<string, { at: number; routes: WireRoute[] }>()
+
+const cacheKey = (from: GeoPoint, to: GeoPoint, searchType: number) =>
+  `${from.lat.toFixed(4)},${from.lng.toFixed(4)}>${to.lat.toFixed(4)},${to.lng.toFixed(4)}:${searchType}`
+
+function readCache(key: string): WireRoute[] | null {
+  const hit = cache.get(key)
+  if (!hit) return null
+  if (Date.now() - hit.at > CACHE_TTL_MS) {
+    cache.delete(key)
+    return null
+  }
+  return hit.routes
+}
+
 async function call(from: GeoPoint, to: GeoPoint, searchType: 0 | 1): Promise<RouteResult> {
+  const key = cacheKey(from, to, searchType)
+  const cached = readCache(key)
+  if (cached) return { ok: true, routes: cached }
+
   const url =
     `${PATH_URL}?apiKey=${encodeURIComponent(serverEnv.odsayKey!)}` +
     `&SX=${from.lng}&SY=${from.lat}&EX=${to.lng}&EY=${to.lat}` +
@@ -152,12 +198,9 @@ async function call(from: GeoPoint, to: GeoPoint, searchType: 0 | 1): Promise<Ro
   }
 
   const json = res.data
-  if (json.error) {
-    return {
-      ok: false,
-      code: 'upstream-error',
-      message: json.error.message ?? json.error.msg ?? `ODsay 오류 ${json.error.code ?? ''}`.trim(),
-    }
+  const err = readError(json.error)
+  if (err) {
+    return { ok: false, code: 'upstream-error', message: err.message }
   }
 
   const paths = json.result?.path ?? []
@@ -169,6 +212,7 @@ async function call(from: GeoPoint, to: GeoPoint, searchType: 0 | 1): Promise<Ro
   if (routes.length === 0) {
     return { ok: false, code: 'no-data', message: '이 구간의 대중교통 경로를 찾지 못했습니다' }
   }
+  cache.set(key, { at: Date.now(), routes })
   return { ok: true, routes }
 }
 
@@ -183,25 +227,29 @@ const ACCESS_THRESHOLD_KM = 0.4
  * 그래서 첫 구간 시작점이 출발지와 떨어져 있으면 시내 검색을 한 번 더 해서
  * 접근 구간을 앞에 붙인다.
  */
-async function withAccessLegs(route: WireRoute, from: GeoPoint): Promise<WireRoute> {
+async function withAccessLegs(
+  route: WireRoute,
+  from: GeoPoint,
+  cache: Map<string, WireLeg[] | null>,
+): Promise<WireRoute> {
   const head = route.legs[0]
   if (!head?.from.lat || !head.from.lng) return route
 
   const station: GeoPoint = { name: head.from.name, lat: head.from.lat, lng: head.from.lng }
   if (distanceKm(from, station) < ACCESS_THRESHOLD_KM) return route
 
-  const access = await call(from, station, 0)
-  if (!access.ok || access.routes.length === 0) {
-    // 접근 경로를 못 구했으면 없는 구간을 지어내지 않는다.
-    // 다만 여정이 역에서 시작한다는 사실이 드러나도록 이름은 그대로 둔다.
-    return route
+  const key = `${station.lat.toFixed(4)},${station.lng.toFixed(4)}`
+  if (!cache.has(key)) {
+    const access = await call(from, station, 0)
+    // 접근 경로를 못 구했으면 없는 구간을 지어내지 않는다(null 로 기억해 재시도도 막는다).
+    cache.set(key, access.ok && access.routes.length > 0 ? access.routes[0].legs : null)
   }
 
-  const accessLegs = access.routes[0].legs
-  return {
-    legs: [...accessLegs, ...route.legs],
-    totalMin: access.routes[0].totalMin + route.totalMin,
-  }
+  const accessLegs = cache.get(key)
+  if (!accessLegs || accessLegs.length === 0) return route
+
+  const accessMin = accessLegs.reduce((sum, l) => sum + l.durationMin, 0)
+  return { legs: [...accessLegs, ...route.legs], totalMin: accessMin + route.totalMin }
 }
 
 /**
@@ -226,7 +274,13 @@ export async function searchTransitRoute(from: GeoPoint, to: GeoPoint): Promise<
   if (!result.ok) return result
 
   if (first === 1) {
-    const withAccess = await Promise.all(result.routes.map((r) => withAccessLegs(r, from)))
+    // 경로마다 따로 부르면 호출이 배로 는다. 탑승역이 같으면 결과를 나눠 쓴다.
+    // ODsay 는 일일 쿼터가 있어서 호출 수를 아끼는 게 중요하다.
+    const cache = new Map<string, WireLeg[] | null>()
+    const withAccess: WireRoute[] = []
+    for (const route of result.routes) {
+      withAccess.push(await withAccessLegs(route, from, cache))
+    }
     return { ok: true, routes: withAccess }
   }
   return result
