@@ -11,10 +11,24 @@ const trim = (v: string | undefined) => {
   return s.length > 0 ? s : null
 }
 
+/**
+ * 카카오 Redirect URI.
+ * 콘솔에 등록한 값과 **글자 하나까지 같아야** 한다.
+ * 기본값은 현재 접속한 오리진에서 만들어 쓰므로, 로컬이든 배포든
+ * "<오리진>/auth/kakao/callback" 만 콘솔에 등록해두면 된다.
+ */
+function kakaoRedirectUri(): string {
+  const explicit = trim(env.VITE_KAKAO_REDIRECT_URI)
+  if (explicit) return explicit
+  if (typeof window === 'undefined') return ''
+  return `${window.location.origin}/auth/kakao/callback`
+}
+
 export const config = {
   kakao: {
     /** 카카오 JavaScript 키. 지도 SDK 와 카카오 로그인이 함께 쓴다. */
     jsKey: trim(env.VITE_KAKAO_JS_KEY),
+    redirectUri: kakaoRedirectUri(),
   },
   google: {
     /** Google Maps JavaScript API 키 (해외 구간 지도). */

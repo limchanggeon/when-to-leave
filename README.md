@@ -53,8 +53,29 @@ src/
 | 구글 지도 (해외 구간) | `VITE_GOOGLE_MAPS_KEY` | [Google Maps Platform](https://console.cloud.google.com/google/maps-apis) |
 | 구글 로그인 | `VITE_GOOGLE_CLIENT_ID` | [Google Cloud Credentials](https://console.cloud.google.com/apis/credentials) — OAuth 웹 클라이언트 |
 
-두 콘솔 모두 **도메인 등록**이 필요합니다 — 개발 중에는 `http://localhost:4173`,
-배포 후에는 실제 도메인을 각각 카카오 [플랫폼 > Web], 구글 [승인된 JavaScript 원본]에 넣으세요.
+### 콘솔에 등록할 주소
+
+포트는 `vite.config.ts` 에 고정돼 있습니다 — dev `5173`, preview `4173`.
+
+**카카오** ([developers.kakao.com](https://developers.kakao.com/console/app) > 내 애플리케이션)
+
+| 위치 | 넣을 값 |
+|---|---|
+| 앱 설정 > 플랫폼 > Web > 사이트 도메인 | `http://localhost:5173` 과 `http://localhost:4173` (경로 없이 오리진만) |
+| 제품 설정 > 카카오 로그인 > 활성화 | ON |
+| 제품 설정 > 카카오 로그인 > Redirect URI | `http://localhost:5173/auth/kakao/callback`<br>`http://localhost:4173/auth/kakao/callback` |
+| 제품 설정 > 카카오 로그인 > 동의항목 | 닉네임 · 프로필 사진 (필수 동의) |
+
+**구글** ([Cloud Console](https://console.cloud.google.com/apis/credentials) > OAuth 클라이언트 ID > 웹 애플리케이션)
+
+| 위치 | 넣을 값 |
+|---|---|
+| 승인된 JavaScript 원본 | `http://localhost:5173`, `http://localhost:4173` |
+| 승인된 리디렉션 URI | **불필요** — GIS 는 리다이렉트 없이 동작합니다 |
+
+배포 후에는 위 `http://localhost:PORT` 자리에 실제 도메인(`https://...`)을 같은 형태로 추가하면 됩니다.
+카카오 Redirect URI 는 `VITE_KAKAO_REDIRECT_URI` 를 비워두면 접속한 오리진에서 자동으로 만들어지므로,
+콘솔에 도메인별로 등록만 해두면 코드는 건드릴 필요가 없습니다.
 
 ### 로그인 페이지
 

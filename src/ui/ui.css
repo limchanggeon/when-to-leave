@@ -455,3 +455,10 @@
   text-decoration: none; border-color: var(--hero-accent);
 }
 .authbar__btn--solid:hover { filter: brightness(1.08); }
+
+.callback__code {
+  display: block; width: 100%; margin: var(--sp-3) 0;
+  padding: var(--sp-3); background: var(--sunk);
+  border-radius: var(--radius-sm); font-family: var(--font-mono);
+  font-size: 0.72rem; word-break: break-all; color: var(--ink-soft);
+}
