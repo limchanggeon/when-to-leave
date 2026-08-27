@@ -42,9 +42,32 @@ src/
 (`ok`/`failure` 유니언), 네트워크가 끊기거나 API 키가 없으면 똑같이
 `<DataGap>`이 뜬다.
 
+## 외부 서비스 키 (지도 · 로그인)
+
+`.env.example` 를 `.env` 로 복사하고 값을 채운 뒤 서버를 재시작하세요.
+키가 없어도 앱은 정상 동작하며, 화면에 무엇이 빠졌는지 표시됩니다.
+
+| 항목 | 환경변수 | 발급처 |
+|---|---|---|
+| 카카오 지도 + 카카오 로그인 | `VITE_KAKAO_JS_KEY` | [Kakao Developers](https://developers.kakao.com/console/app) — JavaScript 키 |
+| 구글 지도 (해외 구간) | `VITE_GOOGLE_MAPS_KEY` | [Google Maps Platform](https://console.cloud.google.com/google/maps-apis) |
+| 구글 로그인 | `VITE_GOOGLE_CLIENT_ID` | [Google Cloud Credentials](https://console.cloud.google.com/apis/credentials) — OAuth 웹 클라이언트 |
+
+두 콘솔 모두 **도메인 등록**이 필요합니다 — 개발 중에는 `http://localhost:4173`,
+배포 후에는 실제 도메인을 각각 카카오 [플랫폼 > Web], 구글 [승인된 JavaScript 원본]에 넣으세요.
+
+### 아직 서버가 없어서 생기는 한계
+
+현재 로그인은 **클라이언트 전용**입니다. 구글 ID 토큰을 화면 표시용으로만 디코딩하고
+서명을 검증하지 않으며, 계정 정보는 localStorage 에 있습니다. 사용자가 고칠 수 있는
+값이므로 **권한 판단에 쓰면 안 됩니다.** 실서비스로 가려면 토큰 검증과 세션을
+서버가 맡아야 합니다 (카카오 REST 토큰 교환도 서버가 필요합니다).
+
 ## 지금 상태 (M0)
 
 - 역산 엔진(`solveBackward`/`solveForward`) 동작, 단위 테스트로 고정
 - 국내 목업 어댑터 1개 (서울↔부산 시나리오만 앎 — 모르는 목적지는 정직하게 실패)
 - 정규식 파서
-- 캘린더 연동·폴백 사다리 UI·실제 k-skill 어댑터는 아직 없음(M1)
+- 폴백 사다리 UI 연결됨 (대안 클릭 시 여정 교체)
+- 로그인(카카오/구글)·지도(카카오/구글) 구조 완성 — 키만 넣으면 동작
+- 캘린더 연동·실제 k-skill 어댑터·서버 세션은 아직 없음(M1)

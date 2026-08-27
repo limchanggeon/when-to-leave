@@ -14,6 +14,9 @@ import { Warnings } from './components/Warnings'
 import { Countdown } from './components/Countdown'
 import { Alternatives, type AlternativeView } from './components/Alternatives'
 import { Hero } from './components/Hero'
+import { AuthBar } from './components/AuthBar'
+import { JourneyMap } from './components/JourneyMap'
+import { SetupNotice } from './components/SetupNotice'
 
 const EXAMPLES = ['수서에서 부산 11시까지', '지금 나가면 부산 몇시 도착?']
 const UNIT = { h: '시간', m: '분' }
@@ -64,12 +67,17 @@ export default function App() {
 
   return (
     <div className="page">
+      <div className="topbar">
+        <AuthBar />
+      </div>
+
       <Hero t={t} compact={hasResult}>
         <SearchBar t={t} onSubmit={run} pending={pending} examples={EXAMPLES} />
       </Hero>
 
       <div className="shell">
         {hasMockAdapters() && <MockBanner t={t} />}
+        <SetupNotice />
 
         {outcome?.kind === 'gap' && (
           <DataGap
@@ -135,6 +143,7 @@ export default function App() {
               </section>
 
               <aside className="col col--side">
+                <JourneyMap legs={shown.legs} country="KR" />
                 <Alternatives
                   items={outcome.alternatives}
                   baselineArrival={outcome.legs[outcome.legs.length - 1].arriveAt}

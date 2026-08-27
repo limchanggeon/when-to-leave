@@ -304,3 +304,76 @@
   .countdown { align-items: flex-start; }
   .spine__clock { flex: 0 0 62px; }
 }
+
+/* ================= 상단바 / 로그인 ================= */
+.topbar {
+  display: flex; justify-content: flex-end;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--hero-from);
+}
+.authbar { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.authbar__avatar { width: 26px; height: 26px; border-radius: 50%; }
+.authbar__name { color: var(--hero-ink); font-size: 0.86rem; }
+.authbar__btn {
+  position: relative;
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
+  font-family: inherit; font-size: 0.84rem; font-weight: 600;
+  border-radius: var(--radius-pill); cursor: pointer;
+  border: 1px solid transparent;
+}
+.authbar__btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.authbar__btn--kakao { background: #FEE500; color: #191600; }
+.authbar__btn--google { background: #fff; color: #1F1F1F; border-color: #DADCE0; }
+.authbar__btn--ghost {
+  background: transparent; color: var(--hero-ink-soft);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+.authbar__btn--ghost:hover { border-color: var(--hero-ink); color: var(--hero-ink); }
+/* 키가 없는 제공자는 점으로 표시 — 눌러보면 이유를 알려준다 */
+.authbar__dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--rust); flex: 0 0 auto;
+}
+.authbar__error {
+  width: 100%; margin: var(--sp-1) 0 0; text-align: right;
+  color: #FFD9D2; font-size: 0.78rem;
+}
+
+/* ================= 설정 안내 ================= */
+.setup {
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--radius-md); padding: var(--sp-3) var(--sp-4);
+  font-size: 0.86rem;
+}
+.setup__summary { cursor: pointer; color: var(--ink-soft); }
+.setup__summary:hover { color: var(--brass); }
+.setup__list { list-style: none; margin: var(--sp-3) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+.setup__list li { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+.setup__service { font-weight: 600; }
+.setup__env { font-family: var(--font-mono); font-size: 0.78rem; background: var(--sunk); padding: 1px 6px; border-radius: 3px; }
+.setup__link { color: var(--brass); font-size: 0.8rem; }
+.setup__hint { margin: var(--sp-3) 0 0; color: var(--ink-faint); font-size: 0.8rem; }
+
+/* ================= 지도 ================= */
+.map {
+  border: 1px solid var(--rule); border-radius: var(--radius-md);
+  overflow: hidden; background: var(--surface);
+}
+.map__head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--rule);
+}
+.map__label {
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+.map__provider { font-size: 0.78rem; color: var(--ink-faint); }
+.map__canvas { width: 100%; height: 240px; }
+.map__gap {
+  display: flex; gap: var(--sp-2); align-items: flex-start;
+  padding: var(--sp-4); font-size: 0.84rem; color: var(--ink-soft);
+  background: var(--sunk);
+}
+.map--empty { padding: var(--sp-4); font-size: 0.84rem; color: var(--ink-faint); }
+.map--empty p { margin: 0; }
