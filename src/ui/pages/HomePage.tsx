@@ -42,8 +42,10 @@ export function HomePage() {
     const at = new Date()
     setNow(at)
 
-    // "HH:mm" 도 "11시" 도 같은 함수가 오늘/내일 기준 Date 로 바꾼다
-    const target = resolveWhen(query.when, at) ?? new Date(at.getTime() + 3 * 60 * 60_000)
+    // "HH:mm" 도 "11시" 도 같은 함수가 오늘/내일 기준 Date 로 바꾼다.
+    // 시각이 없으면 departNow 로 오므로 target 은 쓰이지 않는다 —
+    // 임의의 시각을 지어내는 대신 현재 시각을 넣어 둔다.
+    const target = resolveWhen(query.when, at) ?? at
 
     const result = await planTrip(
       {

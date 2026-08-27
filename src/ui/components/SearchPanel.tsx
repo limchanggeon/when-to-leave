@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { I18nShape } from '../../i18n'
 import { parseUtterance } from '../../parse/parse'
 import { currentPlace, permissionState, type Coords, type GeoFailure } from '../../geo'
@@ -44,14 +44,19 @@ export function SearchPanel({
   const [locating, setLocating] = useState(false)
   const [geoError, setGeoError] = useState<GeoFailure | null>(null)
 
-  async function useCurrentLocation() {
+  /**
+   * @param auto 페이지 진입 시 자동 실행인지.
+   *   자동 실행이 실패하면 배너를 띄우지 않는다 — 사용자가 누르지도 않았는데
+   *   빨간 오류가 떠 있으면 노이즈다. 버튼은 그대로 남으니 직접 눌러 볼 수 있다.
+   */
+  async function useCurrentLocation(auto = false) {
     setLocating(true)
-    setGeoError(null)
+    if (!auto) setGeoError(null)
 
     // 이미 거부돼 있으면 호출해봐야 창이 안 뜨고 바로 실패한다.
     // 먼저 확인해서 "왜 아무 일도 안 일어나는지"를 알려준다.
     if ((await permissionState()) === 'denied') {
-      setGeoError({ code: 'denied' })
+      if (!auto) setGeoError({ code: 'denied' })
       setLocating(false)
       return
     }
@@ -60,11 +65,36 @@ export function SearchPanel({
     if (r.ok) {
       setFrom(r.data.name)
       setFromCoords(r.data.coords)
-    } else {
+    } else if (!auto) {
       setGeoError(r.failure)
     }
     setLocating(false)
   }
+
+  /**
+   * 출발지는 거의 항상 "지금 있는 곳"이라 처음부터 채워둔다.
+   *
+   * 다만 이미 거부된 경우에는 시도하지 않는다 — 창이 뜨지도 않고,
+   * 실패만 반복하며 버튼을 잠깐씩 잠글 뿐이다.
+   * 권한을 아직 안 물어봤다면 여기서 창이 뜬다. 폼이 이미 그려진 뒤라
+   * 무엇 때문에 묻는지가 화면에 보이는 상태에서 뜬다.
+   */
+  const autoTried = useRef(false)
+  useEffect(() => {
+    if (autoTried.current) return
+    autoTried.current = true
+
+    let cancelled = false
+    permissionState().then((state) => {
+      if (cancelled || state === 'denied') return
+      void useCurrentLocation(true)
+    })
+    return () => {
+      cancelled = true
+    }
+    // 마운트 시 한 번만. autoTried 로 StrictMode 이중 실행도 막는다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const canSubmit = freeform ? text.trim().length > 0 : to.trim().length > 0
 
@@ -83,11 +113,14 @@ export function SearchPanel({
       })
       return
     }
+    // 목적지만 넣어도 답이 나와야 한다.
+    // 도착 시각을 비웠다면 임의의 시각을 지어내지 말고 "지금 출발" 로 푼다.
+    const effectiveMode = mode === 'arriveBy' && !when ? 'departNow' : mode
     onSubmit({
-      mode,
+      mode: effectiveMode,
       from: from.trim(),
       to: to.trim(),
-      when: mode === 'arriveBy' ? when || null : null,
+      when: effectiveMode === 'arriveBy' ? when : null,
       fromCoords,
     })
   }
@@ -136,11 +169,12 @@ export function SearchPanel({
               <div className="field__head">
                 <label className="field__label" htmlFor="field-from">
                   {t.search.from}
+                  <span className="field__optional">{t.search.optional}</span>
                 </label>
                 <button
                   type="button"
                   className="field__geo"
-                  onClick={useCurrentLocation}
+                  onClick={() => useCurrentLocation()}
                   disabled={locating}
                 >
                   {locating ? t.geo.locating : `◎ ${t.geo.use}`}
@@ -185,6 +219,7 @@ export function SearchPanel({
                 onChange={(e) => setTo(e.target.value)}
                 placeholder={t.search.toPlaceholder}
                 required
+                autoFocus
               />
             </div>
           </div>
@@ -195,6 +230,7 @@ export function SearchPanel({
                 <div className="field__head">
                   <label className="field__label" htmlFor="field-when">
                     {t.search.arriveBy}
+                    <span className="field__optional">{t.search.optional}</span>
                   </label>
                 </div>
                 <input
@@ -220,6 +256,7 @@ export function SearchPanel({
                 <button type="button" className="chips__btn" onClick={() => setWhen(plusMinutes(60))}>
                   {t.search.hourLater}
                 </button>
+                {!when && <span className="chips__hint">{t.search.whenHint}</span>}
               </div>
             </div>
           )}

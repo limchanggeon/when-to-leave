@@ -27,6 +27,8 @@ export const ko = {
     quickTime: '빠른 선택',
     freeText: '문장으로 입력',
     structured: '항목별로 입력',
+    optional: '선택',
+    whenHint: '비워두면 지금 출발 기준으로 계산합니다',
     hourLater: '1시간 뒤',
     calculating: '계산 중…',
     presets: [

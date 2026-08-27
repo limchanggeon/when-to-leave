@@ -26,6 +26,8 @@ export const ja: I18nShape = {
     quickTime: 'クイック選択',
     freeText: '文章で入力',
     structured: '項目ごとに入力',
+    optional: '任意',
+    whenHint: '空欄なら今すぐ出発として計算します',
     hourLater: '1時間後',
     calculating: '計算中…',
     presets: [

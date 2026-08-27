@@ -685,3 +685,9 @@
   background: var(--rust-wash); border-left: 3px solid var(--rust);
   border-radius: var(--radius-sm); font-size: 0.82rem; color: var(--ink);
 }
+
+.field__optional {
+  margin-left: var(--sp-2); font-size: 0.62rem; letter-spacing: 0.06em;
+  color: var(--ink-faint); font-weight: 400;
+}
+.chips__hint { font-size: 0.76rem; color: var(--ink-faint); }
