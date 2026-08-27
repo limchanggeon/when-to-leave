@@ -91,7 +91,8 @@ export async function reverseGeocode(lat: number, lng: number): Promise<ReverseR
   }>(
     `${COORD2ADDRESS}?x=${lng}&y=${lat}`,
     { headers: { Authorization: `KakaoAK ${serverEnv.kakaoRestKey}` } },
-    { label: '카카오 주소 변환' },
+    // 주소는 표시용이라 오래 붙들 이유가 없다. 실패하면 좌표만으로 진행한다.
+    { label: '카카오 주소 변환', timeoutMs: 3000, retries: 1 },
   )
   if (!res.ok) {
     return {

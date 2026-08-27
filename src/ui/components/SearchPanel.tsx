@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { I18nShape } from '../../i18n'
 import { parseUtterance } from '../../parse/parse'
-import { currentPlace, permissionState, type Coords, type GeoFailure } from '../../geo'
+import { locate, permissionState, type Coords, type GeoFailure } from '../../geo'
+import { reverseGeocode } from '../../geo/reverse'
 
 export interface QueryInput {
   mode: 'arriveBy' | 'departNow'
@@ -63,23 +64,44 @@ export function SearchPanel({
     setLocating(true)
     if (!auto) setGeoError(null)
 
-    // 이미 거부돼 있으면 호출해봐야 창이 안 뜨고 바로 실패한다.
-    // 먼저 확인해서 "왜 아무 일도 안 일어나는지"를 알려준다.
+    /*
+     * 이미 거부돼 있으면 호출해봐야 창이 안 뜨고 바로 실패한다.
+     *
+     * 자동 실행이라도 이 경우만은 알려준다. 스스로 풀리지 않는 상태라
+     * 조용히 넘어가면 사용자는 "왜 아무것도 안 채워지지" 로만 남는다.
+     * (다른 실패는 다시 눌러보면 되므로 자동 실행에서는 조용히 지나간다.)
+     */
     if ((await permissionState()) === 'denied') {
-      if (!auto) setGeoError({ code: 'denied' })
+      setGeoError({ code: 'denied' })
       setLocating(false)
       return
     }
 
-    const r = await currentPlace(t.geo.currentLocation)
-    if (r.ok) {
-      setFrom(r.data.name)
-      setFromCoords(r.data.coords)
-      setGeoName(r.data.name)
-    } else if (!auto) {
-      setGeoError(r.failure)
+    const located = await locate()
+    if (!located.ok) {
+      if (!auto) setGeoError(located.failure)
+      setLocating(false)
+      return
     }
+
+    /*
+     * 좌표를 받는 즉시 쓸 수 있게 한다.
+     *
+     * 경로 계산에 필요한 건 좌표뿐이고 이름은 화면 표시용이다.
+     * 주소 변환이 끝날 때까지 입력창을 비워두면, 변환이 느리거나 실패하는
+     * 동안(재시도 포함 십수 초) 아무것도 안 채워진 것처럼 보인다.
+     */
+    const placeholder = t.geo.currentLocation
+    setFrom(placeholder)
+    setFromCoords(located.data)
+    setGeoName(placeholder)
     setLocating(false)
+
+    // 주소는 뒤따라 온다. 그 사이 사용자가 고쳐 적었으면 덮어쓰지 않는다.
+    const named = await reverseGeocode(located.data)
+    if (!named.ok) return
+    setFrom((current) => (current === placeholder ? named.data : current))
+    setGeoName((current) => (current === placeholder ? named.data : current))
   }
 
   /**
