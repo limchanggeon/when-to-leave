@@ -1,5 +1,5 @@
 import { locate, permissionState } from './locate'
-import { reverseGeocodeKakao } from './reverseKakao'
+import { reverseGeocode } from './reverse'
 import type { GeoResult, ResolvedPlace } from './types'
 
 export * from './types'
@@ -15,7 +15,7 @@ export async function currentPlace(fallbackName: string): Promise<GeoResult<Reso
   const located = await locate()
   if (!located.ok) return located
 
-  const named = await reverseGeocodeKakao(located.data)
+  const named = await reverseGeocode(located.data)
   return {
     ok: true,
     data: {

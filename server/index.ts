@@ -2,7 +2,7 @@ import express from 'express'
 import { serverEnv, missingServerEnv } from './env'
 import { exchangeKakaoCode } from './kakao'
 import { COOKIE_NAME, cookieOptions, createSession, destroySession, readSession } from './session'
-import { geocode, type GeoPoint } from './geocode'
+import { geocode, reverseGeocode, type GeoPoint } from './geocode'
 import { searchTransitRoute } from './odsay'
 
 const app = express()
@@ -121,6 +121,23 @@ app.post('/api/route', async (req, res) => {
       error: { code: 'upstream-error', message: '경로를 계산하는 중 서버에서 오류가 났습니다' },
     })
   }
+})
+
+/** 좌표 → 지명. 브라우저가 지도 SDK 를 불러오지 않아도 되도록 서버가 대신 한다. */
+app.post('/api/reverse-geocode', async (req, res) => {
+  const { lat, lng } = req.body as { lat?: number; lng?: number }
+  if (typeof lat !== 'number' || typeof lng !== 'number') {
+    res.status(400).json({ error: { code: 'no-data', message: '좌표가 필요합니다' } })
+    return
+  }
+  const r = await reverseGeocode(lat, lng)
+  if (!r.ok) {
+    res.status(r.code === 'no-credentials' ? 500 : 502).json({
+      error: { code: r.code, message: r.message },
+    })
+    return
+  }
+  res.json({ name: r.name })
 })
 
 app.post('/api/auth/logout', (req, res) => {
