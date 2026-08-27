@@ -18,11 +18,17 @@ export const serverEnv = {
   kakaoClientSecret: req('KAKAO_CLIENT_SECRET'),
   /** 세션 쿠키 서명용. 운영에서는 반드시 임의의 긴 문자열로 바꿀 것. */
   sessionSecret: req('SESSION_SECRET') ?? 'dev-only-insecure-secret',
+  /** ODsay 대중교통 길찾기. https://lab.odsay.com 에서 발급. */
+  odsayKey: req('ODSAY_API_KEY'),
   isProd: process.env.NODE_ENV === 'production',
 }
 
-export function missingServerEnv(): string[] {
-  const out: string[] = []
-  if (!serverEnv.kakaoRestKey) out.push('KAKAO_REST_API_KEY')
+/** 없는 환경변수와, 그것이 없으면 무엇이 안 되는지. 로그와 /api/health 가 함께 쓴다. */
+export function missingServerEnv(): { name: string; breaks: string }[] {
+  const out: { name: string; breaks: string }[] = []
+  if (!serverEnv.kakaoRestKey)
+    out.push({ name: 'KAKAO_REST_API_KEY', breaks: '카카오 로그인, 장소 검색' })
+  if (!serverEnv.odsayKey)
+    out.push({ name: 'ODSAY_API_KEY', breaks: '실제 경로 조회 (목업으로 대체됨)' })
   return out
 }

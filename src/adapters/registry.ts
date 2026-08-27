@@ -10,9 +10,11 @@ import type { LegSpec } from '../engine/types'
  * 화면에는 <DataGap> 이 떠서 데이터가 안 들어왔음을 그대로 보여준다.
  * ------------------------------------------------------------------ */
 import { mockKoreaAdapter } from './mock/koreaMock'
+import { liveKoreaAdapter } from './live/koreaLive'
 
 const adapters: RouteAdapter[] = [
-  mockKoreaAdapter, // ← 목업. 실제 어댑터 붙이면 이 줄을 지운다.
+  liveKoreaAdapter, // 실제 데이터(ODsay). 키가 없으면 실패를 내고 아래로 넘어간다.
+  mockKoreaAdapter, // ← 목업. 실제 어댑터가 자리를 잡으면 이 줄을 지운다.
 ]
 
 /** 등록된 어댑터 중 목업이 하나라도 있으면 화면 상단에 배너를 띄운다. */
@@ -31,9 +33,12 @@ export async function resolveRoute(req: RouteRequest): Promise<AdapterResult<Leg
     )
   }
 
-  // 실제 어댑터를 목업보다 먼저 시도한다. 실제가 실패해도 목업으로 조용히
-  // 넘어가지 않는다 — 실패는 실패대로 돌려주고 화면이 그것을 표시한다.
-  const ordered = [...candidates].sort((a, b) => (a.origin === 'live' ? -1 : 1) - (b.origin === 'live' ? -1 : 1))
+  // 실제 어댑터를 먼저 시도한다. 실패하면 목업으로 이어가되,
+  // 어떤 어댑터가 답했는지는 각 구간의 origin 에 남아 화면에 그대로 표시된다.
+  // "실제인 줄 알았는데 목업이었다" 가 되지 않게 하는 장치다.
+  const ordered = [...candidates].sort(
+    (a, b) => (a.origin === 'live' ? -1 : 1) - (b.origin === 'live' ? -1 : 1),
+  )
 
   let lastFailure: AdapterResult<LegSpec[]> | null = null
   for (const adapter of ordered) {

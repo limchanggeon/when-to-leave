@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { resolveWhen } from '../../parse/parse'
-import { hasMockAdapters } from '../../adapters/registry'
 import { diffMin, formatClock, humanDuration } from '../../engine/time'
 import { dictionaries } from '../../i18n'
 import { planTrip, type PlanOutcome, type RouteOption } from '../planTrip'
@@ -87,7 +86,9 @@ export function HomePage() {
       </Hero>
 
       <div className="shell">
-        {hasMockAdapters() && <MockBanner t={t} />}
+        {/* 등록 여부가 아니라 실제로 쓰인 데이터를 보고 띄운다.
+            ODsay 키가 있으면 실제 경로가 오고, 그때는 이 배너가 사라져야 한다. */}
+        {shown?.legs.some((l) => l.origin === 'mock') && <MockBanner t={t} />}
         <SetupNotice />
 
         {outcome?.kind === 'gap' && (

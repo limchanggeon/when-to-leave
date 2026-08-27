@@ -2,6 +2,8 @@ import express from 'express'
 import { serverEnv, missingServerEnv } from './env'
 import { exchangeKakaoCode } from './kakao'
 import { COOKIE_NAME, cookieOptions, createSession, destroySession, readSession } from './session'
+import { geocode, type GeoPoint } from './geocode'
+import { searchTransitRoute } from './odsay'
 
 const app = express()
 app.use(express.json())
@@ -51,6 +53,57 @@ app.post('/api/auth/kakao', async (req, res) => {
   }
 })
 
+/**
+ * 실제 대중교통 경로. 좌표가 있으면 그대로 쓰고, 이름만 있으면 지오코딩한다.
+ * ODsay·카카오 키는 서버에만 있으므로 브라우저는 이 엔드포인트만 안다.
+ */
+app.post('/api/route', async (req, res) => {
+  const { from, to } = req.body as {
+    from?: { name?: string; lat?: number; lng?: number }
+    to?: { name?: string; lat?: number; lng?: number }
+  }
+
+  if (!to?.name && (typeof to?.lat !== 'number' || typeof to?.lng !== 'number')) {
+    res.status(400).json({ error: { code: 'no-data', message: '도착지가 필요합니다' } })
+    return
+  }
+
+  const resolve = async (
+    p: { name?: string; lat?: number; lng?: number } | undefined,
+    fallbackName: string,
+  ): Promise<GeoPoint | { error: { code: string; message: string } }> => {
+    if (typeof p?.lat === 'number' && typeof p?.lng === 'number') {
+      return { name: p.name || fallbackName, lat: p.lat, lng: p.lng }
+    }
+    const g = await geocode(p?.name ?? fallbackName)
+    return g.ok ? g.point : { error: { code: g.code, message: g.message } }
+  }
+
+  try {
+    const start = await resolve(from, '현재 위치')
+    if ('error' in start) {
+      res.status(400).json({ error: start.error })
+      return
+    }
+    const end = await resolve(to, '')
+    if ('error' in end) {
+      res.status(400).json({ error: end.error })
+      return
+    }
+
+    const route = await searchTransitRoute(start, end)
+    if (!route.ok) {
+      res.status(route.code === 'no-credentials' ? 500 : 502).json({
+        error: { code: route.code, message: route.message },
+      })
+      return
+    }
+    res.json({ legs: route.legs, totalMin: route.totalMin, from: start, to: end })
+  } catch (e) {
+    res.status(502).json({ error: { code: 'upstream-error', message: String(e) } })
+  }
+})
+
 app.post('/api/auth/logout', (req, res) => {
   destroySession(cookie(req, COOKIE_NAME))
   res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: undefined })
@@ -58,10 +111,9 @@ app.post('/api/auth/logout', (req, res) => {
 })
 
 app.listen(serverEnv.port, () => {
-  const missing = missingServerEnv()
   console.log(`[server] http://localhost:${serverEnv.port}`)
-  if (missing.length > 0) {
-    console.log(`[server] ⚠ 환경변수 없음: ${missing.join(', ')} — 카카오 로그인은 실패합니다`)
+  for (const { name, breaks } of missingServerEnv()) {
+    console.log(`[server] ⚠ ${name} 없음 → ${breaks}`)
   }
   if (serverEnv.sessionSecret === 'dev-only-insecure-secret') {
     console.log('[server] ⚠ SESSION_SECRET 이 기본값입니다. 운영 전에 반드시 바꾸세요')
