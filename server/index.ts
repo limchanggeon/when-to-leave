@@ -70,24 +70,37 @@ app.post('/api/route', async (req, res) => {
 
   const resolve = async (
     p: { name?: string; lat?: number; lng?: number } | undefined,
-    fallbackName: string,
   ): Promise<GeoPoint | { error: { code: string; message: string } }> => {
     if (typeof p?.lat === 'number' && typeof p?.lng === 'number') {
-      return { name: p.name || fallbackName, lat: p.lat, lng: p.lng }
+      return { name: p.name?.trim() || '지정한 위치', lat: p.lat, lng: p.lng }
     }
-    const g = await geocode(p?.name ?? fallbackName)
+    const name = p?.name?.trim()
+    if (!name) {
+      return { error: { code: 'no-data', message: '위치를 알 수 없습니다' } }
+    }
+    const g = await geocode(name)
     return g.ok ? g.point : { error: { code: g.code, message: g.message } }
   }
 
   try {
-    const start = await resolve(from, '현재 위치')
+    const start = await resolve(from)
     if ('error' in start) {
-      res.status(400).json({ error: start.error })
+      res.status(400).json({
+        error: {
+          code: start.error.code,
+          // 출발지를 못 정하면 왜 못 정했는지 그대로 알려준다.
+          // 예전에는 "현재 위치"라는 글자를 그대로 검색해
+          // "현재의 공간"(부산진구) 같은 엉뚱한 가게를 출발지로 잡았다.
+          message: `출발지를 정하지 못했습니다 — ${start.error.message}. 현재 위치를 허용하거나 출발지를 직접 입력해 주세요.`,
+        },
+      })
       return
     }
-    const end = await resolve(to, '')
+    const end = await resolve(to)
     if ('error' in end) {
-      res.status(400).json({ error: end.error })
+      res.status(400).json({
+        error: { code: end.error.code, message: `도착지를 정하지 못했습니다 — ${end.error.message}` },
+      })
       return
     }
 

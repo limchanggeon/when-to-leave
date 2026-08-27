@@ -47,9 +47,11 @@ export function HomePage() {
 
     const result = await planTrip(
       {
-        // 좌표가 있으면 함께 넘긴다 — 지도와 경로 계산 모두 지명보다 좌표가 정확하다
+        // 좌표가 있으면 함께 넘긴다 — 지도와 경로 계산 모두 지명보다 좌표가 정확하다.
+        // 좌표도 이름도 없으면 지어내지 않는다. 예전에는 '집' 으로 채워 넣었는데
+        // 서버가 그 글자를 그대로 검색해 엉뚱한 곳을 출발지로 잡았다.
         from: {
-          name: query.from || '집',
+          name: query.from,
           lat: query.fromCoords?.lat,
           lng: query.fromCoords?.lng,
         },

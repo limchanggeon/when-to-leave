@@ -172,12 +172,43 @@ async function call(from: GeoPoint, to: GeoPoint, searchType: 0 | 1): Promise<Ro
   return { ok: true, routes }
 }
 
+/** 출발지와 첫 구간 시작점이 이만큼 떨어져 있으면 접근 구간을 따로 구한다. */
+const ACCESS_THRESHOLD_KM = 0.4
+
+/**
+ * 시외 경로는 **탑승역에서 시작한다.** 사용자가 있는 곳에서 그 역까지 어떻게
+ * 가는지는 응답에 없다. 그대로 두면 "수서에서 출발" 이라고만 나오고,
+ * 정작 이 앱이 답해야 할 "집에서 언제 나가야 하나" 가 통째로 빠진다.
+ *
+ * 그래서 첫 구간 시작점이 출발지와 떨어져 있으면 시내 검색을 한 번 더 해서
+ * 접근 구간을 앞에 붙인다.
+ */
+async function withAccessLegs(route: WireRoute, from: GeoPoint): Promise<WireRoute> {
+  const head = route.legs[0]
+  if (!head?.from.lat || !head.from.lng) return route
+
+  const station: GeoPoint = { name: head.from.name, lat: head.from.lat, lng: head.from.lng }
+  if (distanceKm(from, station) < ACCESS_THRESHOLD_KM) return route
+
+  const access = await call(from, station, 0)
+  if (!access.ok || access.routes.length === 0) {
+    // 접근 경로를 못 구했으면 없는 구간을 지어내지 않는다.
+    // 다만 여정이 역에서 시작한다는 사실이 드러나도록 이름은 그대로 둔다.
+    return route
+  }
+
+  const accessLegs = access.routes[0].legs
+  return {
+    legs: [...accessLegs, ...route.legs],
+    totalMin: access.routes[0].totalMin + route.totalMin,
+  }
+}
+
 /**
  * ODsay 대중교통 길찾기.
  *
- * 시내(SearchType=0)와 시외(1)는 응답이 다르다. 시외에만 실제 출발·도착
- * 시각(startDateTime)이 오고, 그래야 역산 엔진의 데드라인 전파가 의미를 가진다.
- * 거리로 먼저 고르고, 결과가 없으면 반대쪽도 시도한다.
+ * 시내(SearchType=0)와 시외(1)는 응답이 다르다. 거리로 먼저 고르고,
+ * 결과가 없으면 반대쪽도 시도한다. 시외였다면 탑승역까지 가는 구간을 덧붙인다.
  */
 export async function searchTransitRoute(from: GeoPoint, to: GeoPoint): Promise<RouteResult> {
   if (!serverEnv.odsayKey) {
@@ -185,13 +216,18 @@ export async function searchTransitRoute(from: GeoPoint, to: GeoPoint): Promise<
   }
 
   const first: 0 | 1 = distanceKm(from, to) >= INTERCITY_KM ? 1 : 0
-  const primary = await call(from, to, first)
-  if (primary.ok) return primary
+  let result = await call(from, to, first)
 
   // 거리 판단이 빗나갈 수 있다(섬, 광역 경계 등). 반대쪽도 한 번 본다.
-  if (primary.code === 'no-data') {
+  if (!result.ok && result.code === 'no-data') {
     const fallback = await call(from, to, first === 1 ? 0 : 1)
-    if (fallback.ok) return fallback
+    if (fallback.ok) result = fallback
   }
-  return primary
+  if (!result.ok) return result
+
+  if (first === 1) {
+    const withAccess = await Promise.all(result.routes.map((r) => withAccessLegs(r, from)))
+    return { ok: true, routes: withAccess }
+  }
+  return result
 }
