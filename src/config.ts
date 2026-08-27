@@ -29,6 +29,11 @@ export const config = {
     /** 카카오 JavaScript 키. 지도 SDK 와 카카오 로그인이 함께 쓴다. */
     jsKey: trim(env.VITE_KAKAO_JS_KEY),
     redirectUri: kakaoRedirectUri(),
+    /**
+     * 추가 동의항목. 비워두는 것이 기본이다 —
+     * 콘솔에 켜지 않은 항목을 요청하면 KOE205 로 거부된다.
+     */
+    scope: trim(env.VITE_KAKAO_SCOPE),
   },
   google: {
     /** Google Maps JavaScript API 키 (해외 구간 지도). */

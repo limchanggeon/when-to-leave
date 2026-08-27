@@ -57,9 +57,21 @@ export const kakaoAuth: AuthProvider = {
     if (!Kakao) return { ok: false, failure: { code: 'sdk-unavailable', provider: 'kakao' } }
 
     try {
+      /*
+       * scope 를 일부러 보내지 않는다.
+       *
+       * 명시하면 콘솔의 [카카오 로그인 > 동의항목]에 켜져 있지 않은 항목을
+       * 요청하게 되어 KOE205(설정하지 않은 동의항목)로 거부된다.
+       * 생략하면 카카오가 앱에 설정된 동의항목을 그대로 쓰므로
+       * 콘솔 설정이 무엇이든 흐름이 끊기지 않는다.
+       *
+       * 추가 동의(이메일 등)가 필요해지면 그때 콘솔에서 항목을 켜고
+       * VITE_KAKAO_SCOPE 로 넘긴다.
+       */
+      const scope = config.kakao.scope
       Kakao.Auth.authorize({
         redirectUri: config.kakao.redirectUri,
-        scope: 'profile_nickname,profile_image',
+        ...(scope ? { scope } : {}),
       })
       // 여기 도달하면 리다이렉트가 시작된 것. 화면은 곧 사라진다.
       return { ok: false, failure: { code: 'cancelled', provider: 'kakao' } }
