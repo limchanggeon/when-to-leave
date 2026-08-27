@@ -3,6 +3,7 @@ import type { CountryCode } from '../../adapters/types'
 import type { Leg, Place } from '../../engine/types'
 import { pickMap } from '../../map/registry'
 import type { MapFailure } from '../../map/types'
+import type { I18nShape } from '../../i18n'
 
 function failureText(f: MapFailure): string {
   switch (f.code) {
@@ -21,7 +22,7 @@ function failureText(f: MapFailure): string {
  * 여정 위 지점들을 지도에 찍는다.
  * 키가 없거나 좌표가 없으면 지도를 비워두지 않고 이유를 그대로 보여준다.
  */
-export function JourneyMap({ legs, country }: { legs: Leg[]; country: CountryCode }) {
+export function JourneyMap({ legs, country, t }: { legs: Leg[]; country: CountryCode; t: I18nShape }) {
   const ref = useRef<HTMLDivElement>(null)
   const [failure, setFailure] = useState<MapFailure | null>(null)
   const provider = pickMap(country)
@@ -52,7 +53,7 @@ export function JourneyMap({ legs, country }: { legs: Leg[]; country: CountryCod
   return (
     <div className="map">
       <div className="map__head">
-        <span className="map__label">지도</span>
+        <span className="map__label">{t.sections.map}</span>
         <span className="map__provider">{provider.label}</span>
       </div>
       {failure ? (

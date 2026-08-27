@@ -3,6 +3,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthContext } from '../../auth/AuthContext'
 import { exchangeKakaoCode } from '../../auth/api'
 import { config } from '../../config'
+import { dictionaries } from '../../i18n'
+import { usePrefs } from '../PrefsContext'
 
 type State =
   | { phase: 'working' }
@@ -18,6 +20,8 @@ export function KakaoCallbackPage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const { applyResult } = useAuthContext()
+  const { lang } = usePrefs()
+  const t = dictionaries[lang]
 
   const code = params.get('code')
   const oauthError = params.get('error')
@@ -47,13 +51,13 @@ export function KakaoCallbackPage() {
       <div className="login__stars" aria-hidden="true" />
       <div className="login__card">
         <Link className="login__back" to="/login">
-          ← 로그인으로
+          {t.callback.backToLogin}
         </Link>
-        <p className="login__eyebrow">카카오 로그인</p>
+        <p className="login__eyebrow">{t.callback.eyebrow}</p>
 
         {oauthError && (
           <>
-            <h1 className="login__title">로그인이 취소됐습니다</h1>
+            <h1 className="login__title">{t.callback.cancelled}</h1>
             <p className="login__error" role="alert">
               {oauthErrorDescription ?? oauthError}
             </p>
@@ -62,33 +66,33 @@ export function KakaoCallbackPage() {
 
         {!oauthError && !code && (
           <>
-            <h1 className="login__title">잘못된 접근입니다</h1>
-            <p className="login__sub">인가 코드가 없습니다. 로그인부터 다시 시도해 주세요.</p>
+            <h1 className="login__title">{t.callback.invalid}</h1>
+            <p className="login__sub">{t.callback.invalidBody}</p>
           </>
         )}
 
         {!oauthError && code && state.phase === 'working' && (
           <>
-            <h1 className="login__title">로그인 중…</h1>
-            <p className="login__sub">서버가 인가 코드를 토큰으로 바꾸고 있습니다.</p>
+            <h1 className="login__title">{t.callback.working}</h1>
+            <p className="login__sub">{t.callback.workingBody}</p>
           </>
         )}
 
         {state.phase === 'done' && (
           <>
-            <h1 className="login__title">환영합니다</h1>
-            <p className="login__sub">{state.name ? `${state.name}님, ` : ''}잠시 후 홈으로 이동합니다.</p>
+            <h1 className="login__title">{t.callback.done}</h1>
+            <p className="login__sub">{t.callback.doneBody(state.name)}</p>
           </>
         )}
 
         {state.phase === 'error' && (
           <>
-            <h1 className="login__title">로그인하지 못했습니다</h1>
+            <h1 className="login__title">{t.callback.failed}</h1>
             <p className="login__error" role="alert">
               {state.message}
             </p>
             <Link className="login__fallback" to="/login">
-              다시 시도
+              {t.callback.retry}
             </Link>
           </>
         )}

@@ -3,8 +3,9 @@ import { resolveWhen } from '../../parse/parse'
 import { hasMockAdapters } from '../../adapters/registry'
 import { diffMin, formatClock, humanDuration } from '../../engine/time'
 import type { Leg } from '../../engine/types'
-import { dictionaries, type Lang } from '../../i18n'
+import { dictionaries } from '../../i18n'
 import { planTrip, type PlanOutcome } from '../planTrip'
+import { usePrefs } from '../PrefsContext'
 import { deriveWarnings } from '../deriveWarnings'
 import { SearchPanel, type QueryInput } from '../components/SearchPanel'
 import { SiteHeader } from '../components/SiteHeader'
@@ -24,11 +25,11 @@ const EXAMPLES: { label: string; query: QueryInput }[] = [
   { label: '부산 11시까지', query: { mode: 'arriveBy', from: '집', to: '부산', when: '11:00' } },
   { label: '지금 나가면 부산 언제?', query: { mode: 'departNow', from: '집', to: '부산', when: null } },
 ]
-const UNIT = { h: '시간', m: '분' }
 
 export function HomePage() {
-  const [lang] = useState<Lang>('ko')
+  const { lang } = usePrefs()
   const t = dictionaries[lang]
+  const UNIT = { h: t.units.hour, m: t.units.minute }
   const [pending, setPending] = useState(false)
   const [outcome, setOutcome] = useState<PlanOutcome | null>(null)
   const [lastQuery, setLastQuery] = useState<QueryInput | null>(null)
@@ -141,12 +142,12 @@ export function HomePage() {
 
             <div className="columns">
               <section className="col col--main">
-                <h2 className="col__label">여정</h2>
+                <h2 className="col__label">{t.sections.journey}</h2>
                 <TripSpine legs={shown.legs} now={now} t={t} />
               </section>
 
               <aside className="col col--side">
-                <JourneyMap legs={shown.legs} country="KR" />
+                <JourneyMap legs={shown.legs} country="KR" t={t} />
                 <Alternatives
                   items={outcome.alternatives}
                   baselineArrival={outcome.legs[outcome.legs.length - 1].arriveAt}

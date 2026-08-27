@@ -2,15 +2,13 @@ import { diffMin, formatClock, humanDuration } from '../../engine/time'
 import type { Leg } from '../../engine/types'
 import type { I18nShape } from '../../i18n'
 
-const UNIT = { h: '시간', m: '분' }
-
 function Seat({ leg, t }: { leg: Leg; t: I18nShape }) {
   if (!leg.seat) return null
   if (leg.seat.available === null)
     return <span className="chip chip--muted">{t.warning['seat-unknown']}</span>
   if (leg.seat.available === false)
     return <span className="chip chip--bad">{t.warning['seat-sold-out']}</span>
-  return <span className="chip chip--good">{leg.seat.className ?? ''} 좌석 있음</span>
+  return <span className="chip chip--good">{`${leg.seat.className ?? ''} ${t.seat.ok}`.trim()}</span>
 }
 
 /**
@@ -19,6 +17,7 @@ function Seat({ leg, t }: { leg: Leg; t: I18nShape }) {
  */
 export function TripSpine({ legs, now, t }: { legs: Leg[]; now: Date; t: I18nShape }) {
   if (legs.length === 0) return null
+  const UNIT = { h: t.units.hour, m: t.units.minute }
   const clock = (d: Date) => formatClock(d, now, t.clock)
 
   return (

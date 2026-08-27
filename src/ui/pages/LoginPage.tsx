@@ -5,22 +5,27 @@ import { mountGoogleButton } from '../../auth/google'
 import { googleAuth, kakaoAuth } from '../../auth/providers'
 import type { AuthFailure } from '../../auth/types'
 import { KakaoLoginButton } from '../components/KakaoLoginButton'
+import { dictionaries } from '../../i18n'
+import { usePrefs } from '../PrefsContext'
+import type { I18nShape } from '../../i18n'
 
-function failureText(f: AuthFailure): string {
+function failureText(f: AuthFailure, t: I18nShape): string {
   switch (f.code) {
     case 'not-configured':
-      return `${f.envVar} 가 .env 에 없습니다. 키를 넣고 서버를 다시 시작하면 동작합니다.`
+      return t.login.err.notConfigured(f.envVar)
     case 'cancelled':
-      return '로그인을 취소했습니다.'
+      return t.login.err.cancelled
     case 'sdk-unavailable':
-      return 'SDK를 불러오지 못했습니다. 네트워크 또는 콘솔의 도메인 등록을 확인하세요.'
+      return t.login.err.sdk
     case 'failed':
-      return f.detail ?? '로그인에 실패했습니다.'
+      return f.detail ?? t.login.err.failed
   }
 }
 
 export function LoginPage() {
   const { account, failure, busy, signIn, applyResult } = useAuthContext()
+  const { lang } = usePrefs()
+  const t = dictionaries[lang]
   const navigate = useNavigate()
   const googleSlot = useRef<HTMLDivElement>(null)
   const [googleRendered, setGoogleRendered] = useState(false)
@@ -51,21 +56,28 @@ export function LoginPage() {
 
       <div className="login__card">
         <Link className="login__back" to="/">
-          ← 돌아가기
+          {t.login.back}
         </Link>
 
-        <p className="login__eyebrow">출발 시각 역산</p>
-        <h1 className="login__title">언제 나가야 하나</h1>
+        <p className="login__eyebrow">{t.login.eyebrow}</p>
+        <h1 className="login__title">{t.app.title}</h1>
         <p className="login__sub">
-          로그인하면 자주 가는 곳과 계산한 여정을 저장하고,
-          <br />
-          출발 알람을 캘린더에 걸어둘 수 있습니다.
+          {t.login.sub.map((line, i) => (
+            <span key={i}>
+              {line}
+              <br />
+            </span>
+          ))}
         </p>
 
         <div className="login__providers">
-          <KakaoLoginButton onClick={() => signIn('kakao')} disabled={busy !== null} />
+          <KakaoLoginButton
+            onClick={() => signIn('kakao')}
+            disabled={busy !== null}
+            label={t.login.kakaoLabel}
+          />
           {!kakaoAuth.configured && (
-            <p className="login__note">VITE_KAKAO_JS_KEY 미설정 — 눌러보면 안내가 표시됩니다</p>
+            <p className="login__note">{t.login.notConfigured('VITE_KAKAO_JS_KEY')}</p>
           )}
 
           {/* 구글이 렌더한 공식 버튼이 여기 들어간다 */}
@@ -77,23 +89,21 @@ export function LoginPage() {
               onClick={() => signIn('google')}
               disabled={busy !== null}
             >
-              Google로 계속하기
+              {t.login.googleFallback}
             </button>
           )}
           {!googleAuth.configured && (
-            <p className="login__note">VITE_GOOGLE_CLIENT_ID 미설정 — 눌러보면 안내가 표시됩니다</p>
+            <p className="login__note">{t.login.notConfigured('VITE_GOOGLE_CLIENT_ID')}</p>
           )}
         </div>
 
         {failure && (
           <p className="login__error" role="alert">
-            {failureText(failure)}
+            {failureText(failure, t)}
           </p>
         )}
 
-        <p className="login__terms">
-          로그인하면 서비스 이용약관과 개인정보 처리방침에 동의하는 것으로 봅니다.
-        </p>
+        <p className="login__terms">{t.login.terms}</p>
       </div>
     </div>
   )

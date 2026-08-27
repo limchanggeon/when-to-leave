@@ -160,7 +160,7 @@ export function SearchPanel({
                   </button>
                 ))}
                 <button type="button" className="chips__btn" onClick={() => setWhen(plusMinutes(60))}>
-                  1시간 뒤
+                  {t.search.hourLater}
                 </button>
               </div>
             </div>
@@ -169,7 +169,7 @@ export function SearchPanel({
       )}
 
       <button className="panel__submit" type="submit" disabled={!canSubmit || pending}>
-        {pending ? '계산 중…' : t.search.submit}
+        {pending ? t.search.calculating : t.search.submit}
       </button>
     </form>
   )

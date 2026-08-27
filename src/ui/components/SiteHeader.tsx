@@ -1,11 +1,22 @@
 import { Link } from 'react-router-dom'
 import { useAuthContext } from '../../auth/AuthContext'
-import type { I18nShape } from '../../i18n'
+import type { I18nShape, Lang } from '../../i18n'
+import { usePrefs, type Theme } from '../PrefsContext'
 import { Logo } from './Logo'
 
-/** 히어로 위에 얹히는 투명 헤더. 결과 화면에서는 배경이 깔린다. */
+const LANGS: { id: Lang; short: string }[] = [
+  { id: 'ko', short: '한국어' },
+  { id: 'ja', short: '日本語' },
+]
+
+const THEME_ORDER: Theme[] = ['system', 'light', 'dark']
+const THEME_ICON: Record<Theme, string> = { system: '◐', light: '☀', dark: '☾' }
+
 export function SiteHeader({ t, solid }: { t: I18nShape; solid: boolean }) {
   const { account, signOut } = useAuthContext()
+  const { lang, setLang, theme, setTheme } = usePrefs()
+
+  const nextTheme = THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length]
 
   return (
     <header className={`siteheader ${solid ? 'siteheader--solid' : ''}`}>
@@ -18,6 +29,31 @@ export function SiteHeader({ t, solid }: { t: I18nShape; solid: boolean }) {
         <a className="siteheader__link" href="#how">
           {t.nav.how}
         </a>
+
+        <div className="langswitch" role="group" aria-label={t.nav.language}>
+          {LANGS.map((l) => (
+            <button
+              key={l.id}
+              type="button"
+              className={`langswitch__btn ${lang === l.id ? 'is-on' : ''}`}
+              onClick={() => setLang(l.id)}
+              aria-pressed={lang === l.id}
+            >
+              {l.short}
+            </button>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          className="siteheader__icon"
+          onClick={() => setTheme(nextTheme)}
+          title={`${t.nav.theme}: ${t.nav.themes[theme]}`}
+          aria-label={`${t.nav.theme}: ${t.nav.themes[theme]}`}
+        >
+          {THEME_ICON[theme]}
+        </button>
+
         {account ? (
           <div className="siteheader__account">
             {account.avatarUrl && <img className="siteheader__avatar" src={account.avatarUrl} alt="" />}

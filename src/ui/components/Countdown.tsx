@@ -22,7 +22,7 @@ export function Countdown({ departAt, t }: { departAt: Date; t: I18nShape }) {
 
   const left = diffMin(departAt, now)
   const urgency = urgencyOf(left)
-  const unit = { h: '시간', m: '분' }
+  const unit = { h: t.units.hour, m: t.units.minute }
 
   const text =
     urgency === 'overdue'

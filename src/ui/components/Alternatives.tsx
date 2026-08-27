@@ -35,7 +35,7 @@ export function Alternatives({
       <div className="alts__list">
         {items.map((a) => {
           const delta = diffMin(a.arriveAt, baselineArrival)
-          const unit = { h: '시간', m: '분' }
+          const unit = { h: t.units.hour, m: t.units.minute }
           const deltaText =
             delta === 0
               ? t.alternatives.same
@@ -60,9 +60,9 @@ export function Alternatives({
                 <span className={`alt__delta alt__delta--${delta <= 0 ? 'good' : 'bad'}`}>
                   {deltaText}
                 </span>
-                {seat && seat.available === true && <span className="alt__seat">좌석 있음</span>}
+                {seat && seat.available === true && <span className="alt__seat">{t.seat.ok}</span>}
                 {seat && seat.available === false && (
-                  <span className="alt__seat alt__seat--no">매진</span>
+                  <span className="alt__seat alt__seat--no">{t.seat.soldOut}</span>
                 )}
               </span>
             </button>
