@@ -65,6 +65,12 @@ src/
 | 제품 설정 > 카카오 로그인 > 활성화 | ON |
 | 제품 설정 > 카카오 로그인 > Redirect URI | `http://localhost:5173/auth/kakao/callback`<br>`http://localhost:4173/auth/kakao/callback` |
 | 제품 설정 > 카카오 로그인 > 동의항목 | 닉네임 · 프로필 사진 (필수 동의) |
+| 제품 설정 > **카카오맵** > 활성화 설정 | **ON** (지도를 쓰려면 반드시 켜야 함) |
+
+> 카카오맵 활성화를 안 켜면 SDK 요청이 403 으로 막히고 브라우저에는
+> `ERR_BLOCKED_BY_ORB` 로만 보여 원인을 알기 어렵습니다.
+> 응답 본문에는 `disabled OPEN_MAP_AND_LOCAL service` 가 들어 있습니다.
+> (2024-12-01 부터 신규 앱은 기본 비활성 상태입니다.)
 
 **구글** ([Cloud Console](https://console.cloud.google.com/apis/credentials) > OAuth 클라이언트 ID > 웹 애플리케이션)
 

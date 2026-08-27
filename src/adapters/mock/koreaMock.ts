@@ -8,16 +8,22 @@ import { at } from '../../engine/time'
 import type { AdapterResult, LabeledRoute, RouteAdapter, RouteRequest } from '../types'
 import { fail } from '../types'
 
-const P = (name: string, code?: string): Place => ({ name, code })
+const P = (name: string, code: string | undefined, lat: number, lng: number): Place => ({
+  name,
+  code,
+  lat,
+  lng,
+})
 
-const HOME = P('집')
-const LOCAL = P('동네역', 'LOCAL')
-const SEOUL = P('서울역', 'SEO')
-const SUSEO = P('수서역', 'SRS')
-const TERMINAL = P('센트럴시티터미널', 'CST')
-const BUSAN = P('부산역', 'BSN')
-const BUSAN_TERMINAL = P('부산종합버스터미널', 'BST')
-const OFFICE = P('사무실')
+// 실제 좌표 — 지도에 찍히는 값이라 대충 넣으면 엉뚱한 곳에 표시된다.
+const HOME = P('집', undefined, 37.5045, 127.0495)
+const LOCAL = P('동네역', 'LOCAL', 37.5087, 127.0631)
+const SEOUL = P('서울역', 'SEO', 37.5547, 126.9707)
+const SUSEO = P('수서역', 'SRS', 37.4870, 127.1016)
+const TERMINAL = P('센트럴시티터미널', 'CST', 37.5050, 127.0045)
+const BUSAN = P('부산역', 'BSN', 35.1151, 129.0413)
+const BUSAN_TERMINAL = P('부산종합버스터미널', 'BST', 35.2350, 129.0846)
+const OFFICE = P('사무실', undefined, 35.1531, 129.0594)
 
 const SOURCE = 'mock:korea'
 
