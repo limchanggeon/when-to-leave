@@ -20,6 +20,13 @@ export const serverEnv = {
   sessionSecret: req('SESSION_SECRET') ?? 'dev-only-insecure-secret',
   /** ODsay 대중교통 길찾기. https://lab.odsay.com 에서 발급. */
   odsayKey: req('ODSAY_API_KEY'),
+  /**
+   * ODsay Web 키를 쓸 때 함께 보낼 Referer.
+   * Web 키는 도메인으로 사용자를 식별하므로, 서버에서 호출하면
+   * 콘솔에 등록한 Service URI 와 같은 값을 Referer 로 붙여줘야 한다.
+   * Server 키(고정 IP 등록)를 쓴다면 없어도 되고, 있어도 무해하다.
+   */
+  odsayReferer: req('ODSAY_SERVICE_URL') ?? 'http://localhost:4173',
   isProd: process.env.NODE_ENV === 'production',
 }
 

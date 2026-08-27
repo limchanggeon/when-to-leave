@@ -43,7 +43,34 @@ src/
 ## 실제 교통 데이터 (ODsay)
 
 `ODSAY_API_KEY` 를 넣으면 실제 대중교통 경로를 씁니다.
-[lab.odsay.com](https://lab.odsay.com) 가입 후 웹서비스 키를 발급받으세요.
+[lab.odsay.com](https://lab.odsay.com) 가입 → **내 애플리케이션 → 애플리케이션 등록**.
+
+### 어떤 키를 받아야 하나
+
+ODsay 는 키가 두 종류이고 **등록하는 것이 다릅니다.**
+
+| 키 | 용도 | 등록 대상 |
+|---|---|---|
+| **Web 키** | 프론트엔드 호출 | **도메인** — 개발 시 `localhost:4173` 처럼 포트까지 |
+| **Server 키** | 백엔드 호출 | **고정 IP** |
+
+이 프로젝트는 서버에서 호출하므로 원칙적으로는 Server 키지만,
+로컬 개발 PC 는 고정 IP 가 아니라 IP 가 바뀔 때마다 다시 등록해야 합니다.
+그래서 **개발 중에는 Web 키를 권합니다** — 서버가 등록한 도메인을
+`Referer` 헤더로 붙여 호출하므로, 키는 서버에 그대로 둔 채 동작합니다.
+
+**Service URI 에 등록할 값** (둘 다 넣으세요):
+
+```
+localhost:4173     ← preview
+localhost:5173     ← dev
+```
+
+`.env` 의 `ODSAY_SERVICE_URL` 은 그중 실제로 접속하는 주소와 맞춰 두면 됩니다
+(비우면 `http://localhost:4173`).
+
+배포 후에는 실제 도메인을 Service URI 에 추가하고 `ODSAY_SERVICE_URL` 을 바꾸거나,
+서버 IP 가 고정이면 Server 키로 갈아타면 됩니다.
 
 ```
 브라우저 → POST /api/route → 서버가 카카오 지오코딩 + ODsay 길찾기 → 구간 배열

@@ -61,7 +61,12 @@ export async function searchTransitRoute(from: GeoPoint, to: GeoPoint): Promise<
     `${PATH_URL}?apiKey=${encodeURIComponent(serverEnv.odsayKey)}` +
     `&SX=${from.lng}&SY=${from.lat}&EX=${to.lng}&EY=${to.lat}&OPT=0&output=json`
 
-  const res = await fetchJson<OdsayResponse>(url, {}, { label: 'ODsay 길찾기' })
+  const res = await fetchJson<OdsayResponse>(
+    url,
+    // Web 키는 도메인으로 식별하므로 등록한 Service URI 를 Referer 로 보낸다.
+    { headers: { Referer: serverEnv.odsayReferer } },
+    { label: 'ODsay 길찾기' },
+  )
   if (!res.ok) {
     return {
       ok: false,
