@@ -4,7 +4,7 @@
  */
 export const ko = {
   app: {
-    title: '언제 나가야 하나',
+    title: '언제나가',
     eyebrow: '출발 시각 역산',
     tagline: '목적지를 말하면, 몇 시에 나가야 하는지 계산합니다',
     heroLines: [

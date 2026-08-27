@@ -3,7 +3,7 @@ import type { I18nShape } from './ko'
 /** 뼈대만. M2a(일본어 UI)에서 채운다 — 설계 문서 "언어" 섹션 참조. */
 export const ja: I18nShape = {
   app: {
-    title: 'いつ出れば間に合うか',
+    title: '언제나가',
     eyebrow: '出発時刻の逆算',
     tagline: '目的地を伝えると、出発時刻を計算します',
     heroLines: [
