@@ -67,6 +67,7 @@ export const ko = {
     retry: '다시 시도',
   },
   geo: {
+    staleCoords: '위치 정보가 사라졌습니다. ◎ 현재 위치를 다시 눌러주세요.',
     use: '현재 위치',
     locating: '위치 확인 중…',
     currentLocation: '현재 위치',
@@ -122,6 +123,7 @@ export const ko = {
     leaveIn: (m: string) => `${m} 후 출발`,
     leaveNow: '지금 나가세요',
     overdue: (m: string) => `${m} 지났어요`,
+    resolvedAs: (a: string, b: string) => `${a} → ${b} 기준`,
     countdownLabel: '출발까지',
     totalDuration: (m: string) => `총 ${m}`,
     alreadyLate: '이미 늦었어요 — 다음 편으로 다시 계산했어요',

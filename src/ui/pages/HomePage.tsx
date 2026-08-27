@@ -4,6 +4,7 @@ import { diffMin, formatClock, humanDuration } from '../../engine/time'
 import { dictionaries } from '../../i18n'
 import { planTrip, type PlanOutcome, type RouteOption } from '../planTrip'
 import { describeRoute } from '../../engine/rank'
+import { getLastResolved } from '../../adapters/live/koreaLive'
 import { usePrefs } from '../PrefsContext'
 import { deriveWarnings } from '../deriveWarnings'
 import { SearchPanel, type QueryInput } from '../components/SearchPanel'
@@ -75,6 +76,7 @@ export function HomePage() {
   }
 
   const clock = (d: Date) => formatClock(d, now, t.clock)
+  const resolved = outcome?.kind === 'trip' ? getLastResolved() : null
 
   const hasResult = outcome !== null
 
@@ -122,6 +124,13 @@ export function HomePage() {
             <section className="verdict">
               <div className="verdict__main">
                 <p className="verdict__depart">{t.result.departAt(clock(shown.legs[0].departAt))}</p>
+                {/* 서버가 무엇으로 해석했는지 보여준다. "집" 같은 말이
+                    엉뚱한 가게로 잡혀도 여기서 바로 눈에 띈다. */}
+                {resolved && (
+                  <p className="verdict__resolved">
+                    {t.result.resolvedAs(resolved.from.name, resolved.to.name)}
+                  </p>
+                )}
                 <p className="verdict__arrive">
                   {t.result.arriveAt(clock(shown.legs[shown.legs.length - 1].arriveAt))}
                   <span className="verdict__sep">·</span>

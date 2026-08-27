@@ -690,3 +690,8 @@
   color: var(--ink-faint); font-weight: 400;
 }
 .chips__hint { font-size: 0.76rem; color: var(--ink-faint); }
+
+.verdict__resolved {
+  margin: 0; width: 100%; order: 3;
+  font-size: 0.78rem; color: var(--ink-faint);
+}

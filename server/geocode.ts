@@ -15,12 +15,30 @@ export type GeocodeResult =
   | { ok: false; code: 'no-credentials' | 'no-data' | 'network' | 'upstream-error'; message: string }
 
 /**
+ * 장소로 검색하면 안 되는 말들.
+ *
+ * "현재 위치" 는 좌표에 붙이는 **딱지**이지 검색어가 아니다.
+ * 그대로 검색하면 카카오가 "현재의 공간"(부산진구) 같은 실제 가게를 찾아준다.
+ * "집", "회사" 도 마찬가지로 아무 데나 걸린다 —
+ * 나중에 저장된 장소 기능이 생기면 그때 좌표로 풀어야 할 말들이다.
+ */
+const NOT_SEARCHABLE = new Set(['현재 위치', '현재위치', '내 위치', '내위치', '집', '회사', '우리집'])
+
+/**
  * 장소명 → 좌표. 카카오 로컬 키워드 검색을 쓴다.
  * REST API 키는 서버에만 있어야 하므로 브라우저에서 부르지 않는다.
  */
 export async function geocode(query: string): Promise<GeocodeResult> {
   if (!serverEnv.kakaoRestKey) {
     return { ok: false, code: 'no-credentials', message: 'KAKAO_REST_API_KEY 가 없습니다' }
+  }
+
+  if (NOT_SEARCHABLE.has(query.trim())) {
+    return {
+      ok: false,
+      code: 'no-data',
+      message: `"${query}" 는 장소 이름이 아니라 좌표에 붙는 딱지입니다`,
+    }
   }
 
   const res = await fetchJson<{ documents?: { place_name: string; x: string; y: string }[] }>(

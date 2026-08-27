@@ -41,6 +41,16 @@ export function SearchPanel({
   const [when, setWhen] = useState('')
   const [text, setText] = useState('')
   const [fromCoords, setFromCoords] = useState<Coords | undefined>()
+  /**
+   * 위치로 채워 넣은 이름. 좌표와 짝이다.
+   *
+   * 이 값과 입력창 내용이 같으면 좌표는 아직 유효하다.
+   * 브라우저 자동완성이 change 이벤트를 쏘거나 리렌더가 끼어들 때
+   * 값이 그대로인데도 좌표만 지워지는 일을 막는다 —
+   * 그러면 이름만 "현재 위치" 로 남고 좌표가 사라져,
+   * 서버가 그 글자를 검색해 엉뚱한 곳을 잡는다.
+   */
+  const [geoName, setGeoName] = useState<string | null>(null)
   const [locating, setLocating] = useState(false)
   const [geoError, setGeoError] = useState<GeoFailure | null>(null)
 
@@ -65,6 +75,7 @@ export function SearchPanel({
     if (r.ok) {
       setFrom(r.data.name)
       setFromCoords(r.data.coords)
+      setGeoName(r.data.name)
     } else if (!auto) {
       setGeoError(r.failure)
     }
@@ -96,7 +107,11 @@ export function SearchPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const canSubmit = freeform ? text.trim().length > 0 : to.trim().length > 0
+  /** 좌표를 잃은 채 위치 딱지만 남았는지. 이대로 보내면 그 글자가 검색된다. */
+  const staleGeoName = !fromCoords && geoName !== null && from === geoName
+  const canSubmit = freeform
+    ? text.trim().length > 0
+    : to.trim().length > 0 && !staleGeoName
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -184,10 +199,17 @@ export function SearchPanel({
                 id="field-from"
                 className="field__input"
                 value={from}
+                autoComplete="off"
                 onChange={(e) => {
-                  setFrom(e.target.value)
-                  // 직접 고쳐 적으면 아까 잡은 좌표는 더 이상 그 지명이 아니다
-                  setFromCoords(undefined)
+                  const next = e.target.value
+                  setFrom(next)
+                  // 값이 실제로 달라졌을 때만 좌표를 버린다.
+                  // 값이 그대로인 change 이벤트(자동완성 등)에 좌표를 잃으면
+                  // 이름만 남아 엉뚱한 곳이 검색된다.
+                  if (next !== geoName) {
+                    setFromCoords(undefined)
+                    setGeoName(null)
+                  }
                 }}
                 placeholder={t.search.fromPlaceholder}
               />
@@ -216,6 +238,7 @@ export function SearchPanel({
                 id="field-to"
                 className="field__input"
                 value={to}
+                autoComplete="off"
                 onChange={(e) => setTo(e.target.value)}
                 placeholder={t.search.toPlaceholder}
                 required
@@ -266,6 +289,11 @@ export function SearchPanel({
       {geoError && (
         <p className="panel__geoerror" role="alert">
           {t.geo.err[geoError.code]}
+        </p>
+      )}
+      {staleGeoName && (
+        <p className="panel__geoerror" role="alert">
+          {t.geo.staleCoords}
         </p>
       )}
 

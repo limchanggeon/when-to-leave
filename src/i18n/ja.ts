@@ -66,6 +66,7 @@ export const ja: I18nShape = {
     retry: '再試行',
   },
   geo: {
+    staleCoords: '位置情報が失われました。◎ 現在地をもう一度押してください。',
     use: '現在地',
     locating: '位置を確認中…',
     currentLocation: '現在地',
@@ -121,6 +122,7 @@ export const ja: I18nShape = {
     leaveIn: (m) => `${m} 後に出発`,
     leaveNow: '今すぐ出発',
     overdue: (m) => `${m} 過ぎています`,
+    resolvedAs: (a: string, b: string) => `${a} → ${b} を基準`,
     countdownLabel: '出発まで',
     totalDuration: (m) => `合計 ${m}`,
     alreadyLate: '間に合いません — 次の便で再計算しました',

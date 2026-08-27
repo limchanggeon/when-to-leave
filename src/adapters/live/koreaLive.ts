@@ -21,6 +21,15 @@ interface WireRoute {
   totalMin: number
 }
 
+/** 서버가 실제로 무엇으로 해석했는지. 잘못 잡혔을 때 눈에 보이게 하려고 쓴다. */
+export interface ResolvedEnds {
+  from: { name: string }
+  to: { name: string }
+}
+
+let lastResolved: ResolvedEnds | null = null
+export const getLastResolved = (): ResolvedEnds | null => lastResolved
+
 const toSpecs = (legs: WireLeg[]): LegSpec[] =>
   legs.map((leg) => ({
     kind: leg.kind,
@@ -45,7 +54,7 @@ async function fetchRoutes(
       body: JSON.stringify({ from: req.from, to: req.to }),
     })
     const json = (await res.json()) as
-      | { routes: WireRoute[] }
+      | { routes: WireRoute[]; from?: { name: string }; to?: { name: string } }
       | { error: { code: string; message: string } }
 
     if (!res.ok || 'error' in json) {
@@ -57,6 +66,7 @@ async function fetchRoutes(
       return fail(code, SOURCE, err.message)
     }
     if (json.routes.length === 0) return fail('no-data', SOURCE, '경로를 찾지 못했습니다')
+    if (json.from && json.to) lastResolved = { from: json.from, to: json.to }
     return { ok: true, data: json.routes }
   } catch (e) {
     return fail('network', SOURCE, `서버에 연결하지 못했습니다 (${String(e)})`)
