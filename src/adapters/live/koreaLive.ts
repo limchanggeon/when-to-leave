@@ -40,12 +40,11 @@ export const liveKoreaAdapter: RouteAdapter = {
 
       if (!res.ok || 'error' in json) {
         const err = 'error' in json ? json.error : { code: 'upstream-error', message: '' }
-        const code =
-          err.code === 'no-credentials'
-            ? 'no-credentials'
-            : err.code === 'no-data'
-              ? 'no-data'
-              : 'upstream-error'
+        // 서버가 준 코드를 그대로 쓴다. 모르는 코드만 upstream-error 로 접는다.
+        const known = ['no-credentials', 'no-data', 'network', 'upstream-error'] as const
+        const code = (known as readonly string[]).includes(err.code)
+          ? (err.code as (typeof known)[number])
+          : 'upstream-error'
         return fail(code, SOURCE, err.message)
       }
 

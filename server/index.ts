@@ -100,7 +100,12 @@ app.post('/api/route', async (req, res) => {
     }
     res.json({ legs: route.legs, totalMin: route.totalMin, from: start, to: end })
   } catch (e) {
-    res.status(502).json({ error: { code: 'upstream-error', message: String(e) } })
+    // 여기까지 온 건 예상 못 한 오류다. 원본은 서버 로그에만 남기고
+    // 화면에는 사람이 읽을 수 있는 문장을 보낸다.
+    console.error('[route] 예상치 못한 오류:', e)
+    res.status(500).json({
+      error: { code: 'upstream-error', message: '경로를 계산하는 중 서버에서 오류가 났습니다' },
+    })
   }
 })
 

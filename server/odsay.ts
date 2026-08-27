@@ -1,4 +1,5 @@
 import { serverEnv } from './env'
+import { fetchJson } from './http'
 import type { GeoPoint } from './geocode'
 
 const PATH_URL = 'https://api.odsay.com/v1/api/searchPubTransPathT'
@@ -15,7 +16,7 @@ export interface WireLeg {
 
 export type RouteResult =
   | { ok: true; legs: WireLeg[]; totalMin: number }
-  | { ok: false; code: 'no-credentials' | 'no-data' | 'upstream-error'; message: string }
+  | { ok: false; code: 'no-credentials' | 'no-data' | 'network' | 'upstream-error'; message: string }
 
 const TRAFFIC = { 1: 'subway', 2: 'bus', 3: 'walk' } as const
 
@@ -60,13 +61,15 @@ export async function searchTransitRoute(from: GeoPoint, to: GeoPoint): Promise<
     `${PATH_URL}?apiKey=${encodeURIComponent(serverEnv.odsayKey)}` +
     `&SX=${from.lng}&SY=${from.lat}&EX=${to.lng}&EY=${to.lat}&OPT=0&output=json`
 
-  let json: OdsayResponse
-  try {
-    const res = await fetch(url)
-    json = (await res.json()) as OdsayResponse
-  } catch (e) {
-    return { ok: false, code: 'upstream-error', message: `ODsay 호출 실패: ${String(e)}` }
+  const res = await fetchJson<OdsayResponse>(url, {}, { label: 'ODsay 길찾기' })
+  if (!res.ok) {
+    return {
+      ok: false,
+      code: res.kind === 'status' ? 'upstream-error' : 'network',
+      message: res.message,
+    }
   }
+  const json = res.data
 
   if (json.error) {
     return {
