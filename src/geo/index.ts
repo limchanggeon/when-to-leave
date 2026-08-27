@@ -1,9 +1,9 @@
-import { locate } from './locate'
+import { locate, permissionState } from './locate'
 import { reverseGeocodeKakao } from './reverseKakao'
 import type { GeoResult, ResolvedPlace } from './types'
 
 export * from './types'
-export { locate }
+export { locate, permissionState }
 
 /**
  * 현재 위치를 "이름 + 좌표"로 만든다.

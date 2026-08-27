@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { I18nShape } from '../../i18n'
 import { parseUtterance } from '../../parse/parse'
-import { currentPlace, type Coords, type GeoFailure } from '../../geo'
+import { currentPlace, permissionState, type Coords, type GeoFailure } from '../../geo'
 
 export interface QueryInput {
   mode: 'arriveBy' | 'departNow'
@@ -47,6 +47,15 @@ export function SearchPanel({
   async function useCurrentLocation() {
     setLocating(true)
     setGeoError(null)
+
+    // 이미 거부돼 있으면 호출해봐야 창이 안 뜨고 바로 실패한다.
+    // 먼저 확인해서 "왜 아무 일도 안 일어나는지"를 알려준다.
+    if ((await permissionState()) === 'denied') {
+      setGeoError({ code: 'denied' })
+      setLocating(false)
+      return
+    }
+
     const r = await currentPlace(t.geo.currentLocation)
     if (r.ok) {
       setFrom(r.data.name)
@@ -121,9 +130,13 @@ export function SearchPanel({
       ) : (
         <>
           <div className="panel__row">
-            <label className="field">
-              <span className="field__label">
-                {t.search.from}
+            {/* label 안에 button 을 넣으면 라벨이 클릭을 입력창으로 넘겨
+                버튼이 안 눌린다. 그래서 label 은 텍스트에만 걸고 버튼은 형제로 둔다. */}
+            <div className="field">
+              <div className="field__head">
+                <label className="field__label" htmlFor="field-from">
+                  {t.search.from}
+                </label>
                 <button
                   type="button"
                   className="field__geo"
@@ -132,8 +145,9 @@ export function SearchPanel({
                 >
                   {locating ? t.geo.locating : `◎ ${t.geo.use}`}
                 </button>
-              </span>
+              </div>
               <input
+                id="field-from"
                 className="field__input"
                 value={from}
                 onChange={(e) => {
@@ -143,7 +157,7 @@ export function SearchPanel({
                 }}
                 placeholder={t.search.fromPlaceholder}
               />
-            </label>
+            </div>
 
             <button
               type="button"
@@ -158,29 +172,39 @@ export function SearchPanel({
               ⇄
             </button>
 
-            <label className="field">
-              <span className="field__label">{t.search.to}</span>
+            <div className="field">
+              <div className="field__head">
+                <label className="field__label" htmlFor="field-to">
+                  {t.search.to}
+                </label>
+              </div>
               <input
+                id="field-to"
                 className="field__input"
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
                 placeholder={t.search.toPlaceholder}
                 required
               />
-            </label>
+            </div>
           </div>
 
           {mode === 'arriveBy' && (
             <div className="panel__row panel__row--time">
-              <label className="field field--time">
-                <span className="field__label">{t.search.arriveBy}</span>
+              <div className="field field--time">
+                <div className="field__head">
+                  <label className="field__label" htmlFor="field-when">
+                    {t.search.arriveBy}
+                  </label>
+                </div>
                 <input
+                  id="field-when"
                   className="field__input"
                   type="time"
                   value={when}
                   onChange={(e) => setWhen(e.target.value)}
                 />
-              </label>
+              </div>
               <div className="chips">
                 <span className="chips__label">{t.search.quickTime}</span>
                 {t.search.presets.map((p) => (

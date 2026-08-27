@@ -69,6 +69,7 @@ export const ja: I18nShape = {
     currentLocation: '現在地',
     accuracy: (m: number) => `誤差 約${m}m`,
     err: {
+      'insecure-context': '位置情報は localhost または https でのみ利用できます。現在のアドレスではブラウザが許可ダイアログを表示しません。',
       unsupported: 'このブラウザは位置情報に対応していません',
       denied: '位置情報が拒否されています。アドレスバーの鍵アイコンから位置情報を許可に変更してください。',
       unavailable: '位置を取得できませんでした。しばらくしてからお試しください。',

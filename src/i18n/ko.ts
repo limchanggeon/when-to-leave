@@ -70,6 +70,7 @@ export const ko = {
     currentLocation: '현재 위치',
     accuracy: (m: number) => `오차 약 ${m}m`,
     err: {
+      'insecure-context': 'localhost 또는 https 주소에서만 위치를 쓸 수 있습니다. 지금 주소로는 브라우저가 권한 창을 띄우지 않습니다.',
       unsupported: '이 브라우저는 위치 기능을 지원하지 않습니다',
       denied: '위치 권한이 거부돼 있습니다. 브라우저 주소창의 자물쇠 아이콘에서 위치 권한을 허용으로 바꿔주세요.',
       unavailable: '위치를 잡지 못했습니다. 잠시 후 다시 시도해 주세요.',

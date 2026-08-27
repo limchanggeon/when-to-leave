@@ -13,6 +13,11 @@ export interface Coords {
 export type GeoFailure =
   /** 브라우저가 Geolocation 자체를 지원하지 않음. */
   | { code: 'unsupported' }
+  /**
+   * HTTPS 도 localhost 도 아님. 이 경우 브라우저는 권한 창을 아예 띄우지 않고
+   * 조용히 막는다 — LAN IP(예: http://10.0.4.254:4173)로 열면 여기 걸린다.
+   */
+  | { code: 'insecure-context' }
   /** 사용자가 권한을 거부함. 재시도해도 프롬프트가 다시 뜨지 않는다. */
   | { code: 'denied' }
   /** 신호를 못 잡음. */
