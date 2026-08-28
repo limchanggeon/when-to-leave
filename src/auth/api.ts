@@ -47,3 +47,29 @@ export async function serverLogout(): Promise<void> {
     /* 서버가 없어도 클라이언트 상태는 지운다 */
   }
 }
+
+export type EmailAuthResult = { ok: true; account: Account } | { ok: false; message: string }
+
+async function post(path: string, body: unknown): Promise<EmailAuthResult> {
+  try {
+    const res = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(body),
+    })
+    const json = (await res.json()) as { account: Account } | ApiError
+    if (!res.ok || 'error' in json) {
+      return { ok: false, message: 'error' in json ? json.error.message : '요청에 실패했습니다' }
+    }
+    return { ok: true, account: json.account }
+  } catch {
+    return { ok: false, message: '서버에 연결하지 못했습니다 — pnpm server 가 떠 있는지 확인하세요' }
+  }
+}
+
+export const registerWithEmail = (email: string, password: string, name: string) =>
+  post('/api/auth/register', { email, password, name })
+
+export const loginWithEmail = (email: string, password: string) =>
+  post('/api/auth/login', { email, password })

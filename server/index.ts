@@ -1,7 +1,16 @@
 import express from 'express'
 import { serverEnv, missingServerEnv } from './env'
 import { exchangeKakaoCode } from './kakao'
-import { COOKIE_NAME, cookieOptions, createSession, destroySession, readSession } from './session'
+import {
+  COOKIE_NAME,
+  cookieOptions,
+  createSession,
+  destroySession,
+  purgeExpiredSessions,
+  readSession,
+} from './session'
+import { authenticate, registerWithPassword } from './users'
+import { checkPassword } from './password'
 import { geocode, reverseGeocode, type GeoPoint } from './geocode'
 import { searchTransitRoute } from './odsay'
 
@@ -45,7 +54,7 @@ app.post('/api/auth/kakao', async (req, res) => {
       })
       return
     }
-    const token = createSession(result.user)
+    const token = createSession(result.user.id)
     res.cookie(COOKIE_NAME, token, cookieOptions)
     res.json({ account: result.user })
   } catch (e) {
@@ -140,6 +149,57 @@ app.post('/api/reverse-geocode', async (req, res) => {
   res.json({ name: r.name })
 })
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/** 이메일·비밀번호 회원가입. */
+app.post('/api/auth/register', async (req, res) => {
+  const { email, password, name } = req.body as {
+    email?: string
+    password?: string
+    name?: string
+  }
+
+  if (!email || !EMAIL_RE.test(email.trim())) {
+    res.status(400).json({ error: { code: 'bad-email', message: '이메일 형식이 올바르지 않습니다' } })
+    return
+  }
+  const problem = password ? checkPassword(password) : { code: 'too-short', message: '비밀번호를 입력해 주세요' }
+  if (problem) {
+    res.status(400).json({ error: { code: problem.code, message: problem.message } })
+    return
+  }
+
+  const result = await registerWithPassword(email, password!, name ?? null)
+  if (!result.ok) {
+    res.status(409).json({ error: { code: result.code, message: result.message } })
+    return
+  }
+
+  res.cookie(COOKIE_NAME, createSession(result.user.id), cookieOptions)
+  res.json({ account: result.user })
+})
+
+/** 이메일·비밀번호 로그인. */
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body as { email?: string; password?: string }
+  if (!email || !password) {
+    res.status(400).json({ error: { code: 'bad-request', message: '이메일과 비밀번호를 입력해 주세요' } })
+    return
+  }
+
+  const user = await authenticate(email, password)
+  if (!user) {
+    // 어떤 이메일이 가입돼 있는지 알아낼 수 없도록 사유를 구분하지 않는다
+    res.status(401).json({
+      error: { code: 'invalid-credentials', message: '이메일 또는 비밀번호가 올바르지 않습니다' },
+    })
+    return
+  }
+
+  res.cookie(COOKIE_NAME, createSession(user.id), cookieOptions)
+  res.json({ account: user })
+})
+
 app.post('/api/auth/logout', (req, res) => {
   destroySession(cookie(req, COOKIE_NAME))
   res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: undefined })
@@ -148,6 +208,8 @@ app.post('/api/auth/logout', (req, res) => {
 
 app.listen(serverEnv.port, () => {
   console.log(`[server] http://localhost:${serverEnv.port}`)
+  const purged = purgeExpiredSessions()
+  if (purged > 0) console.log(`[server] 만료 세션 ${purged}건 정리`)
   for (const { name, breaks } of missingServerEnv()) {
     console.log(`[server] ⚠ ${name} 없음 → ${breaks}`)
   }

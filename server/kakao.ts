@@ -1,11 +1,11 @@
 import { serverEnv } from './env'
-import type { SessionUser } from './session'
+import { upsertSocialUser, type User } from './users'
 
 const TOKEN_URL = 'https://kauth.kakao.com/oauth/token'
 const ME_URL = 'https://kapi.kakao.com/v2/user/me'
 
 export type ExchangeResult =
-  | { ok: true; user: SessionUser }
+  | { ok: true; user: User }
   | { ok: false; status: number; code: string; message: string }
 
 /**
@@ -76,14 +76,15 @@ export async function exchangeKakaoCode(
     }
   }
 
+  // 사용자를 만들거나 기존 계정에 이 카카오 계정을 연결한다
   return {
     ok: true,
-    user: {
-      id: String(me.id),
+    user: upsertSocialUser({
       provider: 'kakao',
-      name: me.kakao_account?.profile?.nickname ?? null,
+      providerUserId: String(me.id),
       email: me.kakao_account?.email ?? null,
+      name: me.kakao_account?.profile?.nickname ?? null,
       avatarUrl: me.kakao_account?.profile?.profile_image_url ?? null,
-    },
+    }),
   }
 }

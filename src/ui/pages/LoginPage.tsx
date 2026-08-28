@@ -5,6 +5,7 @@ import { mountGoogleButton } from '../../auth/google'
 import { googleAuth, kakaoAuth } from '../../auth/providers'
 import type { AuthFailure } from '../../auth/types'
 import { KakaoLoginButton } from '../components/KakaoLoginButton'
+import { EmailAuthForm } from '../components/EmailAuthForm'
 import { dictionaries } from '../../i18n'
 import { usePrefs } from '../PrefsContext'
 import type { I18nShape } from '../../i18n'
@@ -69,6 +70,12 @@ export function LoginPage() {
             </span>
           ))}
         </p>
+
+        <EmailAuthForm t={t} />
+
+        <div className="login__divider">
+          <span>{t.emailAuth.or}</span>
+        </div>
 
         <div className="login__providers">
           <KakaoLoginButton

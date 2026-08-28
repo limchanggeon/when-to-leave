@@ -695,3 +695,50 @@
   margin: 0; width: 100%; order: 3;
   font-size: 0.78rem; color: var(--ink-faint);
 }
+
+/* ---------- 이메일 로그인 ---------- */
+.emailauth { width: 100%; display: flex; flex-direction: column; gap: var(--sp-3); text-align: left; }
+.emailauth__tabs {
+  display: flex; padding: 3px; gap: 2px; margin-bottom: var(--sp-1);
+  background: var(--sunk); border-radius: var(--radius-pill);
+}
+.emailauth__tab {
+  flex: 1; padding: var(--sp-2); border: none; background: transparent;
+  border-radius: var(--radius-pill); cursor: pointer;
+  font-family: inherit; font-size: 0.86rem; font-weight: 600; color: var(--ink-soft);
+}
+.emailauth__tab:hover { color: var(--ink); }
+.emailauth__tab.is-on { background: var(--ink); color: var(--paper); }
+.emailauth__field { display: flex; flex-direction: column; gap: var(--sp-1); }
+.emailauth__field > span {
+  font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+.emailauth__field input {
+  padding: var(--sp-3); font-family: var(--font-body); font-size: 0.95rem;
+  color: var(--ink); background: var(--paper);
+  border: 1px solid var(--rule-strong); border-radius: var(--radius-md);
+}
+.emailauth__field input:hover { border-color: var(--brass); }
+.emailauth__hint { font-style: normal; font-size: 0.72rem; color: var(--ink-faint); }
+.emailauth__error {
+  margin: 0; padding: var(--sp-2) var(--sp-3);
+  background: var(--rust-wash); border-left: 3px solid var(--rust);
+  border-radius: var(--radius-sm); font-size: 0.82rem; color: var(--ink);
+}
+.emailauth__submit {
+  padding: var(--sp-3); font-family: inherit; font-size: 0.95rem; font-weight: 700;
+  background: var(--ink); color: var(--paper);
+  border: none; border-radius: var(--radius-pill); cursor: pointer;
+}
+.emailauth__submit:hover:not(:disabled) { opacity: 0.88; }
+.emailauth__submit:disabled { background: var(--sunk); color: var(--ink-faint); cursor: not-allowed; }
+
+.login__divider {
+  width: 100%; display: flex; align-items: center; gap: var(--sp-3);
+  margin: var(--sp-4) 0 var(--sp-2); color: var(--ink-faint); font-size: 0.76rem;
+}
+.login__divider::before, .login__divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--rule);
+}
+.login__card { max-width: 420px; }
