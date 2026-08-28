@@ -56,8 +56,10 @@ export function SiteHeader({ t, solid }: { t: I18nShape; solid: boolean }) {
 
         {account ? (
           <div className="siteheader__account">
-            {account.avatarUrl && <img className="siteheader__avatar" src={account.avatarUrl} alt="" />}
-            <span className="siteheader__who">{account.name ?? account.email ?? ''}</span>
+            <Link className="siteheader__me" to="/me">
+              {account.avatarUrl && <img className="siteheader__avatar" src={account.avatarUrl} alt="" />}
+              <span className="siteheader__who">{account.name ?? account.email ?? ''}</span>
+            </Link>
             <button className="siteheader__btn siteheader__btn--ghost" type="button" onClick={signOut}>
               {t.nav.logout}
             </button>

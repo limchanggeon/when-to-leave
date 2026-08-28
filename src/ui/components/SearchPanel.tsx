@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { I18nShape } from '../../i18n'
 import { parseUtterance } from '../../parse/parse'
 import { locate, permissionState, type Coords, type GeoFailure } from '../../geo'
+import { fetchMe, type SavedPlace } from '../../auth/me'
 import { reverseGeocode } from '../../geo/reverse'
 
 export interface QueryInput {
@@ -52,6 +53,26 @@ export function SearchPanel({
    * 서버가 그 글자를 검색해 엉뚱한 곳을 잡는다.
    */
   const [geoName, setGeoName] = useState<string | null>(null)
+  /** 마이페이지에 저장해둔 장소. 로그인 안 했으면 비어 있다. */
+  const [saved, setSaved] = useState<SavedPlace[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    fetchMe().then((r) => {
+      if (!cancelled && r.ok) setSaved(r.data.places)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  /** 저장된 장소를 고르면 좌표까지 함께 들어온다 — 이름을 검색할 일이 없다. */
+  function pickSaved(place: SavedPlace) {
+    setFrom(place.name)
+    setFromCoords({ lat: place.lat, lng: place.lng, accuracyM: null })
+    setGeoName(place.name)
+    setGeoError(null)
+  }
   const [locating, setLocating] = useState(false)
   const [geoError, setGeoError] = useState<GeoFailure | null>(null)
 
@@ -208,14 +229,27 @@ export function SearchPanel({
                   {t.search.from}
                   <span className="field__optional">{t.search.optional}</span>
                 </label>
-                <button
-                  type="button"
-                  className="field__geo"
-                  onClick={() => useCurrentLocation()}
-                  disabled={locating}
-                >
-                  {locating ? t.geo.locating : `◎ ${t.geo.use}`}
-                </button>
+                <span className="field__actions">
+                  {saved.map((place) => (
+                    <button
+                      key={place.id}
+                      type="button"
+                      className="field__saved"
+                      onClick={() => pickSaved(place)}
+                      title={place.name}
+                    >
+                      {place.label}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="field__geo"
+                    onClick={() => useCurrentLocation()}
+                    disabled={locating}
+                  >
+                    {locating ? t.geo.locating : `◎ ${t.geo.use}`}
+                  </button>
+                </span>
               </div>
               <input
                 id="field-from"

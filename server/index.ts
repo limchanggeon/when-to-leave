@@ -9,8 +9,16 @@ import {
   purgeExpiredSessions,
   readSession,
 } from './session'
-import { authenticate, registerWithPassword } from './users'
+import { authenticate, registerWithPassword, type User } from './users'
 import { checkPassword } from './password'
+import { deletePlace, listPlaces, savePlace } from './places'
+import {
+  accountMeta,
+  changePassword,
+  deleteAccount,
+  listIdentities,
+  updateName,
+} from './profile'
 import { geocode, reverseGeocode, type GeoPoint } from './geocode'
 import { searchTransitRoute } from './odsay'
 
@@ -26,6 +34,19 @@ function cookie(req: express.Request, name: string): string | undefined {
     if (k === name) return decodeURIComponent(v.join('='))
   }
   return undefined
+}
+
+/**
+ * 로그인한 사용자를 꺼낸다. 없으면 401 을 보내고 null 을 돌려준다 —
+ * 라우트마다 같은 검사를 반복하지 않기 위한 것이다.
+ */
+function requireUser(req: express.Request, res: express.Response): User | null {
+  const user = readSession(cookie(req, COOKIE_NAME))
+  if (!user) {
+    res.status(401).json({ error: { code: 'unauthorized', message: '로그인이 필요합니다' } })
+    return null
+  }
+  return user
 }
 
 app.get('/api/health', (_req, res) => {
@@ -202,6 +223,110 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.post('/api/auth/logout', (req, res) => {
   destroySession(cookie(req, COOKIE_NAME))
+  res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: undefined })
+  res.json({ ok: true })
+})
+
+/* ---------------- 마이페이지 ---------------- */
+
+/** 계정 요약: 프로필 + 가입일 + 연결된 로그인 수단 + 저장된 장소. */
+app.get('/api/me', (req, res) => {
+  const user = requireUser(req, res)
+  if (!user) return
+  res.json({
+    account: user,
+    meta: accountMeta(user.id),
+    identities: listIdentities(user.id),
+    places: listPlaces(user.id),
+  })
+})
+
+app.patch('/api/me', (req, res) => {
+  const user = requireUser(req, res)
+  if (!user) return
+  const { name } = req.body as { name?: string }
+  if (typeof name !== 'string') {
+    res.status(400).json({ error: { code: 'bad-request', message: '이름이 필요합니다' } })
+    return
+  }
+  updateName(user.id, name)
+  res.json({ account: { ...user, name: name.trim() || null } })
+})
+
+app.post('/api/me/password', async (req, res) => {
+  const user = requireUser(req, res)
+  if (!user) return
+  const { current, next } = req.body as { current?: string; next?: string }
+
+  const problem = next ? checkPassword(next) : { code: 'too-short', message: '새 비밀번호를 입력해 주세요' }
+  if (problem) {
+    res.status(400).json({ error: { code: problem.code, message: problem.message } })
+    return
+  }
+
+  const r = await changePassword(user.id, current, next!)
+  if (!r.ok) {
+    res.status(400).json({ error: { code: r.code, message: r.message } })
+    return
+  }
+  res.json({ ok: true })
+})
+
+app.get('/api/me/places', (req, res) => {
+  const user = requireUser(req, res)
+  if (!user) return
+  res.json({ places: listPlaces(user.id) })
+})
+
+/** 장소 저장. 좌표가 없으면 이름으로 지오코딩해 채운다. */
+app.post('/api/me/places', async (req, res) => {
+  const user = requireUser(req, res)
+  if (!user) return
+  const { label, name, lat, lng } = req.body as {
+    label?: string
+    name?: string
+    lat?: number
+    lng?: number
+  }
+  if (!label?.trim()) {
+    res.status(400).json({ error: { code: 'bad-request', message: '이름표가 필요합니다' } })
+    return
+  }
+
+  let point = { name: name?.trim() ?? '', lat: lat ?? NaN, lng: lng ?? NaN }
+  if (typeof lat !== 'number' || typeof lng !== 'number') {
+    if (!name?.trim()) {
+      res.status(400).json({ error: { code: 'bad-request', message: '장소 이름이나 좌표가 필요합니다' } })
+      return
+    }
+    const g = await geocode(name)
+    if (!g.ok) {
+      res.status(400).json({ error: { code: g.code, message: g.message } })
+      return
+    }
+    point = g.point
+  }
+
+  const saved = savePlace(user.id, { label: label.trim(), ...point })
+  res.json({ place: saved.ok ? saved.place : null })
+})
+
+app.delete('/api/me/places/:id', (req, res) => {
+  const user = requireUser(req, res)
+  if (!user) return
+  const removed = deletePlace(user.id, req.params.id)
+  if (!removed) {
+    res.status(404).json({ error: { code: 'not-found', message: '장소를 찾지 못했습니다' } })
+    return
+  }
+  res.json({ ok: true })
+})
+
+app.delete('/api/me', (req, res) => {
+  const user = requireUser(req, res)
+  if (!user) return
+  destroySession(cookie(req, COOKIE_NAME))
+  deleteAccount(user.id)
   res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: undefined })
   res.json({ ok: true })
 })
