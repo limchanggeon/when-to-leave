@@ -28,8 +28,13 @@ export const serverEnv = {
    * 로그인(ID 토큰 검증)에는 쓰지 않는다 — 그건 공개키로 충분하다.
    */
   googleClientSecret: req('GOOGLE_CLIENT_SECRET'),
-  /** 캘린더 동의 후 돌아올 주소. 구글 콘솔의 '승인된 리디렉션 URI' 와 같아야 한다. */
-  googleRedirectUri: req('GOOGLE_REDIRECT_URI') ?? 'http://localhost:4173/auth/google/callback',
+  /**
+   * 캘린더 동의 후 돌아올 주소. 구글 콘솔의 '승인된 리디렉션 URI' 와 같아야 한다.
+   *
+   * /api 로 시작해야 한다 — vite 가 /api 만 서버로 프록시하기 때문이다.
+   * 다른 경로로 두면 SPA 가 받아버려서 서버가 인가 코드를 보지 못한다.
+   */
+  googleRedirectUri: req('GOOGLE_REDIRECT_URI') ?? 'http://localhost:4173/api/calendar/callback',
   /** ODsay 대중교통 길찾기. https://lab.odsay.com 에서 발급. */
   odsayKey: req('ODSAY_API_KEY'),
   /**

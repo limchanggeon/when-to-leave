@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthContext } from '../../auth/AuthContext'
 import * as api from '../../auth/me'
 import type { MeSummary, SavedPlace } from '../../auth/me'
+import { calendarProvider, connectCalendar } from '../../alarm/calendarProvider'
 import { locate } from '../../geo'
 import { reverseGeocode } from '../../geo/reverse'
 import { dictionaries } from '../../i18n'
@@ -17,6 +18,7 @@ export function MyPage() {
   const navigate = useNavigate()
 
   const [me, setMe] = useState<MeSummary | null>(null)
+  const [params, setParams] = useSearchParams()
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
@@ -25,6 +27,19 @@ export function MyPage() {
 
   useEffect(() => {
     void reload()
+  }, [])
+
+  // 캘린더 동의에서 돌아온 결과를 한 번 보여주고 주소에서 지운다
+  useEffect(() => {
+    const status = params.get('calendar')
+    if (!status) return
+    const known = t.calendar.status as Record<string, string>
+    setNotice(known[status] ?? t.calendar.status.failed)
+    params.delete('calendar')
+    setParams(params, { replace: true })
+    const id = setTimeout(() => setNotice(null), 3000)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // 로그아웃 상태로 남아 있을 이유가 없다
@@ -66,6 +81,7 @@ export function MyPage() {
           <>
             <ProfileSection t={t} me={me} onSaved={(m) => { setMe(m); flash(t.myPage.saved) }} />
             <PlacesSection t={t} places={me.places} onChanged={reload} onError={setError} />
+            <CalendarSection t={t} onError={setError} />
             <LinkedSection t={t} identities={me.identities} />
             <PasswordSection
               t={t}
@@ -347,6 +363,54 @@ function DangerSection({
       >
         {t.myPage.deleteAccount}
       </button>
+    </section>
+  )
+}
+
+function CalendarSection({
+  t,
+  onError,
+}: {
+  t: typeof dictionaries.ko
+  onError: (m: string) => void
+}) {
+  const [connected, setConnected] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    calendarProvider.needsSetup().then((needs) => setConnected(!needs))
+  }, [])
+
+  return (
+    <section className="card">
+      <h2 className="card__title">{t.calendar.section}</h2>
+      <p className="card__hint">{t.calendar.hint}</p>
+      {connected === null ? null : connected ? (
+        <div className="row">
+          <span className="chip chip--good">{t.calendar.connected}</span>
+          <button
+            className="btn btn--ghost"
+            type="button"
+            onClick={async () => {
+              await fetch('/api/calendar/disconnect', { method: 'POST', credentials: 'include' })
+              setConnected(false)
+            }}
+          >
+            {t.calendar.disconnect}
+          </button>
+        </div>
+      ) : (
+        <button
+          className="btn"
+          type="button"
+          onClick={async () => {
+            const url = await connectCalendar()
+            if (url) window.location.href = url
+            else onError(t.calendar.status.failed)
+          }}
+        >
+          {t.calendar.connect}
+        </button>
+      )}
     </section>
   )
 }

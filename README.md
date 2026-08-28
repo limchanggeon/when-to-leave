@@ -265,7 +265,10 @@ iOS 는 오랫동안 막혀 있었지만 AlarmKit(2025 WWDC)으로 열렸습니�
 | 항목 | 값 |
 |---|---|
 | `.env` `GOOGLE_CLIENT_SECRET` | Cloud Console > OAuth 클라이언트 ID > 클라이언트 보안 비밀번호 |
-| 구글 콘솔 **승인된 리디렉션 URI** | `http://localhost:4173/auth/google/callback`<br>`http://localhost:5173/auth/google/callback` |
+| 구글 콘솔 **승인된 리디렉션 URI** | `http://localhost:4173/api/calendar/callback`<br>`http://localhost:5173/api/calendar/callback` |
+
+> 경로가 `/api` 로 시작해야 합니다 — vite 는 `/api` 만 서버로 프록시하므로
+> 다른 경로로 두면 SPA 가 받아버려 서버가 인가 코드를 보지 못합니다.
 
 > 앞서 "리디렉션 URI 는 불필요" 라고 적었던 것은 **로그인**에만 해당합니다.
 > 캘린더 권한은 OAuth 인가 코드 흐름이라 리디렉션 URI 가 필요합니다.

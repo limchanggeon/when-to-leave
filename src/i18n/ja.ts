@@ -78,6 +78,20 @@ export const ja: I18nShape = {
       `${depart} 出発 · ${arrive} 到着\n\n${legs}`,
     unsupportedNative: '時計アプリのアラームはモバイルアプリでのみ利用できます',
   },
+  calendar: {
+    section: 'Google カレンダー',
+    hint: '連携すると、出発時刻に通知が鳴る予定を作成できます。',
+    connected: '連携済み',
+    connect: '連携する',
+    disconnect: '連携を解除',
+    status: {
+      connected: 'カレンダーを連携しました',
+      cancelled: '連携をキャンセルしました',
+      expired: 'リクエストが期限切れです。もう一度お試しください',
+      mismatch: 'ログイン状態が変わりました。もう一度お試しください',
+      failed: '連携できませんでした',
+    },
+  },
   myPage: {
     title: 'マイページ',
     back: '← ホームへ',

@@ -79,6 +79,20 @@ export const ko = {
       `${depart} 출발 · ${arrive} 도착\n\n${legs}`,
     unsupportedNative: '시계 앱 알람은 모바일 앱에서만 가능합니다',
   },
+  calendar: {
+    section: '구글 캘린더',
+    hint: '연결하면 출발 시각에 알림이 울리는 일정을 만들 수 있습니다.',
+    connected: '연결됨',
+    connect: '연결하기',
+    disconnect: '연결 해제',
+    status: {
+      connected: '캘린더를 연결했습니다',
+      cancelled: '연결을 취소했습니다',
+      expired: '요청이 만료됐습니다. 다시 시도해 주세요',
+      mismatch: '로그인 상태가 바뀌었습니다. 다시 시도해 주세요',
+      failed: '연결하지 못했습니다',
+    },
+  },
   myPage: {
     title: '마이페이지',
     back: '← 홈으로',
