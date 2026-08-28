@@ -1,5 +1,20 @@
 import { config } from '../config'
-import { loadScript, type Account, type AuthProvider, type AuthResult } from './types'
+import { verifyGoogleCredential } from './api'
+import { loadScript, type AuthProvider, type AuthResult } from './types'
+
+/**
+ * 구글이 준 ID 토큰을 서버로 넘겨 검증받는다.
+ *
+ * 예전에는 브라우저에서 payload 만 디코딩해 계정 정보를 만들었다 —
+ * 서명을 보지 않으므로 아무나 지어낸 토큰으로 로그인할 수 있었다.
+ * 이제 서명·발급자·대상·만료를 서버가 확인하고 세션 쿠키를 내려준다.
+ */
+async function exchange(credential: string): Promise<AuthResult> {
+  const r = await verifyGoogleCredential(credential)
+  return r.ok
+    ? { ok: true, account: r.account }
+    : { ok: false, failure: { code: 'failed', provider: 'google', detail: r.message } }
+}
 
 const SDK = 'https://accounts.google.com/gsi/client'
 
@@ -17,36 +32,6 @@ type GoogleGlobal = {
 declare global {
   interface Window {
     google?: GoogleGlobal
-  }
-}
-
-/**
- * ID 토큰(JWT)의 payload 를 읽는다.
- *
- * 주의: 이건 **표시용**이다. 서명 검증이 아니다.
- * 실제 인증으로 쓰려면 토큰을 서버로 보내 구글 공개키로 검증해야 한다.
- * 지금은 백엔드가 없어 화면에 이름을 띄우는 용도로만 쓴다.
- */
-function decodeIdToken(jwt: string): Account | null {
-  try {
-    const payload = JSON.parse(
-      decodeURIComponent(
-        atob(jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))
-          .split('')
-          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join(''),
-      ),
-    ) as { sub: string; name?: string; email?: string; picture?: string }
-
-    return {
-      id: payload.sub,
-      provider: 'google',
-      name: payload.name ?? null,
-      email: payload.email ?? null,
-      avatarUrl: payload.picture ?? null,
-    }
-  } catch {
-    return null
   }
 }
 
@@ -76,12 +61,7 @@ export async function mountGoogleButton(
   google.accounts.id.initialize({
     client_id: clientId,
     callback: (res) => {
-      const account = decodeIdToken(res.credential)
-      onResult(
-        account
-          ? { ok: true, account }
-          : { ok: false, failure: { code: 'failed', provider: 'google', detail: 'ID 토큰을 읽지 못했습니다' } },
-      )
+      void exchange(res.credential).then(onResult)
     },
   })
   google.accounts.id.renderButton(el, {
@@ -123,12 +103,7 @@ export const googleAuth: AuthProvider = {
       google.accounts.id.initialize({
         client_id: clientId,
         callback: (res) => {
-          const account = decodeIdToken(res.credential)
-          resolve(
-            account
-              ? { ok: true, account }
-              : { ok: false, failure: { code: 'failed', provider: 'google', detail: 'ID 토큰을 읽지 못했습니다' } },
-          )
+          void exchange(res.credential).then(resolve)
         },
       })
       google.accounts.id.prompt((n) => {

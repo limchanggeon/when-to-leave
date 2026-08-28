@@ -1,6 +1,7 @@
 import express from 'express'
 import { serverEnv, missingServerEnv } from './env'
 import { exchangeKakaoCode } from './kakao'
+import { verifyGoogleIdToken } from './googleAuth'
 import {
   COOKIE_NAME,
   cookieOptions,
@@ -219,6 +220,34 @@ app.post('/api/auth/login', async (req, res) => {
 
   res.cookie(COOKIE_NAME, createSession(user.id), cookieOptions)
   res.json({ account: user })
+})
+
+/**
+ * 구글 로그인. 브라우저가 받은 ID 토큰을 여기서 검증한다.
+ * 클라이언트가 payload 만 디코딩해 쓰면 서명을 보지 않는 셈이라
+ * 아무나 지어낸 토큰으로 로그인할 수 있다.
+ */
+app.post('/api/auth/google', async (req, res) => {
+  const { credential } = req.body as { credential?: string }
+  if (!credential) {
+    res.status(400).json({ error: { code: 'bad-request', message: 'credential 이 필요합니다' } })
+    return
+  }
+
+  try {
+    const r = await verifyGoogleIdToken(credential)
+    if (!r.ok) {
+      res.status(r.code === 'not-configured' ? 500 : 401).json({
+        error: { code: r.code, message: r.message },
+      })
+      return
+    }
+    res.cookie(COOKIE_NAME, createSession(r.user.id), cookieOptions)
+    res.json({ account: r.user })
+  } catch (e) {
+    console.error('[google] 검증 중 오류:', e)
+    res.status(500).json({ error: { code: 'verify-failed', message: '토큰 검증에 실패했습니다' } })
+  }
 })
 
 app.post('/api/auth/logout', (req, res) => {

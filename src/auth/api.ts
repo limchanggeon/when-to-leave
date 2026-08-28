@@ -73,3 +73,7 @@ export const registerWithEmail = (email: string, password: string, name: string)
 
 export const loginWithEmail = (email: string, password: string) =>
   post('/api/auth/login', { email, password })
+
+/** 구글 ID 토큰을 서버로 넘겨 검증받는다. 브라우저는 토큰을 해석하지 않는다. */
+export const verifyGoogleCredential = (credential: string) =>
+  post('/api/auth/google', { credential })

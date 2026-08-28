@@ -18,6 +18,11 @@ export const serverEnv = {
   kakaoClientSecret: req('KAKAO_CLIENT_SECRET'),
   /** 세션 쿠키 서명용. 운영에서는 반드시 임의의 긴 문자열로 바꿀 것. */
   sessionSecret: req('SESSION_SECRET') ?? 'dev-only-insecure-secret',
+  /**
+   * 구글 OAuth 클라이언트 ID. ID 토큰의 aud 를 확인하는 데 쓴다.
+   * 공개 값이라 클라이언트와 같은 값을 써도 되므로 VITE_ 쪽을 대체로 읽는다.
+   */
+  googleClientId: req('GOOGLE_CLIENT_ID') ?? req('VITE_GOOGLE_CLIENT_ID'),
   /** ODsay 대중교통 길찾기. https://lab.odsay.com 에서 발급. */
   odsayKey: req('ODSAY_API_KEY'),
   /**
