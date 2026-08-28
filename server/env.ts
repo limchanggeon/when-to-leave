@@ -23,6 +23,13 @@ export const serverEnv = {
    * 공개 값이라 클라이언트와 같은 값을 써도 되므로 VITE_ 쪽을 대체로 읽는다.
    */
   googleClientId: req('GOOGLE_CLIENT_ID') ?? req('VITE_GOOGLE_CLIENT_ID'),
+  /**
+   * 구글 OAuth 클라이언트 시크릿. 캘린더 권한을 받으려면 필요하다.
+   * 로그인(ID 토큰 검증)에는 쓰지 않는다 — 그건 공개키로 충분하다.
+   */
+  googleClientSecret: req('GOOGLE_CLIENT_SECRET'),
+  /** 캘린더 동의 후 돌아올 주소. 구글 콘솔의 '승인된 리디렉션 URI' 와 같아야 한다. */
+  googleRedirectUri: req('GOOGLE_REDIRECT_URI') ?? 'http://localhost:4173/auth/google/callback',
   /** ODsay 대중교통 길찾기. https://lab.odsay.com 에서 발급. */
   odsayKey: req('ODSAY_API_KEY'),
   /**

@@ -16,6 +16,7 @@ import { TripSpine } from '../components/TripSpine'
 import { Warnings } from '../components/Warnings'
 import { Countdown } from '../components/Countdown'
 import { Alternatives } from '../components/Alternatives'
+import { AddToCalendar } from '../components/AddToCalendar'
 import { Hero } from '../components/Hero'
 import { JourneyMap } from '../components/JourneyMap'
 import { SetupNotice } from '../components/SetupNotice'
@@ -151,6 +152,8 @@ export function HomePage() {
               </div>
               <Countdown departAt={shown.legs[0].departAt} t={t} />
             </section>
+
+            <AddToCalendar legs={shown.legs} now={now} t={t} />
 
             {outcome.renegotiated && (
               <div className="notice notice--warn" role="status">

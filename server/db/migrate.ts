@@ -58,6 +58,39 @@ const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: 2,
+    name: 'google_tokens, trips',
+    sql: `
+      -- 구글 캘린더 접근 토큰. ID 토큰(로그인)과는 다른 것이다 —
+      -- 이건 사용자를 대신해 캘린더에 쓰기 위한 권한이다.
+      CREATE TABLE google_tokens (
+        user_id       TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        access_token  TEXT NOT NULL,
+        -- refresh_token 은 최초 동의 때만 온다. 이후 갱신 응답에는 없으므로 보존한다.
+        refresh_token TEXT,
+        expires_at    INTEGER NOT NULL,
+        scope         TEXT NOT NULL,
+        updated_at    INTEGER NOT NULL
+      );
+
+      -- 계산해서 저장해둔 여정.
+      CREATE TABLE trips (
+        id                TEXT PRIMARY KEY,
+        user_id           TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        origin_name       TEXT NOT NULL,
+        destination_name  TEXT NOT NULL,
+        depart_at         INTEGER NOT NULL,
+        arrive_at         INTEGER NOT NULL,
+        -- 구간 배열 원본. 스키마가 자주 바뀌는 부분이라 통째로 보관한다.
+        legs_json         TEXT NOT NULL,
+        -- 캘린더에 넣었다면 그 이벤트 id. 나중에 수정·삭제에 쓴다.
+        calendar_event_id TEXT,
+        created_at        INTEGER NOT NULL
+      );
+      CREATE INDEX idx_trips_user ON trips(user_id, depart_at);
+    `,
+  },
 ]
 
 export function migrate(conn: DatabaseSync): void {

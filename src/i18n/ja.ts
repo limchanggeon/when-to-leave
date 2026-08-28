@@ -65,6 +65,19 @@ export const ja: I18nShape = {
     or: 'または',
     working: '処理中…',
   },
+  alarm: {
+    add: 'カレンダーに追加',
+    adding: '追加中…',
+    added: 'カレンダーに追加しました',
+    open: '予定を開く',
+    connect: 'Google カレンダーを連携',
+    connectHint: '連携すると出発時刻に通知が鳴ります。',
+    needLogin: 'ログインするとカレンダーに予定を追加できます',
+    title: (to: string) => `${to} へ出発`,
+    body: (depart: string, arrive: string, legs: string) =>
+      `${depart} 出発 · ${arrive} 到着\n\n${legs}`,
+    unsupportedNative: '時計アプリのアラームはモバイルアプリでのみ利用できます',
+  },
   myPage: {
     title: 'マイページ',
     back: '← ホームへ',

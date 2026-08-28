@@ -66,6 +66,19 @@ export const ko = {
     or: '또는',
     working: '처리 중…',
   },
+  alarm: {
+    add: '캘린더에 추가',
+    adding: '추가하는 중…',
+    added: '캘린더에 넣었습니다',
+    open: '일정 열기',
+    connect: '구글 캘린더 연결',
+    connectHint: '연결하면 출발 시각에 알림이 울립니다.',
+    needLogin: '로그인하면 캘린더에 일정을 넣을 수 있습니다',
+    title: (to: string) => `${to} 출발`,
+    body: (depart: string, arrive: string, legs: string) =>
+      `${depart} 출발 · ${arrive} 도착\n\n${legs}`,
+    unsupportedNative: '시계 앱 알람은 모바일 앱에서만 가능합니다',
+  },
   myPage: {
     title: '마이페이지',
     back: '← 홈으로',

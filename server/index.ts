@@ -3,6 +3,14 @@ import { serverEnv, missingServerEnv } from './env'
 import { exchangeKakaoCode } from './kakao'
 import { verifyGoogleIdToken } from './googleAuth'
 import {
+  consentUrl,
+  disconnect as disconnectCalendar,
+  exchangeCode,
+  insertEvent,
+  isConnected,
+} from './googleCalendar'
+import { randomBytes } from 'node:crypto'
+import {
   COOKIE_NAME,
   cookieOptions,
   createSession,
@@ -358,6 +366,102 @@ app.delete('/api/me', (req, res) => {
   deleteAccount(user.id)
   res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: undefined })
   res.json({ ok: true })
+})
+
+/* ---------------- 구글 캘린더 ---------------- */
+
+/**
+ * 동의 화면 주소를 만들어 준다.
+ *
+ * state 는 CSRF 방어용이다. 세션에 묶어 두고 콜백에서 대조해야
+ * 남이 만든 code 를 우리 사용자 계정에 붙이는 걸 막을 수 있다.
+ */
+const pendingStates = new Map<string, { userId: string; at: number }>()
+const STATE_TTL_MS = 10 * 60_000
+
+app.get('/api/calendar/status', (req, res) => {
+  const user = requireUser(req, res)
+  if (!user) return
+  res.json({ connected: isConnected(user.id) })
+})
+
+app.post('/api/calendar/connect', (req, res) => {
+  const user = requireUser(req, res)
+  if (!user) return
+
+  // 오래된 state 는 흘려보낸다
+  for (const [k, v] of pendingStates) {
+    if (Date.now() - v.at > STATE_TTL_MS) pendingStates.delete(k)
+  }
+
+  const state = randomBytes(16).toString('hex')
+  pendingStates.set(state, { userId: user.id, at: Date.now() })
+
+  const url = consentUrl(state)
+  if (!url.ok) {
+    res.status(500).json({ error: url.error })
+    return
+  }
+  res.json({ url: url.data })
+})
+
+/** 구글이 동의 결과를 들고 돌아오는 자리. */
+app.get('/api/calendar/callback', async (req, res) => {
+  const { code, state, error } = req.query as { code?: string; state?: string; error?: string }
+  const done = (status: string) => res.redirect(`/me?calendar=${status}`)
+
+  if (error || !code || !state) return done('cancelled')
+
+  const pending = state ? pendingStates.get(state) : undefined
+  pendingStates.delete(state)
+  if (!pending || Date.now() - pending.at > STATE_TTL_MS) return done('expired')
+
+  // 로그인한 사용자와 동의를 시작한 사용자가 같아야 한다
+  const user = readSession(cookie(req, COOKIE_NAME))
+  if (!user || user.id !== pending.userId) return done('mismatch')
+
+  const r = await exchangeCode(user.id, code)
+  return done(r.ok ? 'connected' : 'failed')
+})
+
+app.post('/api/calendar/disconnect', (req, res) => {
+  const user = requireUser(req, res)
+  if (!user) return
+  disconnectCalendar(user.id)
+  res.json({ ok: true })
+})
+
+/** 여정을 캘린더 일정으로. 출발 시각에 알림이 걸린다. */
+app.post('/api/calendar/events', async (req, res) => {
+  const user = requireUser(req, res)
+  if (!user) return
+  const { summary, description, startAt, endAt, location, reminderMinutes } = req.body as {
+    summary?: string
+    description?: string
+    startAt?: string
+    endAt?: string
+    location?: string
+    reminderMinutes?: number[]
+  }
+
+  if (!summary || !startAt || !endAt) {
+    res.status(400).json({ error: { code: 'bad-request', message: '제목과 시각이 필요합니다' } })
+    return
+  }
+
+  const r = await insertEvent(user.id, {
+    summary,
+    description: description ?? '',
+    startAt: new Date(startAt),
+    endAt: new Date(endAt),
+    location,
+    reminderMinutes: reminderMinutes?.length ? reminderMinutes : [15, 5],
+  })
+  if (!r.ok) {
+    res.status(r.error.code === 'not-connected' ? 409 : 502).json({ error: r.error })
+    return
+  }
+  res.json(r.data)
 })
 
 app.listen(serverEnv.port, () => {

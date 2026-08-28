@@ -813,3 +813,22 @@
   letter-spacing: 0; text-transform: none;
 }
 .field__saved:hover { border-color: var(--brass); color: var(--brass); }
+
+/* ---------- 캘린더 추가 ---------- */
+.calendar { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+.calendar__hint { margin: 0; font-size: 0.86rem; color: var(--ink-soft); }
+.calendar__hint a { color: var(--brass); }
+.calendar__done {
+  display: flex; align-items: center; gap: var(--sp-3); margin: 0;
+  padding: var(--sp-3) var(--sp-4); font-size: 0.88rem;
+  background: var(--teal-wash); color: var(--teal);
+  border-radius: var(--radius-md);
+}
+.calendar__done a { color: var(--teal); font-weight: 600; }
+.calendar__connect {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  flex-wrap: wrap; padding: var(--sp-3) var(--sp-4);
+  background: var(--brass-wash); border-radius: var(--radius-md); font-size: 0.88rem;
+}
+.calendar__connect p { margin: 0; }
+.calendar__error { margin: 0; font-size: 0.84rem; color: var(--rust); }
