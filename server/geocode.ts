@@ -12,7 +12,18 @@ export interface GeoPoint {
 
 export type GeocodeResult =
   | { ok: true; point: GeoPoint }
-  | { ok: false; code: 'no-credentials' | 'no-data' | 'network' | 'upstream-error'; message: string }
+  | {
+      ok: false
+      code: 'no-credentials' | 'no-data' | 'network' | 'upstream-error' | 'region-unsupported'
+      message: string
+    }
+
+/**
+ * 가나(히라가나·가타카나)가 있으면 일본어 지명이다.
+ * 한자만 있는 경우(新宿駅)는 이걸로 못 가르지만, 그때는 카카오 검색이
+ * 실패하면서 아래에서 같은 안내로 떨어진다.
+ */
+const HAS_KANA = /[\u3040-\u309F\u30A0-\u30FF]/
 
 /**
  * 장소로 검색하면 안 되는 말들.
@@ -31,6 +42,14 @@ const NOT_SEARCHABLE = new Set(['현재 위치', '현재위치', '내 위치', '
 export async function geocode(query: string): Promise<GeocodeResult> {
   if (!serverEnv.kakaoRestKey) {
     return { ok: false, code: 'no-credentials', message: 'KAKAO_REST_API_KEY 가 없습니다' }
+  }
+
+  if (HAS_KANA.test(query)) {
+    return {
+      ok: false,
+      code: 'region-unsupported',
+      message: `"${query}" 는 국내 장소가 아닙니다`,
+    }
   }
 
   if (NOT_SEARCHABLE.has(query.trim())) {
@@ -56,7 +75,16 @@ export async function geocode(query: string): Promise<GeocodeResult> {
 
   const first = res.data.documents?.[0]
   if (!first) {
-    return { ok: false, code: 'no-data', message: `"${query}" 를 찾지 못했습니다` }
+    /*
+     * 못 찾은 것과 지원하지 않는 것은 다르다.
+     * "찾지 못했습니다" 만 보여주면 오타로 오해하고 계속 다시 입력하게 된다.
+     * 카카오 로컬은 국내만 다루므로, 해외 지명은 여기서 늘 실패한다.
+     */
+    return {
+      ok: false,
+      code: 'no-data',
+      message: `"${query}" 를 찾지 못했습니다. 지금은 국내 장소만 검색할 수 있습니다`,
+    }
   }
 
   return {

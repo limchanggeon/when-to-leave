@@ -251,10 +251,11 @@ export const ko = {
     'fallback.bus': '고속버스로 바꾸기',
   } as Record<string, string>,
   dataGap: {
+    'region-unsupported': '아직 국내(한국) 경로만 지원합니다. 일본·해외 경로는 준비 중입니다.',
     title: '데이터를 가져오지 못했습니다',
     'not-implemented': (adapter: string) => `${adapter} 어댑터가 아직 연결되지 않았습니다`,
     'no-credentials': (adapter: string) => `${adapter} API 키가 설정되지 않았습니다`,
-    'no-data': (adapter: string) => `${adapter}에서 결과가 비어 왔습니다`,
+    'no-data': () => '입력한 장소를 찾지 못했습니다. 지금은 국내(한국) 장소만 검색할 수 있습니다.',
     network: (adapter: string) => `${adapter}에 연결하지 못했습니다`,
     'upstream-error': (adapter: string) => `${adapter}가 오류를 반환했습니다`,
     retry: '다시 시도',

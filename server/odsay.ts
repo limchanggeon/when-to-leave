@@ -107,35 +107,67 @@ function carrierOf(sub: OdsaySubPath): string | undefined {
   return lane?.name ?? lane?.busNo
 }
 
+/** 0 이나 결측을 좌표 없음으로 본다. ODsay 도보 구간은 좌표를 주지 않는다. */
+const coord = (v: number | undefined): number | undefined =>
+  typeof v === 'number' && v !== 0 ? v : undefined
+
+type Endpoint = { name: string; lat?: number; lng?: number }
+
+/**
+ * 구간 배열로 옮긴다.
+ *
+ * ODsay 의 **도보 구간에는 좌표도 정류장 이름도 없다.** 그대로 두면
+ * "경유지" 라는 이름이 붙고 지도에는 탈것 구간의 두 점만 찍혀
+ * 엉뚱한 직선이 그어진다.
+ * 그래서 도보 구간의 양 끝을 앞뒤 구간에서 물려받는다 —
+ * 걷기는 결국 앞 구간이 끝난 곳에서 다음 구간이 시작하는 곳까지다.
+ */
 function toLegs(subPaths: OdsaySubPath[], from: GeoPoint, to: GeoPoint): WireLeg[] {
-  return subPaths
-    .filter((sub) => (sub.sectionTime ?? 0) > 0)
-    .map((sub, i, arr) => {
-      // 모르는 trafficType 이 와도 구간을 통째로 버리지 않는다.
-      // 다만 무엇인지 모른다는 사실은 carrier 로 남긴다.
-      const kind = TRAFFIC[sub.trafficType] ?? 'bus'
-      return {
-        kind,
-        from: {
-          name: sub.startName || (i === 0 ? from.name : '경유지'),
-          lat: sub.startY,
-          lng: sub.startX,
-        },
-        to: {
-          name: sub.endName || (i === arr.length - 1 ? to.name : '경유지'),
-          lat: sub.endY,
-          lng: sub.endX,
-        },
-        durationMin: sub.sectionTime ?? 0,
-        carrier: kind === 'walk' ? undefined : carrierOf(sub),
-        // 시각표가 아니라 평시 소요시간이므로 실시간이라고 말하지 않는다
-        confidence: 'estimated',
-        frequencyMin: sub.intervalTime,
-        runsPerDay: sub.intervalCount,
-        fare: sub.payment,
-        premiumSeat: sub.trainSpSeatYn === 'Y' ? true : undefined,
-      }
+  const used = subPaths.filter((sub) => (sub.sectionTime ?? 0) > 0)
+
+  const rawStart = (sub: OdsaySubPath): Endpoint => ({
+    name: sub.startName ?? '',
+    lat: coord(sub.startY),
+    lng: coord(sub.startX),
+  })
+  const rawEnd = (sub: OdsaySubPath): Endpoint => ({
+    name: sub.endName ?? '',
+    lat: coord(sub.endY),
+    lng: coord(sub.endX),
+  })
+
+  const origin: Endpoint = { name: from.name, lat: from.lat, lng: from.lng }
+  const destination: Endpoint = { name: to.name, lat: to.lat, lng: to.lng }
+
+  return used.map((sub, i) => {
+    const kind = TRAFFIC[sub.trafficType] ?? 'bus'
+    const start = rawStart(sub)
+    const end = rawEnd(sub)
+
+    // 이름이나 좌표가 비면 이웃에서 가져온다. 이웃도 없으면 여정의 끝점.
+    const prevEnd = i > 0 ? rawEnd(used[i - 1]) : origin
+    const nextStart = i < used.length - 1 ? rawStart(used[i + 1]) : destination
+
+    const fill = (own: Endpoint, neighbour: Endpoint, fallback: Endpoint): Endpoint => ({
+      name: own.name || neighbour.name || fallback.name,
+      lat: own.lat ?? neighbour.lat ?? fallback.lat,
+      lng: own.lng ?? neighbour.lng ?? fallback.lng,
     })
+
+    return {
+      kind,
+      from: fill(start, prevEnd, origin),
+      to: fill(end, nextStart, destination),
+      durationMin: sub.sectionTime ?? 0,
+      carrier: kind === 'walk' ? undefined : carrierOf(sub),
+      // 시각표가 아니라 평시 소요시간이므로 실시간이라고 말하지 않는다
+      confidence: 'estimated',
+      frequencyMin: sub.intervalTime,
+      runsPerDay: sub.intervalCount,
+      fare: sub.payment,
+      premiumSeat: sub.trainSpSeatYn === 'Y' ? true : undefined,
+    }
+  })
 }
 
 /** 두 지점 사이 거리(km). 시내/시외 검색을 가르는 데 쓴다. */

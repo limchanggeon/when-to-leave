@@ -250,10 +250,11 @@ export const ja: I18nShape = {
     'fallback.bus': '高速バスに変更',
   } as Record<string, string>,
   dataGap: {
+    'region-unsupported': '現在は韓国国内の経路のみ対応しています。日本・海外の経路は準備中です。',
     title: 'データを取得できませんでした',
     'not-implemented': (a) => `${a} アダプターは未接続です`,
     'no-credentials': (a) => `${a} の API キーが設定されていません`,
-    'no-data': (a) => `${a} から空の結果が返りました`,
+    'no-data': () => '入力した場所が見つかりませんでした。現在は韓国国内の場所のみ検索できます。',
     network: (a) => `${a} に接続できませんでした`,
     'upstream-error': (a) => `${a} がエラーを返しました`,
     retry: '再試行',

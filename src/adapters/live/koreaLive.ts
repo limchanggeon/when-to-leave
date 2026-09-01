@@ -59,7 +59,13 @@ async function fetchRoutes(
 
     if (!res.ok || 'error' in json) {
       const err = 'error' in json ? json.error : { code: 'upstream-error', message: '' }
-      const known = ['no-credentials', 'no-data', 'network', 'upstream-error'] as const
+      const known = [
+        'no-credentials',
+        'no-data',
+        'network',
+        'upstream-error',
+        'region-unsupported',
+      ] as const
       const code = (known as readonly string[]).includes(err.code)
         ? (err.code as (typeof known)[number])
         : 'upstream-error'

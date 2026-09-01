@@ -17,6 +17,8 @@ export type FailureCode =
   | 'network'
   /** 상대 서버가 에러를 냈다. */
   | 'upstream-error'
+  /** 이 지역은 아직 다루지 않는다(예: 일본). 못 찾은 것과 다르다. */
+  | 'region-unsupported'
 
 export interface Failure {
   code: FailureCode
