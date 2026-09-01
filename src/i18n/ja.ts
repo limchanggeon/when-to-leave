@@ -188,6 +188,12 @@ export const ja: I18nShape = {
       source: 'ソースを見る',
     },
   },
+  quickRoutes: {
+    label: 'クイック',
+    toPlace: (label: string) => `${label}へ`,
+    needOrigin: '先に出発地を決めてください',
+    fromHere: '現在地から',
+  },
   stats: {
     total: '所要時間',
     transfers: '乗り換え',

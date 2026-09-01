@@ -189,6 +189,12 @@ export const ko = {
       source: '소스 보기',
     },
   },
+  quickRoutes: {
+    label: '바로 가기',
+    toPlace: (label: string) => `${label}로`,
+    needOrigin: '출발지를 먼저 정해주세요',
+    fromHere: '지금 위치에서',
+  },
   stats: {
     total: '총 소요',
     transfers: '환승',

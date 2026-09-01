@@ -7,7 +7,7 @@ import { describeRoute } from '../../engine/rank'
 import { getLastResolved } from '../../adapters/live/koreaLive'
 import { usePrefs } from '../PrefsContext'
 import { deriveWarnings } from '../deriveWarnings'
-import { SearchPanel, type QueryInput } from '../components/SearchPanel'
+import { SearchPanel, type OriginState, type QueryInput } from '../components/SearchPanel'
 import { SiteHeader } from '../components/SiteHeader'
 import { HowItWorks } from '../components/HowItWorks'
 import { SiteFooter } from '../components/SiteFooter'
@@ -19,6 +19,8 @@ import { Alternatives } from '../components/Alternatives'
 import { AddToCalendar } from '../components/AddToCalendar'
 import { ResultSkeleton } from '../components/ResultSkeleton'
 import { TripStats } from '../components/TripStats'
+import { QuickRoutes } from '../components/QuickRoutes'
+import { fetchMe, type SavedPlace } from '../../auth/me'
 import { Hero } from '../components/Hero'
 import { JourneyMap } from '../components/JourneyMap'
 import { SetupNotice } from '../components/SetupNotice'
@@ -39,6 +41,23 @@ export function HomePage() {
   const [now, setNow] = useState(() => new Date())
   /** 여정에서 짚은 구간 — 지도와 공유한다. */
   const [hovered, setHovered] = useState<number | null>(null)
+  /** 저장한 장소 — 맨 윗줄 바로가기에 쓴다. */
+  const [places, setPlaces] = useState<SavedPlace[]>([])
+  /**
+   * 출발지. 검색 패널과 맨 윗줄 바로가기가 같이 쓴다 —
+   * 패널 안에 두면 바로가기가 빈 출발지로 검색을 보낸다.
+   */
+  const [origin, setOrigin] = useState<OriginState>({ name: '', geoName: null })
+
+  useEffect(() => {
+    let cancelled = false
+    fetchMe().then((r) => {
+      if (!cancelled && r.ok) setPlaces(r.data.places)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function run(query: QueryInput) {
     setLastQuery(query)
@@ -112,9 +131,29 @@ export function HomePage() {
   return (
     <div className="page">
       <SiteHeader t={t} solid={hasResult} />
+      <QuickRoutes
+        places={places}
+        t={t}
+        ready={Boolean(origin.coords) || origin.name.trim().length > 0}
+        onPick={(place) =>
+          run({
+            mode: 'departNow',
+            from: origin.name,
+            to: place.name,
+            when: null,
+            fromCoords: origin.coords,
+          })
+        }
+      />
 
       <Hero t={t} compact={hasResult}>
-        <SearchPanel t={t} onSubmit={run} pending={pending} />
+        <SearchPanel
+          t={t}
+          onSubmit={run}
+          pending={pending}
+          origin={origin}
+          onOriginChange={setOrigin}
+        />
       </Hero>
 
       <div className="shell">

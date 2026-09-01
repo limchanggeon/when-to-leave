@@ -18,15 +18,7 @@ export function SiteHeader({ t, solid }: { t: I18nShape; solid: boolean }) {
 
   const nextTheme = THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length]
 
-  const navItems = [
-    { label: t.nav2.home, to: '/' },
-    { label: t.nav2.saved, to: '/me' },
-    { label: t.nav2.calendar, to: '/me' },
-    { label: t.nav2.how, href: '#how' },
-  ]
-
   return (
-    <>
     <header className={`siteheader ${solid ? 'siteheader--solid' : ''}`}>
       <Link className="siteheader__brand" to="/">
         <Logo className="siteheader__logo" />
@@ -75,23 +67,5 @@ export function SiteHeader({ t, solid }: { t: I18nShape; solid: boolean }) {
         )}
       </nav>
     </header>
-
-    {/* 시안의 네비줄 — 화면 사이를 오갈 길을 늘 보이게 둔다 */}
-    <nav className="navrow">
-      <div className="navrow__inner">
-        {navItems.map((item) =>
-          item.to ? (
-            <Link className="navrow__item" key={item.label} to={item.to}>
-              {item.label}
-            </Link>
-          ) : (
-            <a className="navrow__item" key={item.label} href={item.href}>
-              {item.label}
-            </a>
-          ),
-        )}
-      </div>
-    </nav>
-    </>
   )
 }

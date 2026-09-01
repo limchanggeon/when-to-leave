@@ -27,32 +27,37 @@ const plusMinutes = (min: number): string => {
  * 빈 텍스트 상자 하나만 두면 무엇을 물어볼 수 있는지 알 수가 없다 —
  * 필드와 버튼이 보이는 것 자체가 사용법 설명이다.
  */
+/**
+ * 출발지는 바깥(HomePage)이 들고 있다.
+ * 맨 윗줄 바로가기도 같은 출발지를 써야 하므로, 이 컴포넌트 안에 가둬두면
+ * 바로가기가 빈 출발지로 검색을 보내게 된다.
+ */
+export interface OriginState {
+  name: string
+  coords?: Coords
+  /** 위치로 채워 넣은 이름. 값이 그대로면 좌표가 아직 유효하다. */
+  geoName: string | null
+}
+
 export function SearchPanel({
   t,
   onSubmit,
   pending,
+  origin,
+  onOriginChange,
 }: {
   t: I18nShape
   onSubmit: (q: QueryInput) => void
   pending: boolean
+  origin: OriginState
+  onOriginChange: (next: OriginState) => void
 }) {
   const [mode, setMode] = useState<QueryInput['mode']>('arriveBy')
   const [freeform, setFreeform] = useState(false)
-  const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [when, setWhen] = useState('')
   const [text, setText] = useState('')
-  const [fromCoords, setFromCoords] = useState<Coords | undefined>()
-  /**
-   * 위치로 채워 넣은 이름. 좌표와 짝이다.
-   *
-   * 이 값과 입력창 내용이 같으면 좌표는 아직 유효하다.
-   * 브라우저 자동완성이 change 이벤트를 쏘거나 리렌더가 끼어들 때
-   * 값이 그대로인데도 좌표만 지워지는 일을 막는다 —
-   * 그러면 이름만 "현재 위치" 로 남고 좌표가 사라져,
-   * 서버가 그 글자를 검색해 엉뚱한 곳을 잡는다.
-   */
-  const [geoName, setGeoName] = useState<string | null>(null)
+  const { name: from, coords: fromCoords, geoName } = origin
   /** 마이페이지에 저장해둔 장소. 로그인 안 했으면 비어 있다. */
   const [saved, setSaved] = useState<SavedPlace[]>([])
 
@@ -68,9 +73,11 @@ export function SearchPanel({
 
   /** 저장된 장소를 고르면 좌표까지 함께 들어온다 — 이름을 검색할 일이 없다. */
   function pickSaved(place: SavedPlace) {
-    setFrom(place.name)
-    setFromCoords({ lat: place.lat, lng: place.lng, accuracyM: null })
-    setGeoName(place.name)
+    onOriginChange({
+      name: place.name,
+      coords: { lat: place.lat, lng: place.lng, accuracyM: null },
+      geoName: place.name,
+    })
     setGeoError(null)
   }
   const [locating, setLocating] = useState(false)
@@ -113,16 +120,19 @@ export function SearchPanel({
      * 동안(재시도 포함 십수 초) 아무것도 안 채워진 것처럼 보인다.
      */
     const placeholder = t.geo.currentLocation
-    setFrom(placeholder)
-    setFromCoords(located.data)
-    setGeoName(placeholder)
+    onOriginChange({ name: placeholder, coords: located.data, geoName: placeholder })
     setLocating(false)
 
     // 주소는 뒤따라 온다. 그 사이 사용자가 고쳐 적었으면 덮어쓰지 않는다.
     const named = await reverseGeocode(located.data)
     if (!named.ok) return
-    setFrom((current) => (current === placeholder ? named.data : current))
-    setGeoName((current) => (current === placeholder ? named.data : current))
+    // 그 사이 사용자가 고쳐 적었으면 덮어쓰지 않는다
+    onOriginChange({
+      ...origin,
+      name: named.data,
+      coords: located.data,
+      geoName: named.data,
+    })
   }
 
   /**
@@ -258,14 +268,14 @@ export function SearchPanel({
                 autoComplete="off"
                 onChange={(e) => {
                   const next = e.target.value
-                  setFrom(next)
                   // 값이 실제로 달라졌을 때만 좌표를 버린다.
                   // 값이 그대로인 change 이벤트(자동완성 등)에 좌표를 잃으면
                   // 이름만 남아 엉뚱한 곳이 검색된다.
-                  if (next !== geoName) {
-                    setFromCoords(undefined)
-                    setGeoName(null)
-                  }
+                  onOriginChange(
+                    next === geoName
+                      ? { ...origin, name: next }
+                      : { name: next, coords: undefined, geoName: null },
+                  )
                 }}
                 placeholder={t.search.fromPlaceholder}
               />
@@ -275,7 +285,7 @@ export function SearchPanel({
               type="button"
               className="panel__swap"
               onClick={() => {
-                setFrom(to)
+                onOriginChange({ name: to, coords: undefined, geoName: null })
                 setTo(from)
               }}
               title={t.search.swap}

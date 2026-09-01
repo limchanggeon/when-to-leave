@@ -580,21 +580,23 @@
   border-radius: var(--radius-md); font-size: 0.86rem; align-self: flex-start;
 }
 
-/* ================= 네비줄 ================= */
-.navrow {
-  position: sticky; top: 66px; z-index: 19;
-  background: var(--surface); border-bottom: 1px solid var(--rule);
+/* ================= 바로가기 줄 ================= */
+.quickrow { background: var(--surface); border-bottom: 1px solid var(--rule); }
+.quickrow__inner {
+  max-width: 1120px; margin: 0 auto; padding: var(--sp-3) var(--sp-6);
+  display: flex; align-items: center; gap: var(--sp-2); overflow-x: auto;
 }
-.navrow__inner {
-  max-width: 1120px; margin: 0 auto; padding: 0 var(--sp-6);
-  display: flex; gap: var(--sp-6); overflow-x: auto;
+.quickrow__label {
+  flex: 0 0 auto; margin-right: var(--sp-2);
+  font-size: 0.78rem; font-weight: 700; color: var(--ink-faint);
 }
-.navrow__item {
-  padding: var(--sp-3) 0; white-space: nowrap;
-  font-size: 0.88rem; font-weight: 600; color: var(--ink-soft); text-decoration: none;
-  border-bottom: 2px solid transparent;
+.quickrow__item {
+  flex: 0 0 auto; padding: var(--sp-2) var(--sp-4); white-space: nowrap;
+  background: var(--brand-wash); color: var(--brand);
+  border: 1px solid transparent; border-radius: var(--radius-pill);
+  cursor: pointer; font-family: inherit; font-size: 0.85rem; font-weight: 600;
 }
-.navrow__item:hover { color: var(--brand); border-bottom-color: var(--brand); }
+.quickrow__item:hover { border-color: var(--brand); }
 
 /* ================= 여정 요약 수치 ================= */
 .stats {
@@ -634,10 +636,12 @@
   .col--main { flex: 1 1 100%; }
 }
 @media (max-width: 640px) {
-  .navrow { top: 58px; }
-  .navrow__inner { padding: 0 var(--sp-4); gap: var(--sp-4); }
+  .quickrow__inner { padding: var(--sp-3) var(--sp-4); }
   .stats { flex-wrap: wrap; }
   .stats__item { flex: 1 1 40%; }
   .sitefooter__cols { gap: var(--sp-6); }
   .sitefooter__bar { padding: var(--sp-4); }
 }
+
+.quickrow__item:disabled { opacity: 0.45; cursor: not-allowed; }
+.quickrow__note { flex: 0 0 auto; font-size: 0.78rem; color: var(--ink-faint); }
