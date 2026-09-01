@@ -15,7 +15,20 @@ function Seat({ leg, t }: { leg: Leg; t: I18nShape }) {
  * 여정을 시각 축으로 그린다.
  * 각 구간은 "언제 출발 → 무엇을 타고 몇 분 → 언제 도착"이 한 줄에 읽혀야 한다.
  */
-export function TripSpine({ legs, now, t }: { legs: Leg[]; now: Date; t: I18nShape }) {
+export function TripSpine({
+  legs,
+  now,
+  t,
+  onHover,
+  active,
+}: {
+  legs: Leg[]
+  now: Date
+  t: I18nShape
+  /** 구간을 짚었을 때 알린다 — 지도가 같은 지점을 강조한다. */
+  onHover?: (index: number | null) => void
+  active?: number | null
+}) {
   if (legs.length === 0) return null
   const UNIT = { h: t.units.hour, m: t.units.minute }
   const clock = (d: Date) => formatClock(d, now, t.clock)
@@ -25,7 +38,16 @@ export function TripSpine({ legs, now, t }: { legs: Leg[]; now: Date; t: I18nSha
       {legs.map((leg, i) => {
         const rideMin = diffMin(leg.arriveAt, leg.departAt)
         return (
-          <li className="spine__row" key={i}>
+          <li
+            className={`spine__row ${active === i ? 'is-active' : ''}`}
+            key={i}
+            style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
+            onMouseEnter={() => onHover?.(i)}
+            onMouseLeave={() => onHover?.(null)}
+            onFocus={() => onHover?.(i)}
+            onBlur={() => onHover?.(null)}
+            tabIndex={0}
+          >
             <div className="spine__clock">{clock(leg.departAt)}</div>
             <div className="spine__rail">
               <span className={`spine__dot ${leg.discrete ? 'spine__dot--stop' : ''}`} />
@@ -53,7 +75,13 @@ export function TripSpine({ legs, now, t }: { legs: Leg[]; now: Date; t: I18nSha
           </li>
         )
       })}
-      <li className="spine__row spine__row--end">
+      <li
+        className={`spine__row spine__row--end ${active === legs.length ? 'is-active' : ''}`}
+        style={{ animationDelay: `${Math.min(legs.length, 8) * 45}ms` }}
+        onMouseEnter={() => onHover?.(legs.length)}
+        onMouseLeave={() => onHover?.(null)}
+        tabIndex={0}
+      >
         <div className="spine__clock spine__clock--end">
           {clock(legs[legs.length - 1].arriveAt)}
         </div>

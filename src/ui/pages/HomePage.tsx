@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { resolveWhen } from '../../parse/parse'
 import { diffMin, formatClock, humanDuration } from '../../engine/time'
 import { dictionaries } from '../../i18n'
@@ -17,6 +17,7 @@ import { Warnings } from '../components/Warnings'
 import { Countdown } from '../components/Countdown'
 import { Alternatives } from '../components/Alternatives'
 import { AddToCalendar } from '../components/AddToCalendar'
+import { ResultSkeleton } from '../components/ResultSkeleton'
 import { Hero } from '../components/Hero'
 import { JourneyMap } from '../components/JourneyMap'
 import { SetupNotice } from '../components/SetupNotice'
@@ -35,6 +36,8 @@ export function HomePage() {
   const [lastQuery, setLastQuery] = useState<QueryInput | null>(null)
   const [shown, setShown] = useState<RouteOption | null>(null)
   const [now, setNow] = useState(() => new Date())
+  /** 여정에서 짚은 구간 — 지도와 공유한다. */
+  const [hovered, setHovered] = useState<number | null>(null)
 
   async function run(query: QueryInput) {
     setLastQuery(query)
@@ -77,6 +80,30 @@ export function HomePage() {
   }
 
   const clock = (d: Date) => formatClock(d, now, t.clock)
+
+  /*
+   * 탭을 다른 곳으로 옮겨도 남은 시간이 보이게 한다.
+   * 출발을 기다리는 동안 이 앱을 계속 보고 있을 이유가 없다.
+   */
+  useEffect(() => {
+    if (!shown) {
+      document.title = t.app.title
+      return
+    }
+    const update = () => {
+      const left = diffMin(shown.legs[0].departAt, new Date())
+      document.title =
+        left >= 0
+          ? `${humanDuration(left, UNIT)} 후 출발 · ${t.app.title}`
+          : `${t.result.leaveNow} · ${t.app.title}`
+    }
+    update()
+    const id = setInterval(update, 30_000)
+    return () => {
+      clearInterval(id)
+      document.title = t.app.title
+    }
+  }, [shown, t])
   const resolved = outcome?.kind === 'trip' ? getLastResolved() : null
 
   const hasResult = outcome !== null
@@ -92,7 +119,9 @@ export function HomePage() {
       <div className="shell">
         <SetupNotice />
 
-        {outcome?.kind === 'gap' && (
+        {pending && <ResultSkeleton />}
+
+        {!pending && outcome?.kind === 'gap' && (
           <DataGap
             failure={outcome.failure}
             t={t}
@@ -100,14 +129,14 @@ export function HomePage() {
           />
         )}
 
-        {outcome?.kind === 'no-route' && (
+        {!pending && outcome?.kind === 'no-route' && (
           <div className="notice notice--bad" role="alert">
             <span aria-hidden="true">⚠</span>
             <span>{t.warning['no-solution']}</span>
           </div>
         )}
 
-        {!outcome && (
+        {!outcome && !pending && (
           <section className="empty">
             <p className="empty__label">{t.empty.examples}</p>
             <div className="empty__chips">
@@ -120,7 +149,7 @@ export function HomePage() {
           </section>
         )}
 
-        {outcome?.kind === 'trip' && shown && (
+        {!pending && outcome?.kind === 'trip' && shown && (
           <>
             <section className="verdict">
               <div className="verdict__main">
@@ -167,11 +196,17 @@ export function HomePage() {
             <div className="columns">
               <section className="col col--main">
                 <h2 className="col__label">{t.sections.journey}</h2>
-                <TripSpine legs={shown.legs} now={now} t={t} />
+                <TripSpine
+                  legs={shown.legs}
+                  now={now}
+                  t={t}
+                  onHover={setHovered}
+                  active={hovered}
+                />
               </section>
 
               <aside className="col col--side">
-                <JourneyMap legs={shown.legs} country="KR" t={t} />
+                <JourneyMap legs={shown.legs} country="KR" t={t} highlight={hovered} />
                 <Alternatives
                   items={outcome.others}
                   baselineArrival={outcome.chosen.arriveAt}

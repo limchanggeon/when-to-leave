@@ -173,6 +173,7 @@
 
 /* ================= 결과 헤드 ================= */
 .verdict {
+  animation: rise 0.35s ease both;
   display: flex; align-items: center; justify-content: space-between; gap: var(--sp-5);
   flex-wrap: wrap; padding: var(--sp-6);
   background: var(--surface); border: 1px solid var(--rule);
@@ -195,14 +196,27 @@
 .verdict__tag--alt { background: var(--sunk); color: var(--ink-soft); }
 
 .countdown {
-  display: flex; flex-direction: column; align-items: flex-end; gap: 0;
-  padding: var(--sp-3) var(--sp-5); border-radius: var(--radius-md); min-width: 140px;
+  display: flex; align-items: center; gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-5); border-radius: var(--radius-lg); min-width: 200px;
+  transition: background 0.4s ease, color 0.4s ease;
 }
-.countdown__label { font-size: 0.72rem; font-weight: 600; opacity: 0.8; }
+.countdown__ring { width: 62px; height: 62px; flex: 0 0 auto; transform: rotate(-90deg); }
+.countdown__track { fill: none; stroke: currentColor; stroke-width: 6; opacity: 0.18; }
+.countdown__fill {
+  fill: none; stroke: currentColor; stroke-width: 6; stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+}
+.countdown__text { display: flex; flex-direction: column; min-width: 0; }
+.countdown__label { font-size: 0.74rem; font-weight: 600; opacity: 0.85; }
 .countdown__value { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
 .countdown--relaxed { background: var(--teal-wash); color: var(--teal); }
 .countdown--soon { background: var(--amber-wash); color: var(--amber); }
 .countdown--now, .countdown--overdue { background: var(--rust-wash); color: var(--rust); }
+/* 지금 나가야 할 때만 맥박 — 늘 움직이면 금방 무시하게 된다 */
+.countdown--now .countdown__ring, .countdown--overdue .countdown__ring {
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.55 } }
 
 /* ================= 알림/경고 ================= */
 .banner, .notice, .warning {
@@ -239,7 +253,16 @@
 
 /* ================= 여정 ================= */
 .spine { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.spine__row { display: flex; gap: var(--sp-3); }
+.spine__row {
+  display: flex; gap: var(--sp-3);
+  border-radius: var(--radius-md); margin: 0 calc(var(--sp-3) * -1); padding: 0 var(--sp-3);
+  transition: background 0.15s ease;
+  animation: rise 0.35s ease both;
+  outline: none;
+}
+.spine__row:hover, .spine__row.is-active { background: var(--brand-wash); cursor: default; }
+.spine__row:focus-visible { background: var(--brand-wash); }
+@keyframes rise { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 .spine__clock {
   flex: 0 0 84px; text-align: right;
   font-variant-numeric: tabular-nums; font-size: 0.92rem; font-weight: 600; padding-top: 1px;
@@ -513,3 +536,39 @@
   .spine__clock { flex: 0 0 66px; }
   .col--main { padding: var(--sp-4); }
 }
+
+/* ================= 계산 중 뼈대 ================= */
+.skeleton { display: flex; flex-direction: column; gap: var(--sp-5); }
+.skeleton__verdict {
+  display: flex; flex-direction: column; gap: var(--sp-3);
+  padding: var(--sp-6); background: var(--surface);
+  border: 1px solid var(--rule); border-radius: var(--radius-lg);
+}
+.skeleton__columns { display: flex; gap: var(--sp-5); flex-wrap: wrap; }
+.skeleton__main {
+  flex: 2 1 420px; display: flex; flex-direction: column; gap: var(--sp-5);
+  padding: var(--sp-6); background: var(--surface);
+  border: 1px solid var(--rule); border-radius: var(--radius-lg);
+}
+.skeleton__side { flex: 1 1 320px; }
+.skeleton__row { display: flex; align-items: flex-start; gap: var(--sp-3); }
+.skeleton__rowbody { flex: 1; display: flex; flex-direction: column; gap: var(--sp-2); }
+
+.sk {
+  background: linear-gradient(90deg, var(--sunk) 25%, var(--rule) 37%, var(--sunk) 63%);
+  background-size: 400% 100%;
+  border-radius: var(--radius-sm);
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.sk--title { height: 30px; width: 45%; }
+.sk--line { height: 12px; width: 60%; }
+.sk--clock { height: 14px; width: 56px; flex: 0 0 auto; margin-top: 2px; }
+.sk--dot { height: 10px; width: 10px; border-radius: 50%; flex: 0 0 auto; margin-top: 4px; }
+.sk--map { height: 280px; width: 100%; border-radius: var(--radius-lg); }
+@keyframes shimmer { from { background-position: 100% 0 } to { background-position: 0 0 } }
+
+/* 버튼·카드에 눌리는 느낌 */
+.panel__submit, .btn, .example, .chips__btn, .alt { transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.2s ease; }
+.panel__submit:active:not(:disabled), .btn:active:not(:disabled), .example:active, .chips__btn:active { transform: translateY(1px); }
+.alt:hover { transform: translateY(-2px); }
+.modeswitch__btn, .emailauth__tab { transition: color 0.15s ease, border-color 0.15s ease; }

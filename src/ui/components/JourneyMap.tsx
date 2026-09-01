@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { CountryCode } from '../../adapters/types'
 import type { Leg, Place } from '../../engine/types'
 import { pickMap } from '../../map/registry'
-import type { MapFailure } from '../../map/types'
+import type { MapFailure, MapHandle } from '../../map/types'
 import type { I18nShape } from '../../i18n'
 
 function failureText(f: MapFailure): string {
@@ -22,8 +22,20 @@ function failureText(f: MapFailure): string {
  * 여정 위 지점들을 지도에 찍는다.
  * 키가 없거나 좌표가 없으면 지도를 비워두지 않고 이유를 그대로 보여준다.
  */
-export function JourneyMap({ legs, country, t }: { legs: Leg[]; country: CountryCode; t: I18nShape }) {
+export function JourneyMap({
+  legs,
+  country,
+  t,
+  highlight,
+}: {
+  legs: Leg[]
+  country: CountryCode
+  t: I18nShape
+  /** 여정에서 짚은 지점. 지도가 같은 곳을 강조한다. */
+  highlight?: number | null
+}) {
   const ref = useRef<HTMLDivElement>(null)
+  const handleRef = useRef<MapHandle | null>(null)
   const [failure, setFailure] = useState<MapFailure | null>(null)
   const provider = pickMap(country)
 
@@ -36,11 +48,17 @@ export function JourneyMap({ legs, country, t }: { legs: Leg[]; country: Country
     provider.render(el, places).then((r) => {
       if (cancelled) return
       setFailure(r.ok ? null : r.failure)
+      handleRef.current = r.ok ? r.handle : null
     })
     return () => {
       cancelled = true
     }
   }, [legs, provider])
+
+  // 여정에서 짚은 지점을 지도에 반영한다
+  useEffect(() => {
+    handleRef.current?.highlight(highlight ?? null)
+  }, [highlight])
 
   if (!provider) {
     return (

@@ -1,7 +1,7 @@
 import { config } from '../config'
 import { loadScript } from '../auth/types'
 import type { Place } from '../engine/types'
-import { withCoords, type MapFailure, type MapProvider } from './types'
+import { withCoords, type MapFailure, type MapHandle, type MapProvider } from './types'
 
 const SDK = (key: string) =>
   `https://maps.googleapis.com/maps/api/js?key=${key}&v=weekly`
@@ -10,7 +10,8 @@ type GMaps = {
   maps: {
     LatLngBounds: new () => { extend(p: { lat: number; lng: number }): void }
     Map: new (el: HTMLElement, o: object) => { fitBounds(b: object): void }
-    Marker: new (o: object) => object
+    Marker: new (o: object) => { setMap(m: object | null): void; setPosition(p: object): void }
+    Circle: new (o: object) => { setMap(m: object | null): void; setCenter(p: object): void }
     Polyline: new (o: object) => object
   }
 }
@@ -49,12 +50,32 @@ export const googleMap: MapProvider = {
       const map = new g.maps.Map(el, { center: path[0], zoom: 8, mapTypeControl: false })
       path.forEach((position) => new g.maps.Marker({ position, map }))
       if (path.length > 1) {
-        new g.maps.Polyline({ path, strokeColor: '#4C6BE8', strokeWeight: 3, strokeOpacity: 0.9, map })
+        new g.maps.Polyline({ path, strokeColor: '#2F6BFF', strokeWeight: 4, strokeOpacity: 0.9, map })
         const bounds = new g.maps.LatLngBounds()
         path.forEach((c) => bounds.extend(c))
         map.fitBounds(bounds)
       }
-      return { ok: true as const }
+
+      const ring = new g.maps.Circle({
+        center: path[0],
+        radius: 900,
+        strokeColor: '#2F6BFF',
+        strokeWeight: 3,
+        strokeOpacity: 0.9,
+        fillColor: '#2F6BFF',
+        fillOpacity: 0.18,
+      })
+      const handle: MapHandle = {
+        highlight(index) {
+          if (index === null || !path[index]) {
+            ring.setMap(null)
+            return
+          }
+          ring.setCenter(path[index])
+          ring.setMap(map)
+        },
+      }
+      return { ok: true as const, handle }
     } catch (e) {
       return { ok: false as const, failure: { code: 'failed', provider: 'google-map', detail: String(e) } as MapFailure }
     }
