@@ -35,6 +35,14 @@ export const serverEnv = {
    * 다른 경로로 두면 SPA 가 받아버려서 서버가 인가 코드를 보지 못한다.
    */
   googleRedirectUri: req('GOOGLE_REDIRECT_URI') ?? 'http://localhost:4173/api/calendar/callback',
+  /**
+   * 서버에서 쓰는 구글 지도 키(Routes·Geocoding).
+   *
+   * 브라우저용 키(VITE_GOOGLE_MAPS_KEY)는 보통 HTTP 리퍼러로 제한돼 있어
+   * 서버 호출이 거부된다. 그럴 때를 위해 별도 키를 받는다.
+   * 없으면 브라우저 키로 시도해 보고, 거부되면 그 사실을 그대로 알린다.
+   */
+  googleMapsServerKey: req('GOOGLE_MAPS_SERVER_KEY') ?? req('VITE_GOOGLE_MAPS_KEY'),
   /** ODsay 대중교통 길찾기. https://lab.odsay.com 에서 발급. */
   odsayKey: req('ODSAY_API_KEY'),
   /**

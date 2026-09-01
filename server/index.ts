@@ -30,6 +30,12 @@ import {
 } from './profile'
 import { geocode, reverseGeocode, type GeoPoint } from './geocode'
 import { searchTransitRoute } from './odsay'
+import {
+  GOOGLE_HAS_NO_TRANSIT,
+  geocodeWorld,
+  searchTransitGoogle,
+  type WorldPoint,
+} from './googleRoutes'
 
 const app = express()
 app.use(express.json())
@@ -49,6 +55,17 @@ function cookie(req: express.Request, name: string): string | undefined {
  * 로그인한 사용자를 꺼낸다. 없으면 401 을 보내고 null 을 돌려준다 —
  * 라우트마다 같은 검사를 반복하지 않기 위한 것이다.
  */
+/**
+ * 좌표만 있을 때의 대략적인 나라 판별.
+ * 지오코딩을 한 번 더 부르지 않으려고 경계 상자로 가른다 —
+ * 두 나라는 겹치지 않으므로 이 정도로 충분하다.
+ */
+function countryOf(lat: number, lng: number): string | null {
+  if (lat >= 33 && lat <= 38.7 && lng >= 124.5 && lng <= 131.9) return 'KR'
+  if (lat >= 24 && lat <= 45.6 && lng >= 122.9 && lng <= 146) return 'JP'
+  return null
+}
+
 function requireUser(req: express.Request, res: express.Response): User | null {
   const user = readSession(cookie(req, COOKIE_NAME))
   if (!user) {
@@ -107,18 +124,49 @@ app.post('/api/route', async (req, res) => {
     return
   }
 
+  /**
+   * 지점을 좌표 + 나라로 푼다.
+   *
+   * 국내는 카카오가 정확하고 빠르다. 못 찾으면 구글로 넘어가는데,
+   * 구글은 나라 코드를 주므로 해외인지 오타인지 여기서 갈린다 —
+   * 클라이언트가 글자를 보고 추측할 일이 없어진다.
+   */
   const resolve = async (
     p: { name?: string; lat?: number; lng?: number } | undefined,
-  ): Promise<GeoPoint | { error: { code: string; message: string } }> => {
+  ): Promise<WorldPoint | { error: { code: string; message: string } }> => {
     if (typeof p?.lat === 'number' && typeof p?.lng === 'number') {
-      return { name: p.name?.trim() || '지정한 위치', lat: p.lat, lng: p.lng }
+      return {
+        name: p.name?.trim() || '지정한 위치',
+        lat: p.lat,
+        lng: p.lng,
+        country: countryOf(p.lat, p.lng),
+      }
     }
     const name = p?.name?.trim()
     if (!name) {
       return { error: { code: 'no-data', message: '위치를 알 수 없습니다' } }
     }
-    const g = await geocode(name)
-    return g.ok ? g.point : { error: { code: g.code, message: g.message } }
+
+    const kr = await geocode(name)
+    if (kr.ok) return { ...kr.point, country: 'KR' }
+    // 카카오가 지역 미지원으로 잘라낸 경우는 그대로 전한다
+    if (kr.code === 'region-unsupported') {
+      const world = await geocodeWorld(name)
+      if (world.ok) return world.data
+      return { error: { code: 'region-unsupported', message: kr.message } }
+    }
+
+    const world = await geocodeWorld(name)
+    if (world.ok) return world.data
+    /*
+     * 국내에서 못 찾았고 해외 조회도 실패했다.
+     * 해외 조회가 "설정이 안 됐다" 로 실패한 경우에는 그 사실을 알려야 한다 —
+     * 카카오의 "찾지 못했습니다" 만 보여주면 오타로 오해한다.
+     */
+    if (world.code === 'upstream-error' || world.code === 'no-credentials') {
+      return { error: { code: 'region-unsupported', message: world.message } }
+    }
+    return { error: { code: kr.code, message: kr.message } }
   }
 
   try {
@@ -143,7 +191,51 @@ app.post('/api/route', async (req, res) => {
       return
     }
 
-    const route = await searchTransitRoute(start, end)
+    /*
+     * 나라로 어댑터를 고른다.
+     *   국내  ODsay — 구글은 한국에서 길찾기를 제공하지 않는다
+     *   일본  구글 Routes
+     * 나라가 다르면 항공 구간을 끼워야 하는데 아직 다루지 않는다.
+     */
+    const pair = `${start.country ?? '?'}-${end.country ?? '?'}`
+    if (start.country && end.country && start.country !== end.country) {
+      res.status(400).json({
+        error: {
+          code: 'region-unsupported',
+          message: `아직 한 나라 안에서만 계산합니다 (${pair})`,
+        },
+      })
+      return
+    }
+
+    const country = start.country ?? end.country ?? 'KR'
+
+    /*
+     * 구글이 대중교통을 다루지 않는 나라(일본)는 여기서 멈춘다.
+     * 실측으로 확인했다 — Directions·Routes·JS SDK 셋 다 도쿄·오사카에서
+     * ZERO_RESULTS 이고 런던·뉴욕은 정상이다.
+     * "찾지 못했다" 가 아니라 "이 방법으로는 안 된다" 이므로 그렇게 말한다.
+     */
+    if (GOOGLE_HAS_NO_TRANSIT.has(country)) {
+      res.status(400).json({
+        error: {
+          code: 'region-unsupported',
+          message: `${country} 대중교통 경로는 구글 API 가 제공하지 않습니다 (별도 데이터 소스가 필요합니다)`,
+        },
+      })
+      return
+    }
+
+    const route =
+      country === 'KR'
+        ? await searchTransitRoute(start, end)
+        : await (async () => {
+            const r = await searchTransitGoogle(start, end)
+            return r.ok
+              ? ({ ok: true, routes: r.data } as const)
+              : ({ ok: false, code: r.code, message: r.message } as const)
+          })()
+
     if (!route.ok) {
       res.status(route.code === 'no-credentials' ? 500 : 502).json({
         error: { code: route.code, message: route.message },
