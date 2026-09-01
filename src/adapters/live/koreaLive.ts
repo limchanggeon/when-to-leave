@@ -39,6 +39,7 @@ const toSpecs = (legs: WireLeg[]): LegSpec[] =>
     confidence: leg.confidence,
     carrier: leg.carrier,
     frequencyMin: leg.frequencyMin,
+    fare: leg.fare,
     source: SOURCE,
     origin: 'live' as const,
   }))

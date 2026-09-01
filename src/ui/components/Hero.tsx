@@ -29,6 +29,8 @@ export function Hero({
             ))}
           </p>
         )}
+        {/* 다룰 수 있는 범위를 미리 알린다 — 검색해보고 나서야 아는 건 나쁘다 */}
+        {t.app.coverage && <p className="hero__coverage">{t.app.coverage}</p>}
         <div className="hero__action">{children}</div>
       </div>
     </header>

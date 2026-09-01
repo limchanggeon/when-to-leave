@@ -18,6 +18,7 @@ import { Countdown } from '../components/Countdown'
 import { Alternatives } from '../components/Alternatives'
 import { AddToCalendar } from '../components/AddToCalendar'
 import { ResultSkeleton } from '../components/ResultSkeleton'
+import { TripStats } from '../components/TripStats'
 import { Hero } from '../components/Hero'
 import { JourneyMap } from '../components/JourneyMap'
 import { SetupNotice } from '../components/SetupNotice'
@@ -182,6 +183,8 @@ export function HomePage() {
               <Countdown departAt={shown.legs[0].departAt} t={t} />
             </section>
 
+            <TripStats legs={shown.legs} t={t} />
+
             <AddToCalendar legs={shown.legs} now={now} t={t} />
 
             {outcome.renegotiated && (
@@ -205,8 +208,11 @@ export function HomePage() {
                 />
               </section>
 
-              <aside className="col col--side">
+              <div className="col col--map">
                 <JourneyMap legs={shown.legs} country="KR" t={t} highlight={hovered} />
+              </div>
+
+              <aside className="col col--rail">
                 <Alternatives
                   items={outcome.others}
                   baselineArrival={outcome.chosen.arriveAt}

@@ -40,6 +40,8 @@ export interface LegSpec {
    * 시각표가 있으면 departures 를 쓰고 이건 안 쓴다.
    */
   frequencyMin?: number
+  /** 이 구간 요금(원). 합쳐서 여정 전체 요금을 낸다. */
+  fare?: number
   confidence: Confidence
   /**
    * 이 구간에 적용할 여유(분). 어댑터가 직접 지정할 수 있다.
@@ -83,6 +85,8 @@ export interface Leg {
   carrier?: string
   /** 시각표가 없는 구간의 평균 배차 간격(분). */
   frequencyMin?: number
+  /** 이 구간 요금(원). */
+  fare?: number
   seat?: SeatInfo
   confidence: Confidence
   source: string
