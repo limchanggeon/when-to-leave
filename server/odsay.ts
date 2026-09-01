@@ -25,6 +25,12 @@ export interface WireLeg {
   fare?: number
   /** 특실 운영 여부(기차). */
   premiumSeat?: boolean
+  /**
+   * 실제 운행 시각. 열차 구간에만 붙는다(TAGO).
+   * 이게 있으면 엔진이 그 구간을 이산 구간으로 보고 데드라인을 전파한다 —
+   * 이 앱의 알맹이가 여기서 살아난다.
+   */
+  runs?: { departAt: string; arriveAt: string; carrier: string; fare?: number }[]
 }
 
 export interface WireRoute {

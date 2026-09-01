@@ -43,6 +43,11 @@ export const serverEnv = {
    * 없으면 브라우저 키로 시도해 보고, 거부되면 그 사실을 그대로 알린다.
    */
   googleMapsServerKey: req('GOOGLE_MAPS_SERVER_KEY') ?? req('VITE_GOOGLE_MAPS_KEY'),
+  /**
+   * 공공데이터포털 TAGO 열차정보. 국내 열차 시각표를 준다.
+   * ODsay 는 배차 간격만 주므로, 실제 출발 시각은 여기서 받아 붙인다.
+   */
+  tagoKey: req('TAGO_SERVICE_KEY'),
   /** ODsay 대중교통 길찾기. https://lab.odsay.com 에서 발급. */
   odsayKey: req('ODSAY_API_KEY'),
   /**

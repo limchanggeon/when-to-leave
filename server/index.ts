@@ -29,7 +29,8 @@ import {
   updateName,
 } from './profile'
 import { geocode, reverseGeocode, type GeoPoint } from './geocode'
-import { searchTransitRoute } from './odsay'
+import { searchTransitRoute, type WireRoute } from './odsay'
+import { trainsBetween } from './tago'
 import {
   GOOGLE_HAS_NO_TRANSIT,
   geocodeWorld,
@@ -243,7 +244,10 @@ app.post('/api/route', async (req, res) => {
       return
     }
     // 첫 경로가 추천안, 나머지는 대안으로 쓴다
-    res.json({ routes: route.routes, from: start, to: end })
+    // 열차 구간에 실제 시각표를 붙인다. ODsay 는 배차 간격만 주므로
+    // 이게 없으면 역산이 "몇 분마다 온다" 수준에 머문다.
+    const enriched = await withTrainTimetables(route.routes)
+    res.json({ routes: enriched, from: start, to: end })
   } catch (e) {
     // 여기까지 온 건 예상 못 한 오류다. 원본은 서버 로그에만 남기고
     // 화면에는 사람이 읽을 수 있는 문장을 보낸다.
@@ -349,6 +353,36 @@ app.post('/api/auth/google', async (req, res) => {
     res.status(500).json({ error: { code: 'verify-failed', message: '토큰 검증에 실패했습니다' } })
   }
 })
+
+/**
+ * 열차 구간에 TAGO 시각표를 채워 넣는다.
+ *
+ * 같은 구간이 여러 경로에 겹쳐 나오므로 한 번만 조회해 나눠 쓴다 —
+ * 공공데이터포털은 일일 호출 한도가 있다.
+ */
+async function withTrainTimetables(routes: WireRoute[]): Promise<WireRoute[]> {
+  const cache = new Map<string, Awaited<ReturnType<typeof trainsBetween>>>()
+
+  for (const route of routes) {
+    for (const leg of route.legs) {
+      if (leg.kind !== 'train') continue
+      const key = `${leg.from.name}>${leg.to.name}`
+      if (!cache.has(key)) {
+        cache.set(key, await trainsBetween(leg.from.name, leg.to.name, new Date()))
+      }
+      const runs = cache.get(key)
+      if (!runs?.length) continue
+
+      leg.runs = runs.map((r) => ({
+        departAt: r.departAt,
+        arriveAt: r.arriveAt,
+        carrier: [r.grade, r.trainNo].filter(Boolean).join(' ').trim(),
+        fare: r.fare,
+      }))
+    }
+  }
+  return routes
+}
 
 app.post('/api/auth/logout', (req, res) => {
   destroySession(cookie(req, COOKIE_NAME))

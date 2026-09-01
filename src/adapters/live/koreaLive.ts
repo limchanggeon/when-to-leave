@@ -14,6 +14,8 @@ interface WireLeg {
   frequencyMin?: number
   runsPerDay?: number
   fare?: number
+  /** 실제 운행 시각(TAGO). 있으면 이 구간은 이산 구간이 된다. */
+  runs?: { departAt: string; arriveAt: string; carrier: string; fare?: number }[]
 }
 
 interface WireRoute {
@@ -30,19 +32,44 @@ export interface ResolvedEnds {
 let lastResolved: ResolvedEnds | null = null
 export const getLastResolved = (): ResolvedEnds | null => lastResolved
 
+const MINUTE = 60_000
+
+/**
+ * 서버 응답을 구간 배열로.
+ *
+ * 실제 운행 시각(runs)이 오면 그 구간을 **이산 구간**으로 만든다.
+ * 그래야 엔진이 "이 편을 타려면 언제까지 도착해야 하는가" 를 계산해
+ * 앞 구간으로 데드라인을 넘긴다 — 이 앱의 알맹이다.
+ * runs 가 없으면 예전처럼 소요시간만 있는 연속 구간이다.
+ */
 const toSpecs = (legs: WireLeg[]): LegSpec[] =>
-  legs.map((leg) => ({
-    kind: leg.kind,
-    from: leg.from,
-    to: leg.to,
-    durationMin: leg.durationMin,
-    confidence: leg.confidence,
-    carrier: leg.carrier,
-    frequencyMin: leg.frequencyMin,
-    fare: leg.fare,
-    source: SOURCE,
-    origin: 'live' as const,
-  }))
+  legs.map((leg) => {
+    const departures = leg.runs?.map((run) => {
+      const at = new Date(run.departAt)
+      const arriveAt = new Date(run.arriveAt)
+      return {
+        at,
+        carrier: run.carrier,
+        durationMin: Math.max(1, Math.round((arriveAt.getTime() - at.getTime()) / MINUTE)),
+        seat: run.fare ? undefined : undefined,
+      }
+    })
+
+    return {
+      kind: leg.kind,
+      from: leg.from,
+      to: leg.to,
+      durationMin: leg.durationMin,
+      // 시각표가 붙었으면 추정이 아니라 계획 시간표다
+      confidence: departures?.length ? ('scheduled' as const) : leg.confidence,
+      carrier: leg.carrier,
+      frequencyMin: departures?.length ? undefined : leg.frequencyMin,
+      fare: leg.fare,
+      departures: departures?.length ? departures : undefined,
+      source: SOURCE,
+      origin: 'live' as const,
+    }
+  })
 
 /** /api/route 응답을 한 번만 받아 route()/alternatives() 가 나눠 쓴다. */
 async function fetchRoutes(
