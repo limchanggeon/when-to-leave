@@ -1,0 +1,30 @@
+{
+  "hosting": {
+    "public": "dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      {
+        "//": "API 는 Cloud Run 컨테이너로 넘긴다. 서비스가 배포돼 있어야 동작한다.",
+        "source": "/api/**",
+        "run": { "serviceId": "whenigo-api", "region": "asia-northeast3" }
+      },
+      {
+        "//": "나머지는 SPA 로. /login, /me 같은 경로를 새로고침해도 열리게 한다.",
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "//": "해시가 붙은 에셋은 내용이 바뀌면 이름도 바뀌므로 오래 캐시해도 안전하다.",
+        "source": "/assets/**",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+      },
+      {
+        "//": "index.html 은 매번 확인해야 새 배포가 바로 반영된다.",
+        "source": "/index.html",
+        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      }
+    ]
+  }
+}

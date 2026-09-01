@@ -48,7 +48,6 @@ export function KakaoCallbackPage() {
 
   return (
     <div className="login">
-      <div className="login__stars" aria-hidden="true" />
       <div className="login__card">
         <Link className="login__back" to="/login">
           {t.callback.backToLogin}

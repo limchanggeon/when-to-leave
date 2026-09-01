@@ -1,67 +1,107 @@
-/* 디자인 토큰 — 설계 문서 아티팩트와 팔레트를 맞췄다.
-   redwerk 가이드 원칙: hex로 명시, 타이포 스케일 고정, 상태별 색까지 토큰화. */
+/* 디자인 토큰.
+   참고한 시안: 밝은 흰 바탕 + 파란 강조 + 넉넉한 라운드.
+   폰트는 Noto Sans 로 유지한다(한국어·일본어를 함께 써야 하므로). */
 :root {
-  --paper: #EDEFEB;
-  --surface: #F7F8F5;
-  --sunk: #E3E6E0;
-  --ink: #1B2530;
-  --ink-soft: #5C6873;
-  --ink-faint: #8A949C;
-  --rule: #D4D9D2;
-  --rule-strong: #B9C0B7;
+  /* 바탕 */
+  --paper: #FFFFFF;
+  --surface: #FFFFFF;
+  --sunk: #F1F5F9;
+  --tint: #EEF2FF;        /* 검색바처럼 옅게 채우는 자리 */
 
-  --brass: #8F6310;
-  --teal: #2C6659;
-  --rust: #99392B;
-  --brass-wash: #EDE3CE;
-  --teal-wash: #DCE8E3;
-  --rust-wash: #EEDCD8;
+  /* 글자 */
+  --ink: #0F172A;
+  --ink-soft: #64748B;
+  --ink-faint: #94A3B8;
 
-  /* Noto Sans 로 통일. 라틴 → 한글 → 일본어 순으로 두면
-     브라우저가 글자마다 알맞은 서브셋을 고른다 (ko/ja 화면이 섞여 있어도 안전). */
+  /* 선 */
+  --rule: #E2E8F0;
+  --rule-strong: #CBD5E1;
+
+  /* 강조 — 파랑 하나로 통일하고, 의미색은 따로 둔다 */
+  --brand: #2F6BFF;
+  --brand-strong: #1D4ED8;
+  --brand-wash: #EEF2FF;
+
+  --teal: #0F9D74;
+  --rust: #DC2626;
+  --amber: #B45309;
+  --teal-wash: #E7F7F1;
+  --rust-wash: #FEECEC;
+  --amber-wash: #FEF3C7;
+
+  /* 기존 이름 유지 — 컴포넌트가 참조하고 있어 한 번에 갈아끼운다 */
+  --brass: var(--amber);
+  --brass-wash: var(--amber-wash);
+
   --font-sans: 'Noto Sans', 'Noto Sans KR', 'Noto Sans JP', 'Apple SD Gothic Neo',
     system-ui, -apple-system, sans-serif;
   --font-display: var(--font-sans);
   --font-body: var(--font-sans);
   --font-mono: 'Noto Sans Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* 스페이싱 스케일. 4의 배수 — RN 으로 옮겨도 그대로 쓸 수 있게 */
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
   --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px; --sp-12: 48px;
 
-  --radius-sm: 4px; --radius-md: 8px; --radius-pill: 999px;
+  /* 시안이 전반적으로 둥글다 */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
 
-  /* 히어로 — 새벽 출발의 하늘. 밤(인디고) → 동틀녘(코발트) */
-  --hero-from: #2B3A8F;
-  --hero-to:   #4C6BE8;
-  --hero-ink:  #FFFFFF;
-  --hero-ink-soft: #C9D4FF;
-  --hero-accent: #52E0A6;
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+  --shadow-raise: 0 2px 4px rgba(15, 23, 42, 0.06), 0 12px 32px rgba(15, 23, 42, 0.10);
 
-  /* 브레이크포인트(참고용 — 미디어쿼리에는 리터럴로 씀) */
   --bp-sm: 480px;
   --bp-md: 768px;
 }
 
+/* 다크 모드는 같은 구조를 어둡게 옮긴다 — 시안은 라이트만 있지만
+   테마 토글이 이미 있으므로 양쪽을 다 유지한다. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --hero-from: #16205A; --hero-to: #2B3E9E;
-    --hero-ink-soft: #A9B8F0;
-    --paper: #131719; --surface: #1B2126; --sunk: #0E1214;
-    --ink: #E3E7E2; --ink-soft: #98A3A8; --ink-faint: #6C777D;
-    --rule: #2B333A; --rule-strong: #3D474E;
-    --brass: #DDA33E; --teal: #5FB09B; --rust: #D97263;
-    --brass-wash: #2E2718; --teal-wash: #172A26; --rust-wash: #2E1D1A;
+    --paper: #0B1220;
+    --surface: #131C2E;
+    --sunk: #1B2739;
+    --tint: #17233C;
+    --ink: #E8EDF6;
+    --ink-soft: #9AA8BF;
+    --ink-faint: #6B7A93;
+    --rule: #24304A;
+    --rule-strong: #35435F;
+    --brand: #6C97FF;
+    --brand-strong: #8FB0FF;
+    --brand-wash: #17233C;
+    --teal: #3FCFA3;
+    --rust: #F87171;
+    --amber: #E0A33E;
+    --teal-wash: #122B25;
+    --rust-wash: #2E1A1A;
+    --amber-wash: #2E2718;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+    --shadow-raise: 0 2px 4px rgba(0, 0, 0, 0.45), 0 12px 32px rgba(0, 0, 0, 0.45);
   }
 }
 :root[data-theme='dark'] {
-  --hero-from: #16205A; --hero-to: #2B3E9E;
-  --hero-ink-soft: #A9B8F0;
-  --paper: #131719; --surface: #1B2126; --sunk: #0E1214;
-  --ink: #E3E7E2; --ink-soft: #98A3A8; --ink-faint: #6C777D;
-  --rule: #2B333A; --rule-strong: #3D474E;
-  --brass: #DDA33E; --teal: #5FB09B; --rust: #D97263;
-  --brass-wash: #2E2718; --teal-wash: #172A26; --rust-wash: #2E1D1A;
+  --paper: #0B1220;
+  --surface: #131C2E;
+  --sunk: #1B2739;
+  --tint: #17233C;
+  --ink: #E8EDF6;
+  --ink-soft: #9AA8BF;
+  --ink-faint: #6B7A93;
+  --rule: #24304A;
+  --rule-strong: #35435F;
+  --brand: #6C97FF;
+  --brand-strong: #8FB0FF;
+  --brand-wash: #17233C;
+  --teal: #3FCFA3;
+  --rust: #F87171;
+  --amber: #E0A33E;
+  --teal-wash: #122B25;
+  --rust-wash: #2E1A1A;
+  --amber-wash: #2E2718;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-raise: 0 2px 4px rgba(0, 0, 0, 0.45), 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 
 * { box-sizing: border-box; }
@@ -76,9 +116,8 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* 포커스 상태 — redwerk 가이드의 접근성 항목. 절대 outline:none 만 하지 않는다. */
 :focus-visible {
-  outline: 2px solid var(--brass);
+  outline: 2px solid var(--brand);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }

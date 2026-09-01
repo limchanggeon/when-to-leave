@@ -53,7 +53,6 @@ export function LoginPage() {
 
   return (
     <div className="login">
-      <div className="login__stars" aria-hidden="true" />
 
       <div className="login__card">
         <Link className="login__back" to="/">
