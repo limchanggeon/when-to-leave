@@ -123,6 +123,7 @@ async function accessToken(userId: string): Promise<CalendarResult<string>> {
   if (row.expires_at - 60_000 > Date.now()) return { ok: true, data: row.access_token }
 
   if (!row.refresh_token) {
+    disconnect(userId)
     return { ok: false, error: { code: 'reconnect-needed', message: '캘린더를 다시 연결해 주세요' } }
   }
 
@@ -141,7 +142,21 @@ async function accessToken(userId: string): Promise<CalendarResult<string>> {
     { label: '구글 토큰 갱신' },
   )
   if (!res.ok || !res.data.access_token) {
-    return { ok: false, error: { code: 'reconnect-needed', message: '캘린더를 다시 연결해 주세요' } }
+    /*
+     * refresh token 이 죽었다. 앱이 "테스트" 상태면 구글이 7일 뒤 자동으로
+     * 만료시키므로 드문 일이 아니다.
+     *
+     * 죽은 토큰을 남겨두면 마이페이지가 계속 "연결됨" 이라고 말하게 된다.
+     * 지워서 상태가 사실과 맞도록 한다 — 그러면 화면이 다시 연결 버튼을 낸다.
+     */
+    disconnect(userId)
+    return {
+      ok: false,
+      error: {
+        code: 'reconnect-needed',
+        message: '캘린더 연결이 만료됐습니다. 다시 연결해 주세요',
+      },
+    }
   }
 
   storeTokens(userId, res.data)

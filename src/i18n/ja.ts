@@ -82,6 +82,7 @@ export const ja: I18nShape = {
     section: 'Google カレンダー',
     hint: '連携すると、出発時刻に通知が鳴る予定を作成できます。',
     connected: '連携済み',
+    testModeNote: 'Google アプリがテスト状態の場合、7日ごとに再連携が必要です。',
     connect: '連携する',
     disconnect: '連携を解除',
     status: {

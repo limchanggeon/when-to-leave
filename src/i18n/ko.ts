@@ -83,6 +83,7 @@ export const ko = {
     section: '구글 캘린더',
     hint: '연결하면 출발 시각에 알림이 울리는 일정을 만들 수 있습니다.',
     connected: '연결됨',
+    testModeNote: '구글 앱이 테스트 상태면 7일마다 다시 연결해야 합니다.',
     connect: '연결하기',
     disconnect: '연결 해제',
     status: {

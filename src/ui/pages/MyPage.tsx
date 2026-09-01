@@ -384,6 +384,7 @@ function CalendarSection({
     <section className="card">
       <h2 className="card__title">{t.calendar.section}</h2>
       <p className="card__hint">{t.calendar.hint}</p>
+      <p className="card__hint">{t.calendar.testModeNote}</p>
       {connected === null ? null : connected ? (
         <div className="row">
           <span className="chip chip--good">{t.calendar.connected}</span>
