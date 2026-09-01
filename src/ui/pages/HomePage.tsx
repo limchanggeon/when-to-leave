@@ -146,7 +146,25 @@ export function HomePage() {
         }
       />
 
-      <Hero t={t} compact={hasResult}>
+      <Hero
+        t={t}
+        compact={hasResult}
+        aside={
+          <>
+            <section className="empty">
+              <p className="empty__label">{t.empty.examples}</p>
+              <div className="empty__chips">
+                {EXAMPLES.map((e) => (
+                  <button key={e.label} className="example" type="button" onClick={() => run(e.query)}>
+                    {e.label}
+                  </button>
+                ))}
+              </div>
+            </section>
+            <HowItWorks t={t} inline />
+          </>
+        }
+      >
         <SearchPanel
           t={t}
           onSubmit={run}
@@ -174,19 +192,6 @@ export function HomePage() {
             <span aria-hidden="true">⚠</span>
             <span>{t.warning['no-solution']}</span>
           </div>
-        )}
-
-        {!outcome && !pending && (
-          <section className="empty">
-            <p className="empty__label">{t.empty.examples}</p>
-            <div className="empty__chips">
-              {EXAMPLES.map((e) => (
-                <button key={e.label} className="example" type="button" onClick={() => run(e.query)}>
-                  {e.label}
-                </button>
-              ))}
-            </div>
-          </section>
         )}
 
         {!pending && outcome?.kind === 'trip' && shown && (
@@ -266,7 +271,6 @@ export function HomePage() {
         )}
       </div>
 
-      {!hasResult && <HowItWorks t={t} />}
       <SiteFooter t={t} />
     </div>
   )

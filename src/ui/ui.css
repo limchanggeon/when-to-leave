@@ -3,9 +3,12 @@
 .page { min-height: 100%; display: flex; flex-direction: column; background: var(--paper); }
 .shell {
   width: 100%; max-width: 1120px; margin: 0 auto;
-  padding: var(--sp-6) var(--sp-6) var(--sp-12);
-  display: flex; flex-direction: column; gap: var(--sp-5);
+  padding: var(--sp-6) var(--sp-6) var(--sp-10);
+  display: flex; flex-direction: column; gap: var(--sp-4);
 }
+/* 보여줄 게 없으면 자리를 차지하지 않는다 —
+   결과 전 화면에서 히어로와 다음 섹션 사이가 크게 벌어지던 원인. */
+.shell:empty { padding: 0; }
 
 /* ================= 헤더 ================= */
 .siteheader {
@@ -52,21 +55,42 @@
 .langswitch__btn.is-on { background: var(--surface); color: var(--brand); box-shadow: 0 1px 2px rgba(15,23,42,0.08); }
 
 /* ================= 페이지 머리 ================= */
-.hero { display: flex; flex-direction: column; }
+.hero { display: flex; flex-direction: column; background: var(--sunk); }
 .hero__inner {
   width: 100%; max-width: 1120px; margin: 0 auto;
-  padding: var(--sp-8) var(--sp-6) 0;
-  display: flex; flex-direction: column; gap: var(--sp-4);
+  padding: var(--sp-10) var(--sp-6);
+  display: flex; align-items: flex-start; gap: var(--sp-10);
 }
-.hero--compact .hero__inner { padding-top: var(--sp-6); gap: var(--sp-3); }
-.hero__eyebrow { margin: 0; font-size: 0.86rem; color: var(--ink-soft); }
+.hero__intro { flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-3); }
+.hero__action {
+  flex: 1 1 520px; min-width: 0;
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--radius-lg); padding: var(--sp-5);
+  box-shadow: var(--shadow-card);
+}
+
+/* 결과가 나오면 한 단으로 접는다 */
+.hero--compact .hero__inner {
+  flex-direction: column; align-items: stretch;
+  padding: var(--sp-5) var(--sp-6); gap: var(--sp-4);
+}
+.hero--compact .hero__intro { flex: none; gap: var(--sp-1); }
+.hero--compact .hero__action { flex: none; }
+
+.hero__eyebrow { margin: 0; font-size: 0.86rem; font-weight: 600; color: var(--brand); }
 .hero__title {
   margin: 0; font-weight: 800; letter-spacing: -0.03em;
-  font-size: clamp(1.9rem, 4.5vw, 2.6rem); line-height: 1.15;
+  font-size: clamp(1.8rem, 3.6vw, 2.4rem); line-height: 1.2;
 }
 .hero--compact .hero__title { font-size: clamp(1.4rem, 3vw, 1.7rem); }
-.hero__sub { margin: 0; display: flex; flex-direction: column; color: var(--ink-soft); font-size: 1rem; }
-.hero__action { width: 100%; }
+.hero__sub { margin: 0; display: flex; flex-direction: column; color: var(--ink-soft); font-size: 0.98rem; }
+
+@media (max-width: 900px) {
+  .hero__inner { flex-direction: column; gap: var(--sp-6); padding: var(--sp-8) var(--sp-6); }
+  .hero__intro, .hero__action { flex: none; width: 100%; }
+  /* 좁은 화면에서는 검색이 먼저다 — 설명을 위에 두면 입력창이 한 화면 밑으로 밀린다 */
+  .hero__action { order: -1; }
+}
 
 /* ================= 검색 패널 ================= */
 .panel { width: 100%; display: flex; flex-direction: column; gap: var(--sp-4); }
@@ -161,7 +185,7 @@
 }
 
 /* ================= 빈 상태 ================= */
-.empty { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-4) 0 0; }
+.empty { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-3) 0 0; }
 .empty__label { margin: 0; font-size: 0.86rem; font-weight: 600; color: var(--ink-soft); }
 .empty__chips { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
 .example {
@@ -350,10 +374,13 @@
 .setup__hint { margin: var(--sp-3) 0 0; color: var(--ink-faint); font-size: 0.82rem; }
 
 /* ================= 어떻게 동작하나 ================= */
-.how { max-width: 1120px; margin: 0 auto; padding: var(--sp-12) var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-2); }
+.how {
+  max-width: 1120px; margin: 0 auto; padding: var(--sp-8) var(--sp-6) var(--sp-10);
+  display: flex; flex-direction: column; gap: var(--sp-2);
+}
 .how__label { margin: 0; font-size: 0.86rem; font-weight: 700; color: var(--brand); }
 .how__title { margin: 0; font-weight: 800; font-size: clamp(1.5rem, 3.4vw, 2rem); letter-spacing: -0.03em; }
-.how__lead { margin: var(--sp-2) 0 var(--sp-6); color: var(--ink-soft); max-width: 62ch; }
+.how__lead { margin: var(--sp-2) 0 var(--sp-5); color: var(--ink-soft); max-width: 62ch; }
 .how__steps { list-style: none; margin: 0; padding: 0; display: flex; gap: var(--sp-4); flex-wrap: wrap; }
 .how__step {
   flex: 1 1 280px; display: flex; flex-direction: column; gap: var(--sp-2);
@@ -367,6 +394,17 @@
 }
 .how__step-title { margin: 0; font-size: 1.02rem; font-weight: 700; }
 .how__step-body { margin: 0; font-size: 0.9rem; color: var(--ink-soft); line-height: 1.6; }
+
+/* 히어로 안에 들어갈 때: 카드가 아니라 번호 붙은 목록으로 얇게 깐다 */
+.how--inline { max-width: none; padding: 0; margin: var(--sp-7) 0 0; gap: var(--sp-3); }
+.how--inline .how__steps { flex-direction: column; gap: var(--sp-4); }
+.how--inline .how__step {
+  flex: 0 0 auto; display: block; position: relative;
+  padding: 0 0 0 46px; background: none; border: 0; box-shadow: none;
+}
+.how--inline .how__n { position: absolute; left: 0; top: -2px; width: 30px; height: 30px; }
+.how--inline .how__step-title { font-size: 0.96rem; }
+.how--inline .how__step-body { margin-top: 2px; font-size: 0.87rem; }
 
 /* ================= 푸터 ================= */
 .sitefooter { border-top: 1px solid var(--rule); background: var(--surface); margin-top: auto; }
@@ -635,6 +673,18 @@
   /* 좁아지면 지도와 대안을 한 줄로 내린다 */
   .col--main { flex: 1 1 100%; }
 }
+/* 좁은 화면 머리말: 이름과 버튼이 줄바꿈되지 않도록 눈금을 줄인다 */
+@media (max-width: 460px) {
+  .siteheader { gap: var(--sp-2); padding: var(--sp-3); }
+  .siteheader__name { font-size: 0.95rem; white-space: nowrap; }
+  .siteheader__logo { width: 26px; height: 26px; }
+  .siteheader__account { gap: var(--sp-2); }
+  .siteheader__btn { padding: 7px 12px; font-size: 0.86rem; white-space: nowrap; }
+  .siteheader__icon { width: 34px; height: 34px; }
+  .langswitch__btn { padding: 5px 8px; font-size: 0.78rem; white-space: nowrap; }
+  .siteheader__who { display: none; }
+}
+
 @media (max-width: 640px) {
   .quickrow__inner { padding: var(--sp-3) var(--sp-4); }
   .stats { flex-wrap: wrap; }
