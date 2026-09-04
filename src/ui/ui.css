@@ -184,10 +184,11 @@
 
 .chips { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
 .chips__label { font-size: 0.8rem; font-weight: 600; color: var(--ink-soft); }
+/* 누를 수 있으므로 테두리가 경계 역할을 한다 — edge(3:1) 를 쓴다 */
 .chips__btn {
   padding: var(--sp-2) var(--sp-4); font-family: inherit; font-size: 0.85rem; font-weight: 500;
   background: var(--surface); color: var(--ink-soft);
-  border: 1px solid var(--rule-strong); border-radius: var(--radius-pill); cursor: pointer;
+  border: 1px solid var(--edge); border-radius: var(--radius-pill); cursor: pointer;
 }
 .chips__btn:hover { border-color: var(--brand); color: var(--brand); }
 .chips__btn.is-on { border-color: var(--brand); color: var(--brand); background: var(--brand-wash); }
@@ -228,7 +229,12 @@
  * 화면에서 제일 큰 것은 언제나 출발 시각이다. 꼬리말("에 나가세요")까지
  * 같이 키우면 문장이 커질 뿐 답이 커지지 않는다 — 숫자만 키운다.
  */
-.verdict { display: flex; flex-direction: column; gap: var(--sp-3); animation: rise 0.35s ease both; }
+/* 이 화면에서 연출하는 순간은 여기 하나뿐이다 — 답이 판에 걸리는 때.
+   나머지는 전부 사용자의 동작에 대한 응답이다. */
+.verdict {
+  display: flex; flex-direction: column; gap: var(--sp-3);
+  animation: rise 0.28s var(--ease-out) both;
+}
 .verdict__depart {
   margin: 0; display: flex; align-items: baseline; gap: var(--sp-3); flex-wrap: wrap;
 }
@@ -255,7 +261,7 @@
 .countdown {
   display: flex; align-items: center; gap: var(--sp-4);
   margin-top: var(--sp-2); color: var(--night-soft);
-  transition: color 0.4s ease;
+  transition: color 0.25s var(--ease-out);
 }
 .countdown__ring { width: 54px; height: 54px; flex: 0 0 auto; transform: rotate(-90deg); }
 .countdown__track { fill: none; stroke: currentColor; stroke-width: 5; opacity: 0.3; }
@@ -321,13 +327,20 @@
 .spine__row {
   display: flex; gap: var(--sp-3);
   border-radius: var(--radius-md); margin: 0 calc(var(--sp-3) * -1); padding: 0 var(--sp-3);
-  transition: background 0.15s ease;
-  animation: rise 0.35s ease both;
+  transition: background 0.15s ease, border-color 0.15s ease;
   outline: none;
 }
-.spine__row:hover, .spine__row.is-active { background: var(--brand-wash); cursor: default; }
-.spine__row:focus-visible { background: var(--brand-wash); }
-@keyframes rise { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+/* 짚은 줄. 배경만 바꾸면 키보드 포커스가 어디 있는지 안 보여서
+   왼쪽에 자국을 남긴다 — 마우스와 키보드가 같은 표시를 쓴다. */
+.spine__row { border-left: 3px solid transparent; }
+.spine__row:hover, .spine__row.is-active {
+  background: var(--sunk); border-left-color: var(--rule-strong); cursor: default;
+}
+.spine__row:focus-visible {
+  background: var(--signal-wash); border-left-color: var(--signal);
+  outline: 2px solid var(--signal); outline-offset: -2px;
+}
+@keyframes rise { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
 .spine__clock {
   flex: 0 0 84px; text-align: right;
   font-variant-numeric: tabular-nums; font-size: 0.92rem; font-weight: 600; padding-top: 1px;
@@ -376,7 +389,7 @@
 .alt {
   display: flex; align-items: flex-start; gap: var(--sp-3); text-align: left;
   padding: var(--sp-4) var(--sp-3) var(--sp-4) var(--sp-4);
-  background: transparent; border: 0; border-bottom: 1px solid var(--rule);
+  background: transparent; border: 0; border-bottom: 1px solid var(--edge);
   border-left: 3px solid transparent;
   cursor: pointer; font-family: inherit; color: var(--ink);
   transition: background 0.15s ease, border-color 0.15s ease;
@@ -465,20 +478,27 @@
 .sitefooter__meta a:hover { text-decoration: underline; }
 
 /* ================= 로그인 ================= */
+/* 홈의 검색 카드와 같은 재료 — 어두운 판 위에 밝은 표 한 장이 놓인다. */
 .login {
   position: relative; min-height: 100vh; display: flex; align-items: center; justify-content: center;
-  padding: var(--sp-8) var(--sp-6); background: var(--sunk);
+  padding: var(--sp-8) var(--sp-6); background: var(--night); overflow: hidden;
+}
+.login::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(0deg,
+    rgba(255, 255, 255, 0.028) 0 1px, transparent 1px 3px);
 }
 .login__stars { display: none; }
 .login__card {
-  position: relative; width: 100%; max-width: 440px;
-  background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius-lg);
+  position: relative; z-index: 1; width: 100%; max-width: 440px;
+  background: var(--surface); border-radius: var(--radius-lg);
   padding: var(--sp-8); display: flex; flex-direction: column; align-items: center;
-  text-align: center; gap: var(--sp-2); box-shadow: var(--shadow-raise);
+  text-align: center; gap: var(--sp-2);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.32);
 }
 .login__back { align-self: flex-start; font-size: 0.86rem; color: var(--ink-soft); text-decoration: none; margin-bottom: var(--sp-3); }
 .login__back:hover { color: var(--brand); }
-.login__eyebrow { margin: 0; font-size: 0.82rem; font-weight: 700; color: var(--brand); }
+.login__eyebrow { display: none; }
 .login__title { margin: 0; font-weight: 800; font-size: 1.7rem; letter-spacing: -0.03em; color: var(--ink); }
 .login__sub { margin: var(--sp-2) 0 var(--sp-5); color: var(--ink-soft); font-size: 0.9rem; line-height: 1.6; }
 .login__providers { width: 100%; display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); }
@@ -491,9 +511,9 @@
 }
 .login__fallback:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
 .login__error {
-  margin: var(--sp-3) 0 0; padding: var(--sp-3) var(--sp-4);
-  background: var(--rust-wash); border-radius: var(--radius-md);
-  font-size: 0.86rem; color: var(--rust); text-align: left; width: 100%;
+  margin: var(--sp-3) 0 0; padding: var(--sp-2) 0 var(--sp-2) var(--sp-4);
+  border-left: 3px solid var(--rust);
+  font-size: 0.86rem; color: var(--ink); text-align: left; width: 100%;
 }
 .login__terms { margin: var(--sp-5) 0 0; font-size: 0.76rem; color: var(--ink-faint); line-height: 1.6; }
 .login__divider { width: 100%; display: flex; align-items: center; gap: var(--sp-3); margin: var(--sp-5) 0 var(--sp-2); color: var(--ink-faint); font-size: 0.8rem; }
@@ -546,13 +566,13 @@
 .mypage__back { font-size: 0.88rem; color: var(--ink-soft); text-decoration: none; }
 .mypage__back:hover { color: var(--brand); }
 .mypage__title { margin: 0 0 var(--sp-2); font-weight: 800; font-size: clamp(1.6rem, 4vw, 2.1rem); letter-spacing: -0.03em; }
+/* 결과 화면과 같은 규칙 — 상자에 담지 않고 머리말과 선으로 나눈다. */
 .card {
-  background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius-lg);
-  padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-4);
-  box-shadow: var(--shadow-card);
+  padding: var(--sp-4) 0 var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-4);
+  border-top: 2px solid var(--ink);
 }
-.card--danger { border-color: var(--rust); }
-.card__title { margin: 0; font-size: 1.05rem; font-weight: 700; }
+.card--danger { border-top-color: var(--rust); }
+.card__title { margin: 0; font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; }
 .card__hint { margin: 0; font-size: 0.88rem; color: var(--ink-soft); }
 .card__empty { margin: 0; font-size: 0.88rem; color: var(--ink-faint); }
 
@@ -651,9 +671,14 @@
 @keyframes shimmer { from { background-position: 100% 0 } to { background-position: 0 0 } }
 
 /* 버튼·카드에 눌리는 느낌 */
-.panel__submit, .btn, .example, .chips__btn, .alt { transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.2s ease; }
-.panel__submit:active:not(:disabled), .btn:active:not(:disabled), .example:active, .chips__btn:active { transform: translateY(1px); }
-.alt:hover { transform: translateY(-2px); }
+/* 누를 수 있는 것들. 바뀌는 속성만 콕 집는다(all 은 쓰지 않는다). */
+.panel__submit, .btn, .example, .chips__btn, .alt, .login__fallback {
+  transition: transform 0.1s var(--ease-out), background-color 0.15s ease,
+    border-color 0.15s ease, color 0.15s ease;
+}
+/* 누르면 반응이 있어야 한다 — 눌렀는지 아닌지 모르는 버튼이 제일 나쁘다 */
+.panel__submit:active:not(:disabled), .btn:active:not(:disabled),
+.example:active, .chips__btn:active, .login__fallback:active { transform: scale(0.975); }
 .modeswitch__btn, .emailauth__tab { transition: color 0.15s ease, border-color 0.15s ease; }
 
 .hero__coverage {

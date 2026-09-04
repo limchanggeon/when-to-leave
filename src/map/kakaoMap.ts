@@ -128,6 +128,30 @@ export const kakaoMap: MapProvider = {
             fillOpacity: 0.18,
           })
 
+          /*
+           * 카카오 SDK 는 마커마다 <area> 를 만드는데 alt 가 없다.
+           * 그대로 두면 (a) axe 가 critical 로 잡고 (b) 화면에 보이지도 않는
+           * 것이 탭 순서에 끼어들어 키보드로 넘길 때 포커스가 사라진다.
+           * 지도는 여정 목록과 같은 내용을 그림으로 보여주는 것뿐이라
+           * 보조기기에는 숨기고 탭에서도 뺀다.
+           */
+          const tidyAreas = () => {
+            // href 가 달린 <area> 는 빈 alt 로는 부족하다. 마커 순서대로
+            // 지점 이름을 넣어준다 — 이름을 모르면 무엇의 표시인지라도 밝힌다.
+            const areas = el.querySelectorAll('area')
+            areas.forEach((area, i) => {
+              const name = points[i]?.name?.trim()
+              area.setAttribute('alt', name ? `${name} 지도 표시` : '지도 표시')
+              area.setAttribute('aria-hidden', 'true')
+              area.setAttribute('tabindex', '-1')
+            })
+            for (const m of el.querySelectorAll('map')) m.setAttribute('aria-hidden', 'true')
+          }
+          tidyAreas()
+          // 마커는 비동기로 붙기도 한다. 붙는 대로 같은 처리를 한다.
+          const observer = new MutationObserver(tidyAreas)
+          observer.observe(el, { childList: true, subtree: true })
+
           const handle: MapHandle = {
             highlight(index) {
               if (index === null || !coords[index]) {
