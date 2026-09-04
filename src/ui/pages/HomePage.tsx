@@ -74,6 +74,13 @@ export function HomePage() {
    * 답이 없을 때는 이 값과 무관하게 늘 펼쳐진다 — 홈은 검색하는 자리다.
    */
   const [queryOpen, setQueryOpen] = useState(false)
+  /**
+   * 홈으로 되돌린 횟수. 검색 패널의 key 로 써서 입력칸까지 비운다 —
+   * 목적지·도착 시각은 그 컴포넌트 안에 있어서 바깥 상태만 지워서는 안 지워진다.
+   * 출발지는 여기(HomePage)가 들고 있으므로 살아남는다. 되돌릴 때마다 위치를
+   * 다시 잡게 만들 이유가 없다.
+   */
+  const [resetKey, setResetKey] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -127,6 +134,22 @@ export function HomePage() {
     setShown(option)
   }
 
+  /**
+   * 처음 화면으로.
+   *
+   * 결과는 라우터가 아니라 이 화면의 상태라서, 헤더의 `/` 링크만으로는
+   * 아무것도 되돌아가지 않는다 — 로고를 눌러도 답이 그대로 남아 있었다.
+   */
+  function goHome() {
+    setOutcome(null)
+    setShown(null)
+    setLastQuery(null)
+    setHovered(null)
+    setQueryOpen(false)
+    setResetKey((n) => n + 1)
+    window.scrollTo({ top: 0 })
+  }
+
   const clock = (d: Date) => formatClock(d, now, t.clock)
 
   /*
@@ -165,7 +188,7 @@ export function HomePage() {
 
   return (
     <div className="page">
-      <SiteHeader t={t} solid={hasResult} />
+      <SiteHeader t={t} solid={hasResult} onHome={goHome} />
       <QuickRoutes
         places={places}
         t={t}
@@ -243,6 +266,7 @@ export function HomePage() {
         }
       >
         <SearchPanel
+          key={resetKey}
           t={t}
           onSubmit={run}
           pending={pending}

@@ -147,6 +147,10 @@ export function SearchPanel({
   useEffect(() => {
     if (autoTried.current) return
     autoTried.current = true
+    // 이미 좌표를 들고 있으면 다시 잡지 않는다. 홈으로 되돌릴 때 이 컴포넌트를
+    // 새로 만드는데(입력칸을 비우려고), 출발지는 바깥이 들고 있어 살아남는다.
+    // 그때마다 위치를 다시 잡으면 역지오코딩까지 공짜로 한 번 더 나간다.
+    if (origin.coords) return
 
     let cancelled = false
     permissionState().then((state) => {
