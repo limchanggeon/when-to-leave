@@ -1,107 +1,131 @@
-/* 디자인 토큰.
-   참고한 시안: 밝은 흰 바탕 + 파란 강조 + 넉넉한 라운드.
-   폰트는 Noto Sans 로 유지한다(한국어·일본어를 함께 써야 하므로). */
+/* 디자인 토큰 — "발차 안내판".
+ *
+ * 역 대합실 전광판에서 가져왔다. 어두운 인디고 판 위 호박색 숫자.
+ * 판은 딱 한 곳(답이 나오는 자리)뿐이고 나머지는 밝고 조용하다.
+ * 이 앱이 답해야 하는 건 "몇 시에 나가야 하는가" 한 줄이므로,
+ * 화면에서 제일 큰 것은 언제나 시각이어야 한다.
+ *
+ * 색을 요란하게 쓰는 자리는 하나만 둔다(호박색). 나머지는 잉크와 선으로 만든다.
+ */
 :root {
+  /* 판 — 어두운 곳은 여기뿐이다 */
+  --night: #0C1A2B;
+  --night-raised: #14263C;
+  --night-rule: rgba(255, 255, 255, 0.14);
+  --night-ink: #FFFFFF;
+  --night-soft: #8FA6C0;
+
   /* 바탕 */
-  --paper: #FFFFFF;
+  --paper: #FCFCFD;
   --surface: #FFFFFF;
-  --sunk: #F1F5F9;
-  --tint: #EEF2FF;        /* 검색바처럼 옅게 채우는 자리 */
+  --sunk: #F2F4F7;
+  --tint: #EFF2F6;
 
   /* 글자 */
-  --ink: #0F172A;
-  --ink-soft: #64748B;
-  --ink-faint: #94A3B8;
+  --ink: #111820;
+  --ink-soft: #5A6675;
+  --ink-faint: #8C97A5;
 
-  /* 선 */
-  --rule: #E2E8F0;
-  --rule-strong: #CBD5E1;
+  /* 선 — 그림자보다 선으로 나눈다 */
+  --rule: #E4E8ED;
+  --rule-strong: #CDD4DC;
 
-  /* 강조 — 파랑 하나로 통일하고, 의미색은 따로 둔다 */
-  --brand: #2F6BFF;
-  --brand-strong: #1D4ED8;
-  --brand-wash: #EEF2FF;
+  /* 강조: 주 동작은 판과 같은 색. 파란 SaaS 버튼이 아니라 "판의 잉크"다. */
+  --brand: #0C1A2B;
+  --brand-strong: #1A3450;
+  --brand-wash: #EEF1F5;
 
-  --teal: #0F9D74;
-  --rust: #DC2626;
-  --amber: #B45309;
-  --teal-wash: #E7F7F1;
-  --rust-wash: #FEECEC;
-  --amber-wash: #FEF3C7;
+  /* 호박색 — 시각과 임박한 순간에만 쓴다. 화면에서 제일 시끄러운 하나. */
+  --signal: #FFB01F;
+  --signal-deep: #8A5A00;   /* 밝은 바탕 위 글자로 쓸 때 */
+  --signal-wash: #FFF4DF;
 
-  /* 기존 이름 유지 — 컴포넌트가 참조하고 있어 한 번에 갈아끼운다 */
-  --brass: var(--amber);
-  --brass-wash: var(--amber-wash);
+  --teal: #0B7A5B;
+  --rust: #C0342B;
+  --amber: #8A5A00;
+  --teal-wash: #E6F4EF;
+  --rust-wash: #FBECEA;
+  --amber-wash: var(--signal-wash);
+  --brass: var(--signal-deep);
+  --brass-wash: var(--signal-wash);
 
-  --font-sans: 'Noto Sans', 'Noto Sans KR', 'Noto Sans JP', 'Apple SD Gothic Neo',
-    system-ui, -apple-system, sans-serif;
+  /* 숫자는 안내판 글자다 — 폭이 넓고 자릿수가 흔들리지 않아야 한다 */
+  --font-sans: 'Noto Sans KR', 'Noto Sans JP', 'Apple SD Gothic Neo', system-ui,
+    -apple-system, sans-serif;
+  --font-num: 'Archivo', 'Noto Sans KR', system-ui, sans-serif;
   --font-display: var(--font-sans);
   --font-body: var(--font-sans);
-  --font-mono: 'Noto Sans Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-mono: var(--font-num);
 
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
   --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px; --sp-12: 48px;
 
-  /* 시안이 전반적으로 둥글다 */
+  /* 반경을 하나로 통일하지 않는다 — 판은 각지고, 담는 것은 둥글다 */
   --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
   --radius-pill: 999px;
 
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
-  --shadow-raise: 0 2px 4px rgba(15, 23, 42, 0.06), 0 12px 32px rgba(15, 23, 42, 0.10);
+  /* 그림자는 정말 떠 있는 것에만. 대부분은 선으로 나눈다. */
+  --shadow-card: 0 1px 2px rgba(17, 24, 32, 0.05);
+  --shadow-raise: 0 4px 16px rgba(12, 26, 43, 0.10);
 
   --bp-sm: 480px;
   --bp-md: 768px;
 }
 
-/* 다크 모드는 같은 구조를 어둡게 옮긴다 — 시안은 라이트만 있지만
-   테마 토글이 이미 있으므로 양쪽을 다 유지한다. */
+/* 다크 모드: 페이지가 판 쪽으로 내려앉고, 판은 한 단 더 들린다. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --paper: #0B1220;
-    --surface: #131C2E;
-    --sunk: #1B2739;
-    --tint: #17233C;
-    --ink: #E8EDF6;
-    --ink-soft: #9AA8BF;
-    --ink-faint: #6B7A93;
-    --rule: #24304A;
-    --rule-strong: #35435F;
-    --brand: #6C97FF;
-    --brand-strong: #8FB0FF;
-    --brand-wash: #17233C;
+    --night: #08131F;
+    --night-raised: #101F31;
+    --paper: #0A141F;
+    --surface: #111D2B;
+    --sunk: #162434;
+    --tint: #162434;
+    --ink: #E9EEF4;
+    --ink-soft: #9BA9BA;
+    --ink-faint: #6E7D8F;
+    --rule: #1F2F42;
+    --rule-strong: #2C3E55;
+    --brand: #FFB01F;
+    --brand-strong: #FFC048;
+    --brand-wash: #1B2739;
+    --signal-deep: #FFC048;
+    --signal-wash: #26200F;
     --teal: #3FCFA3;
-    --rust: #F87171;
-    --amber: #E0A33E;
-    --teal-wash: #122B25;
-    --rust-wash: #2E1A1A;
-    --amber-wash: #2E2718;
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
-    --shadow-raise: 0 2px 4px rgba(0, 0, 0, 0.45), 0 12px 32px rgba(0, 0, 0, 0.45);
+    --rust: #F0837A;
+    --amber: #E6A93E;
+    --teal-wash: #102A23;
+    --rust-wash: #2B1917;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --shadow-raise: 0 6px 24px rgba(0, 0, 0, 0.5);
   }
 }
 :root[data-theme='dark'] {
-  --paper: #0B1220;
-  --surface: #131C2E;
-  --sunk: #1B2739;
-  --tint: #17233C;
-  --ink: #E8EDF6;
-  --ink-soft: #9AA8BF;
-  --ink-faint: #6B7A93;
-  --rule: #24304A;
-  --rule-strong: #35435F;
-  --brand: #6C97FF;
-  --brand-strong: #8FB0FF;
-  --brand-wash: #17233C;
+  --night: #08131F;
+  --night-raised: #101F31;
+  --paper: #0A141F;
+  --surface: #111D2B;
+  --sunk: #162434;
+  --tint: #162434;
+  --ink: #E9EEF4;
+  --ink-soft: #9BA9BA;
+  --ink-faint: #6E7D8F;
+  --rule: #1F2F42;
+  --rule-strong: #2C3E55;
+  --brand: #FFB01F;
+  --brand-strong: #FFC048;
+  --brand-wash: #1B2739;
+  --signal-deep: #FFC048;
+  --signal-wash: #26200F;
   --teal: #3FCFA3;
-  --rust: #F87171;
-  --amber: #E0A33E;
-  --teal-wash: #122B25;
-  --rust-wash: #2E1A1A;
-  --amber-wash: #2E2718;
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
-  --shadow-raise: 0 2px 4px rgba(0, 0, 0, 0.45), 0 12px 32px rgba(0, 0, 0, 0.45);
+  --rust: #F0837A;
+  --amber: #E6A93E;
+  --teal-wash: #102A23;
+  --rust-wash: #2B1917;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-raise: 0 6px 24px rgba(0, 0, 0, 0.5);
 }
 
 * { box-sizing: border-box; }
@@ -114,10 +138,21 @@ body {
   font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* 한글은 어절 안에서 끊으면 안 된다 — 기본값은 "계산합 / 니다" 처럼 자른다. */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/* 시각·소요시간·요금은 전부 이 클래스를 탄다. 자릿수가 흔들리면 표가 무너진다. */
+.num {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
 }
 
 :focus-visible {
-  outline: 2px solid var(--brand);
+  outline: 2px solid var(--signal);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }

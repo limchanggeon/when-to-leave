@@ -148,7 +148,42 @@ export function HomePage() {
 
       <Hero
         t={t}
-        compact={hasResult}
+          headline={
+            outcome?.kind === 'trip' && shown ? (
+              <div className="verdict">
+                <p className="verdict__depart">
+                  <span className="verdict__time num">{clock(shown.legs[0].departAt)}</span>
+                  <span className="verdict__suffix">{t.result.departSuffix}</span>
+                </p>
+                <p className="verdict__arrive">
+                  {t.result.arriveAt(clock(shown.legs[shown.legs.length - 1].arriveAt))}
+                  <span className="verdict__sep">·</span>
+                  {t.result.totalDuration(
+                    humanDuration(
+                      diffMin(shown.legs[shown.legs.length - 1].arriveAt, shown.legs[0].departAt),
+                      UNIT,
+                    ),
+                  )}
+                  {shown.rung === outcome.chosen.rung ? (
+                    <span className="verdict__tag">{t.route.chosen[outcome.reason]}</span>
+                  ) : (
+                    <span className="verdict__tag verdict__tag--alt">
+                      {describeRoute(shown.legs).carrier ?? t.route.unnamed}
+                    </span>
+                  )}
+                </p>
+                {/* 서버가 무엇으로 해석했는지 보여준다. "집" 같은 말이
+                    엉뚱한 가게로 잡혀도 여기서 바로 눈에 띈다. */}
+                {resolved && (
+                  <p className="verdict__resolved">
+                    {t.result.resolvedAs(resolved.from.name, resolved.to.name)}
+                  </p>
+                )}
+                <Countdown departAt={shown.legs[0].departAt} t={t} />
+                <TripStats legs={shown.legs} t={t} />
+              </div>
+            ) : undefined
+          }
         aside={
           <>
             <section className="empty">
@@ -196,38 +231,6 @@ export function HomePage() {
 
         {!pending && outcome?.kind === 'trip' && shown && (
           <>
-            <section className="verdict">
-              <div className="verdict__main">
-                <p className="verdict__depart">{t.result.departAt(clock(shown.legs[0].departAt))}</p>
-                {/* 서버가 무엇으로 해석했는지 보여준다. "집" 같은 말이
-                    엉뚱한 가게로 잡혀도 여기서 바로 눈에 띈다. */}
-                {resolved && (
-                  <p className="verdict__resolved">
-                    {t.result.resolvedAs(resolved.from.name, resolved.to.name)}
-                  </p>
-                )}
-                <p className="verdict__arrive">
-                  {t.result.arriveAt(clock(shown.legs[shown.legs.length - 1].arriveAt))}
-                  <span className="verdict__sep">·</span>
-                  {t.result.totalDuration(
-                    humanDuration(
-                      diffMin(shown.legs[shown.legs.length - 1].arriveAt, shown.legs[0].departAt),
-                      UNIT,
-                    ),
-                  )}
-                </p>
-                {shown.rung === outcome.chosen.rung ? (
-                  <p className="verdict__tag">{t.route.chosen[outcome.reason]}</p>
-                ) : (
-                  <p className="verdict__tag verdict__tag--alt">
-                    {describeRoute(shown.legs).carrier ?? t.route.unnamed}
-                  </p>
-                )}
-              </div>
-              <Countdown departAt={shown.legs[0].departAt} t={t} />
-            </section>
-
-            <TripStats legs={shown.legs} t={t} />
 
             <AddToCalendar legs={shown.legs} now={now} t={t} />
 
@@ -256,7 +259,8 @@ export function HomePage() {
                 <JourneyMap legs={shown.legs} country="KR" t={t} highlight={hovered} />
               </div>
 
-              <aside className="col col--rail">
+              {outcome.others.length > 0 && (
+                <aside className="col col--rail">
                 <Alternatives
                   items={outcome.others}
                   baselineArrival={outcome.chosen.arriveAt}
@@ -266,6 +270,7 @@ export function HomePage() {
                   selectedRung={shown.rung}
                 />
               </aside>
+              )}
             </div>
           </>
         )}

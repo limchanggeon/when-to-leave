@@ -226,11 +226,13 @@ export const ja: I18nShape = {
   },
   footer: {
     tagline: '到着時刻から出発時刻を逆算する移動アシスタント',
-    madeWith: '交通データ · カカオマップ · Google マップ',
+    madeWith: 'カカオマップと韓国公共データの時刻表で計算しています',
     repo: 'ソースを見る',
   },
   result: {
     departAt: (t) => `${t} に出発してください`,
+    /** 시각만 크게 보여주려고 꼬리말을 따로 둔다 — 안내판의 숫자가 주인공이다. */
+    departSuffix: 'に出てください',
     arriveAt: (t) => `${t} 到着`,
     leaveIn: (m) => `${m} 後に出発`,
     leaveNow: '今すぐ出発',

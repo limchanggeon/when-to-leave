@@ -227,11 +227,13 @@ export const ko = {
   },
   footer: {
     tagline: '도착 시각에서 출발 시각을 역산하는 이동 비서',
-    madeWith: '국내 교통 데이터 · 카카오맵 · 구글 지도',
+    madeWith: '카카오맵과 공공데이터포털의 시각표로 계산합니다',
     repo: '소스 보기',
   },
   result: {
     departAt: (t: string) => `${t}에 나가세요`,
+    /** 시각만 크게 보여주려고 꼬리말을 따로 둔다 — 안내판의 숫자가 주인공이다. */
+    departSuffix: '에 나가세요',
     arriveAt: (t: string) => `${t} 도착`,
     leaveIn: (m: string) => `${m} 후 출발`,
     leaveNow: '지금 나가세요',
