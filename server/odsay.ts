@@ -38,13 +38,17 @@ export interface WireLeg {
    */
   runs?: { departAt: string; arriveAt: string; carrier: string; fare?: number }[]
   /**
-   * 이 구간이 실제로 지나는 길(위경도 열).
+   * 이 구간의 선형을 어디서 받아올지.
    *
-   * 없으면 지도가 양 끝을 직선으로 잇는데, 그러면 산이나 강 위를
-   * 가로지르는 그림이 나온다 — 경로 선택은 멀쩡한데 그림만 거짓말을 한다.
-   * 도보 구간은 ODsay 가 선형을 주지 않으므로 계속 비어 있다.
+   * 좌표를 여기 미리 담지 않는다. 선형 조회(loadLane)는 ODsay 호출을
+   * 하나 더 쓰는데, 경로를 3개씩 돌려주면 검색 한 번에 4번을 쓰게 되어
+   * 일일 한도가 금방 마른다. 지도를 실제로 보는 경로만 /api/lane 으로
+   * 따로 받는다.
+   *
+   * index 는 이 경로의 대중교통 구간 중 몇 번째인가 — lane[index] 가 짝이다.
+   * 도보 구간에는 없다(ODsay 가 도보 선형을 주지 않는다).
    */
-  shape?: LatLng[]
+  shapeRef?: { mapObj: string; index: number }
   /**
    * 어느 TAGO 시각표에 물어봐야 하는가.
    *
@@ -214,15 +218,16 @@ function toLegs(subPaths: OdsaySubPath[], from: GeoPoint, to: GeoPoint): WireLeg
 }
 
 /**
- * 경로의 실제 선형을 받아온다.
+ * 경로의 실제 선형을 받아온다. 지도를 볼 때만 부른다.
  *
  * lane[i] 가 i 번째 대중교통 구간에 순서대로 대응한다(확인함).
- * 호출이 경로당 하나 더 늘어나므로 mapObj 로 캐시한다 — 같은 경로면
- * mapObj 도 같아서 재조회가 없다. 실패는 null 로 기억해 재시도도 막는다.
+ * mapObj 로 캐시한다 — 같은 경로면 mapObj 도 같아서 재조회가 없다.
+ * 실패는 null 로 기억해 재시도도 막는다.
  */
+export
 const laneCache = new Map<string, LatLng[][] | null>()
 
-async function loadLane(mapObj: string): Promise<LatLng[][] | null> {
+export async function loadLane(mapObj: string): Promise<LatLng[][] | null> {
   const hit = laneCache.get(mapObj)
   if (hit !== undefined) return hit
 
@@ -248,15 +253,13 @@ async function loadLane(mapObj: string): Promise<LatLng[][] | null> {
   return lanes
 }
 
-/** 선형을 대중교통 구간에 순서대로 붙인다. 도보는 건너뛴다. */
-function attachShapes(legs: WireLeg[], lanes: LatLng[][] | null): WireLeg[] {
-  if (!lanes) return legs
+/** 선형을 어디서 받을지만 대중교통 구간에 순서대로 적어둔다. 도보는 건너뛴다. */
+function attachShapeRefs(legs: WireLeg[], mapObj: string | undefined): WireLeg[] {
+  if (!mapObj) return legs
   let i = 0
-  return legs.map((leg) => {
-    if (leg.kind === 'walk') return leg
-    const shape = lanes[i++]
-    return shape && shape.length > 1 ? { ...leg, shape } : leg
-  })
+  return legs.map((leg) =>
+    leg.kind === 'walk' ? leg : { ...leg, shapeRef: { mapObj, index: i++ } },
+  )
 }
 
 /** 두 지점 사이 거리(km). 시내/시외 검색을 가르는 데 쓴다. */
@@ -325,14 +328,12 @@ async function call(from: GeoPoint, to: GeoPoint, searchType: 0 | 1): Promise<Ro
   }
 
   const paths = (json.result?.path ?? []).slice(0, 3) // 대안까지 최대 3개
-  const built = await Promise.all(
-    paths.map(async (p) => {
-      const legs = toLegs(p.subPath ?? [], from, to)
-      const lanes = p.info?.mapObj ? await loadLane(p.info.mapObj) : null
-      return { legs: attachShapes(legs, lanes), totalMin: p.info?.totalTime ?? 0 }
-    }),
-  )
-  const routes: WireRoute[] = built.filter((r) => r.legs.length > 0)
+  const routes: WireRoute[] = paths
+    .map((p) => ({
+      legs: attachShapeRefs(toLegs(p.subPath ?? [], from, to), p.info?.mapObj),
+      totalMin: p.info?.totalTime ?? 0,
+    }))
+    .filter((r) => r.legs.length > 0)
 
   if (routes.length === 0) {
     return { ok: false, code: 'no-data', message: '이 구간의 대중교통 경로를 찾지 못했습니다' }

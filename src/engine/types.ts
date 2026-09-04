@@ -64,10 +64,10 @@ export interface LegSpec {
    */
   origin: 'mock' | 'live'
   /**
-   * 이 구간이 실제로 지나는 길. 없으면 지도가 양 끝을 직선으로 잇는데,
-   * 그러면 산이나 강 위를 가로지르는 그림이 나온다.
+   * 선형을 어디서 받을지. 좌표 자체는 지도를 열 때 따로 받는다 —
+   * 경로마다 미리 받으면 ODsay 호출이 검색당 서너 번으로 늘어난다.
    */
-  shape?: LatLng[]
+  shapeRef?: { mapObj: string; index: number }
 }
 
 export interface Departure {
@@ -103,7 +103,9 @@ export interface Leg {
   source: string
   origin: 'mock' | 'live'
   bookingUrl?: string
-  /** 구간이 실제로 지나는 길. spec 에서 그대로 넘어온다. */
+  /** 선형을 어디서 받을지. spec 에서 그대로 넘어온다. */
+  shapeRef?: { mapObj: string; index: number }
+  /** 실제 좌표. 지도가 /api/lane 으로 받아 채워 넣는다. */
   shape?: LatLng[]
 }
 

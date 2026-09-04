@@ -31,7 +31,7 @@ import {
   updateName,
 } from './profile'
 import { geocode, reverseGeocode, type GeoPoint } from './geocode'
-import { searchTransitRoute, type WireRoute } from './odsay'
+import { loadLane, searchTransitRoute, type WireRoute } from './odsay'
 import { trainsBetween } from './tago'
 import {
   expressBusesBetween,
@@ -126,6 +126,27 @@ app.post('/api/auth/kakao', async (req, res) => {
  * 실제 대중교통 경로. 좌표가 있으면 그대로 쓰고, 이름만 있으면 지오코딩한다.
  * ODsay·카카오 키는 서버에만 있으므로 브라우저는 이 엔드포인트만 안다.
  */
+/**
+ * 경로의 실제 선형. 지도를 그릴 때만 부른다.
+ *
+ * 경로 조회에 끼워 넣으면 검색 한 번에 ODsay 호출이 3~4번으로 늘어난다.
+ * 실제로 지도를 보는 건 고른 경로 하나뿐이라 여기서 따로 받는다.
+ */
+app.get('/api/lane', async (req, res) => {
+  const mapObj = String(req.query.mapObj ?? '')
+  // ODsay 가 주는 형식만 통과시킨다(숫자·콜론·@). 그대로 상류에 붙이는 값이다.
+  if (!mapObj || !/^[0-9:@]{5,200}$/.test(mapObj)) {
+    res.status(400).json({ error: { code: 'bad-request', message: 'mapObj 형식이 올바르지 않습니다' } })
+    return
+  }
+  const lanes = await loadLane(mapObj)
+  if (!lanes) {
+    res.status(502).json({ error: { code: 'no-data', message: '선형을 받지 못했습니다' } })
+    return
+  }
+  res.json({ lanes })
+})
+
 app.post('/api/route', async (req, res) => {
   const { from, to } = req.body as {
     from?: { name?: string; lat?: number; lng?: number }
