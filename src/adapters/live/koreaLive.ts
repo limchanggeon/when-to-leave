@@ -2,7 +2,7 @@ import type { LatLng, LegSpec, Place } from '../../engine/types'
 import type { AdapterResult, LabeledRoute, RouteAdapter, RouteRequest } from '../types'
 import { fail } from '../types'
 
-const SOURCE = 'odsay:korea'
+const SOURCE = 'kakao+tago:korea'
 
 interface WireLeg {
   kind: LegSpec['kind']

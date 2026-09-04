@@ -182,7 +182,7 @@ export const ja: I18nShape = {
       myPage: 'マイページ',
       places: '保存した場所',
       calendar: 'カレンダー連携',
-      odsay: 'ODsay 公共交通',
+      odsay: 'カカオマップ · 公共データ(TAGO)',
       kakao: 'カカオマップ',
       google: 'Google マップ',
       source: 'ソースを見る',

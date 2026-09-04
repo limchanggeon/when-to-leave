@@ -25,7 +25,7 @@ export function SiteFooter({ t }: { t: I18nShape }) {
     {
       title: t.footerNav.data,
       items: [
-        { label: l.odsay, href: 'https://lab.odsay.com' },
+        { label: l.odsay, href: 'https://www.data.go.kr' },
         { label: l.kakao, href: 'https://developers.kakao.com' },
         { label: l.google, href: 'https://developers.google.com/maps' },
       ],

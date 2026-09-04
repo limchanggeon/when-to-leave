@@ -183,7 +183,7 @@ export const ko = {
       myPage: '마이페이지',
       places: '저장한 장소',
       calendar: '캘린더 연동',
-      odsay: 'ODsay 대중교통',
+      odsay: '카카오맵 · 공공데이터(TAGO)',
       kakao: '카카오맵',
       google: '구글 지도',
       source: '소스 보기',
