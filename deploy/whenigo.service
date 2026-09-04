@@ -11,6 +11,12 @@ Description=언제나가 (whenigo) — 출발 시각 역산 서버
 After=network-online.target
 Wants=network-online.target
 
+# 죽었다 살아나기를 반복하면 그냥 멈춰서 사람이 보게 한다.
+# 이 두 키는 [Service] 가 아니라 [Unit] 소속이다 —
+# 아래에 두면 systemd 가 "Unknown key" 로 무시한다.
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
 [Service]
 Type=simple
 User=whenigo
@@ -33,10 +39,6 @@ Environment=DB_PATH=/var/lib/whenigo/app.db
 ExecStart=/srv/whenigo/node_modules/.bin/tsx server/index.ts
 Restart=always
 RestartSec=3
-
-# 죽었다 살아나기를 반복하면 그냥 멈춰서 사람이 보게 한다
-StartLimitIntervalSec=60
-StartLimitBurst=5
 
 # 최소 권한. 이 서버가 쓸 곳은 DB 디렉터리 하나뿐이다.
 # 혹시 기동이 막히면 ProtectSystem 을 full 로 낮춰가며 원인을 좁힐 것.
