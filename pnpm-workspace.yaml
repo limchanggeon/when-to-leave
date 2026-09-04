@@ -1,0 +1,6 @@
+# pnpm 설정. pnpm 10.16 부터 package.json 의 "pnpm" 필드 대신 여기를 읽는다.
+#
+# pnpm 은 의존성의 빌드 스크립트를 기본으로 막는다(공급망 보호). esbuild 는
+# 그 단계에서 자기 실행 파일을 놓기 때문에, 막히면 vite build 가 실패한다.
+onlyBuiltDependencies:
+  - esbuild
