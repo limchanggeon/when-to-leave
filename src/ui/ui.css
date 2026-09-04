@@ -100,6 +100,15 @@
 .board__head > span:first-child { white-space: nowrap; }
 .board__rule { flex: 1; height: 1px; background: var(--night-rule); min-width: var(--sp-6); }
 .board__note { font-weight: 500; text-align: right; }
+/* 답이 걸린 뒤 질의를 다시 펴는 단추. 머리말 줄에 얹혀서 판의 어휘를 따른다 —
+   결과 위에 큰 버튼을 하나 더 두면 그게 다시 두 번째 자리를 먹는다. */
+.board__edit {
+  flex: 0 0 auto; padding: 3px var(--sp-3);
+  font-family: inherit; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.02em;
+  background: transparent; color: var(--night-soft);
+  border: 1px solid var(--night-edge); border-radius: var(--radius-sm); cursor: pointer;
+}
+.board__edit:hover { border-color: var(--night-ink); color: var(--night-ink); }
 
 /* 불이 꺼진 자릿수.
    .verdict__time 과 글자 크기·굵기·자간이 같아야 한다 — 답이 들어올 때

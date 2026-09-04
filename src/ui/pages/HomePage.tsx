@@ -69,6 +69,11 @@ export function HomePage() {
    * 패널 안에 두면 바로가기가 빈 출발지로 검색을 보낸다.
    */
   const [origin, setOrigin] = useState<OriginState>({ name: '', geoName: null })
+  /**
+   * 답이 걸린 뒤에도 질의를 펼쳐 둘지.
+   * 답이 없을 때는 이 값과 무관하게 늘 펼쳐진다 — 홈은 검색하는 자리다.
+   */
+  const [queryOpen, setQueryOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -83,6 +88,8 @@ export function HomePage() {
   async function run(query: QueryInput) {
     setLastQuery(query)
     setPending(true)
+    // 계산을 시켰으면 다음으로 볼 것은 여정이다. 폼은 접어서 자리를 내준다.
+    setQueryOpen(false)
     const at = new Date()
     setNow(at)
 
@@ -148,6 +155,13 @@ export function HomePage() {
   const resolved = outcome?.kind === 'trip' ? getLastResolved() : null
 
   const hasResult = outcome !== null
+  /**
+   * 판에 실제로 답이 걸렸는지. 질의를 접는 기준은 이것이어야 한다 —
+   * outcome 만 보면 경로를 못 찾은 경우(gap·no-route)에도 폼이 접히는데,
+   * 그때는 판에 답이 없어 다시 펼 단추도 안 붙는다. 조건을 바꿔봐야 하는
+   * 바로 그 상황에서 폼도 단추도 없이 갇힌다.
+   */
+  const hasAnswer = outcome?.kind === 'trip' && shown !== null
 
   return (
     <div className="page">
@@ -170,6 +184,8 @@ export function HomePage() {
       <Hero
         t={t}
         pending={pending}
+        queryOpen={!hasAnswer || queryOpen}
+        onToggleQuery={() => setQueryOpen((v) => !v)}
           headline={
             outcome?.kind === 'trip' && shown ? (
               <div className="verdict">

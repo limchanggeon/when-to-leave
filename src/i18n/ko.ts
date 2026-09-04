@@ -19,6 +19,8 @@ export const ko = {
     slotLabel: '나가실 시각',
     waiting: '어디로 몇 시까지 가는지 넣으면 여기 걸립니다',
     query: '조회',
+    editQuery: '조건 바꾸기',
+    closeQuery: '닫기',
   },
   search: {
     placeholder: '예: 수서에서 동대구 11시까지',

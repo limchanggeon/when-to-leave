@@ -17,6 +17,8 @@ export const ja: I18nShape = {
     slotLabel: '出発時刻',
     waiting: '行き先と到着時刻を入れるとここに表示されます',
     query: '検索',
+    editQuery: '条件を変える',
+    closeQuery: '閉じる',
   },
   search: {
     placeholder: '例: 新宿から東京駅まで11時までに',

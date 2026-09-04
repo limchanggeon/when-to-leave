@@ -13,6 +13,11 @@ import type { I18nShape } from '../../i18n'
  * 어두운 곳은 화면에서 이 판 하나뿐이다. 예전에는 판 위에 흰 카드를 얹어
  * 검색을 담았는데, 그러면 판이 반으로 잘리고 어느 SaaS 홈이나 같은 모양이 된다.
  * 지금은 검색도 판에 새긴 한 줄이다 — 답과 질의가 같은 판을 쓴다.
+ *
+ * 다만 **답이 걸리면 질의는 접는다.** 한 번 계산하고 나면 다음으로 볼 것은
+ * 여정이지 방금 채운 폼이 아닌데, 폼이 펼쳐진 채로 있으면 화면에서 두 번째로
+ * 좋은 자리를 차지하고 여정을 한 화면 아래로 밀어낸다.
+ * 조건을 바꾸고 싶을 때만 머리말의 단추로 다시 편다.
  */
 export function Hero({
   t,
@@ -20,6 +25,8 @@ export function Hero({
   children,
   aside,
   pending = false,
+  queryOpen = true,
+  onToggleQuery,
 }: {
   t: I18nShape
   /** 결과가 있으면 그 답. 없으면 빈 칸이 대신 걸린다. */
@@ -29,6 +36,9 @@ export function Hero({
   aside?: ReactNode
   /** 계산 중. 꺼진 자릿수를 깜빡여 판이 무언가 하고 있음을 보인다. */
   pending?: boolean
+  /** 질의를 펼쳐 둘지. 답이 없으면 늘 펼쳐져 있다. */
+  queryOpen?: boolean
+  onToggleQuery?: () => void
 }) {
   return (
     <header
@@ -41,7 +51,20 @@ export function Hero({
           <p className="board__head">
             <span>{t.board.slotLabel}</span>
             <span className="board__rule" aria-hidden="true" />
-            {!headline && <span className="board__note">{t.board.waiting}</span>}
+            {headline ? (
+              onToggleQuery && (
+                <button
+                  type="button"
+                  className="board__edit"
+                  onClick={onToggleQuery}
+                  aria-expanded={queryOpen}
+                >
+                  {queryOpen ? t.board.closeQuery : t.board.editQuery}
+                </button>
+              )
+            ) : (
+              <span className="board__note">{t.board.waiting}</span>
+            )}
           </p>
 
           {headline ?? (
@@ -58,7 +81,7 @@ export function Hero({
 
         {/* 답과 질의를 가르는 괘선. 여기 머리말을 하나 더 붙이면 판에 이름표가
             둘이 되는데, 아래는 탭이 이미 무엇을 고르는 자리인지 말하고 있다. */}
-        <div className="board__query">{children}</div>
+        {queryOpen && <div className="board__query">{children}</div>}
       </div>
 
       {aside && !headline && <div className="board__aside">{aside}</div>}
