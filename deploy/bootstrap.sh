@@ -88,9 +88,11 @@ fi
 GIT_SSH="ssh -i $KEY -o StrictHostKeyChecking=accept-new"
 git_as() { sudo -u "$APP_USER" GIT_SSH_COMMAND="$GIT_SSH" git -C "$APP_DIR" "$@"; }
 
+# 배포 디렉터리는 원격을 그대로 따라간다. merge 는 도구가 만들어 둔
+# 추적되지 않는 파일(pnpm-workspace.yaml 등)에 막히지만 reset 은 덮어쓴다.
 if [[ -d "$APP_DIR/.git" ]]; then
   git_as fetch origin main:refs/remotes/origin/main
-  git_as merge --ff-only origin/main
+  git_as reset --hard origin/main
 else
   git_as init -q -b main
   git_as remote add origin "$REPO"
