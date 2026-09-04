@@ -35,8 +35,11 @@ if [[ $mem_mb -lt 2048 && ! -f /swapfile ]]; then
   swapon /swapfile
   grep -q '^/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
   echo "메모리 ${mem_mb}MB → 스왑 2G 추가"
+elif [[ -f /swapfile ]]; then
+  swapon /swapfile 2>/dev/null || true
+  echo "이미 있음"
 else
-  echo "건너뜀 (메모리 ${mem_mb}MB)"
+  echo "건너뜀 (메모리 ${mem_mb}MB — 충분함)"
 fi
 
 say "3/8 Node"
@@ -65,27 +68,36 @@ id -u "$APP_USER" &>/dev/null || useradd --system --home "$APP_DIR" --shell /usr
 mkdir -p "$APP_DIR"
 chown "$APP_USER:$APP_USER" "$APP_DIR"
 
-if [[ -d "$APP_DIR/.git" ]]; then
-  sudo -u "$APP_USER" git -C "$APP_DIR" pull --ff-only
-else
-  # 비공개 저장소면 배포 키가 필요하다. 없으면 만들어서 안내하고 멈춘다.
-  if [[ "$REPO" == git@* ]]; then
-    key="$APP_DIR/.ssh/id_ed25519"
-    if [[ ! -f "$key" ]]; then
-      sudo -u "$APP_USER" mkdir -p "$APP_DIR/.ssh"
-      sudo -u "$APP_USER" ssh-keygen -t ed25519 -N '' -f "$key" -C "whenigo-deploy" >/dev/null
-      sudo -u "$APP_USER" ssh-keyscan -H github.com >> "$APP_DIR/.ssh/known_hosts" 2>/dev/null
-      echo
-      echo "──────────── 배포 키를 등록해야 합니다 ────────────"
-      cat "$key.pub"
-      echo "───────────────────────────────────────────────────"
-      echo "GitHub → 저장소 → Settings → Deploy keys → Add deploy key"
-      echo "위 한 줄을 붙여넣고(쓰기 권한 불필요), 이 스크립트를 다시 실행하세요."
-      exit 2
-    fi
-  fi
-  sudo -u "$APP_USER" git clone "$REPO" "$APP_DIR"
+# 배포 키가 $APP_DIR/.ssh 에 생기므로 디렉터리가 비지 않는다.
+# git clone 은 비어있지 않은 곳을 거부하므로 init+fetch 로 채운다.
+KEY="$APP_DIR/.ssh/id_ed25519"
+if [[ "$REPO" == git@* && ! -f "$KEY" ]]; then
+  sudo -u "$APP_USER" mkdir -p "$APP_DIR/.ssh"
+  sudo -u "$APP_USER" ssh-keygen -t ed25519 -N '' -f "$KEY" -C "whenigo-deploy" >/dev/null
+  sudo -u "$APP_USER" ssh-keyscan -H github.com >> "$APP_DIR/.ssh/known_hosts" 2>/dev/null
+  echo
+  echo "──────────── 배포 키를 등록해야 합니다 ────────────"
+  cat "$KEY.pub"
+  echo "───────────────────────────────────────────────────"
+  echo "GitHub → 저장소 → Settings → Deploy keys → Add deploy key"
+  echo "위 한 줄을 붙여넣고(쓰기 권한 불필요), 이 스크립트를 다시 실행하세요."
+  exit 2
 fi
+
+# HOME 이 어떻게 잡히든 이 키를 쓰도록 못박는다
+GIT_SSH="ssh -i $KEY -o StrictHostKeyChecking=accept-new"
+git_as() { sudo -u "$APP_USER" GIT_SSH_COMMAND="$GIT_SSH" git -C "$APP_DIR" "$@"; }
+
+if [[ -d "$APP_DIR/.git" ]]; then
+  git_as fetch origin main:refs/remotes/origin/main
+  git_as merge --ff-only origin/main
+else
+  git_as init -q -b main
+  git_as remote add origin "$REPO"
+  git_as fetch origin main:refs/remotes/origin/main
+  git_as checkout -q -B main origin/main
+fi
+echo "소스: $(git_as log -1 --format='%h %s')"
 
 say "5/8 빌드"
 cd "$APP_DIR"
