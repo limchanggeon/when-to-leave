@@ -63,11 +63,8 @@ export interface LegSpec {
    * 구간이 생기면 그때 구분해 표시하기 위한 자리다.
    */
   origin: 'mock' | 'live'
-  /**
-   * 선형을 어디서 받을지. 좌표 자체는 지도를 열 때 따로 받는다 —
-   * 경로마다 미리 받으면 ODsay 호출이 검색당 서너 번으로 늘어난다.
-   */
-  shapeRef?: { mapObj: string; index: number }
+  /** 실제 좌표. 어댑터가 바로 채워줄 수 있으면 여기에 온다. */
+  shape?: LatLng[]
 }
 
 export interface Departure {
@@ -103,9 +100,7 @@ export interface Leg {
   source: string
   origin: 'mock' | 'live'
   bookingUrl?: string
-  /** 선형을 어디서 받을지. spec 에서 그대로 넘어온다. */
-  shapeRef?: { mapObj: string; index: number }
-  /** 실제 좌표. 지도가 /api/lane 으로 받아 채워 넣는다. */
+  /** 이 구간이 실제로 지나는 길. spec 에서 그대로 넘어온다. */
   shape?: LatLng[]
 }
 

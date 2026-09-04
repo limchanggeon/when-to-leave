@@ -1,7 +1,7 @@
 import { serverEnv } from './env'
 import { fetchJson } from './http'
 import type { GeoPoint } from './geocode'
-import type { WireLeg, WireRoute } from './odsay'
+import type { WireLeg, WireRoute } from './routeTypes'
 
 /**
  * 구글 오류를 손쓸 수 있는 문장으로 바꾼다.

@@ -31,7 +31,9 @@ import {
   updateName,
 } from './profile'
 import { geocode, reverseGeocode, type GeoPoint } from './geocode'
-import { loadLane, searchTransitRoute, type WireRoute } from './odsay'
+import type { WireRoute } from './routeTypes'
+import { searchTransitKakao } from './kakaoTransit'
+import { searchIntercity } from './intercity'
 import { trainsBetween } from './tago'
 import {
   expressBusesBetween,
@@ -126,27 +128,6 @@ app.post('/api/auth/kakao', async (req, res) => {
  * 실제 대중교통 경로. 좌표가 있으면 그대로 쓰고, 이름만 있으면 지오코딩한다.
  * ODsay·카카오 키는 서버에만 있으므로 브라우저는 이 엔드포인트만 안다.
  */
-/**
- * 경로의 실제 선형. 지도를 그릴 때만 부른다.
- *
- * 경로 조회에 끼워 넣으면 검색 한 번에 ODsay 호출이 3~4번으로 늘어난다.
- * 실제로 지도를 보는 건 고른 경로 하나뿐이라 여기서 따로 받는다.
- */
-app.get('/api/lane', async (req, res) => {
-  const mapObj = String(req.query.mapObj ?? '')
-  // ODsay 가 주는 형식만 통과시킨다(숫자·콜론·@). 그대로 상류에 붙이는 값이다.
-  if (!mapObj || !/^[0-9:@]{5,200}$/.test(mapObj)) {
-    res.status(400).json({ error: { code: 'bad-request', message: 'mapObj 형식이 올바르지 않습니다' } })
-    return
-  }
-  const lanes = await loadLane(mapObj)
-  if (!lanes) {
-    res.status(502).json({ error: { code: 'no-data', message: '선형을 받지 못했습니다' } })
-    return
-  }
-  res.json({ lanes })
-})
-
 app.post('/api/route', async (req, res) => {
   const { from, to } = req.body as {
     from?: { name?: string; lat?: number; lng?: number }
@@ -262,7 +243,7 @@ app.post('/api/route', async (req, res) => {
 
     const route =
       country === 'KR'
-        ? await searchTransitRoute(start, end)
+        ? await searchKorea(start, end)
         : await (async () => {
             const r = await searchTransitGoogle(start, end)
             return r.ok
@@ -402,6 +383,58 @@ app.post('/api/auth/google', async (req, res) => {
  *
  * 수단마다 TAGO 서비스가 다르고, 시내버스는 시각표 서비스 자체가 없다.
  */
+/**
+ * 국내 경로.
+ *
+ * 시내는 카카오 대중교통이 통째로 답한다 — 도보를 포함한 모든 구간의
+ * 실제 선형까지 함께 온다. 시외는 카카오가 다루지 못하므로(NO_RESULTS)
+ * TAGO 시각표로 직접 엮는다.
+ *
+ * ODsay 는 둘 다 실패했을 때만 쓴다. 한도가 작아서 최후의 보루로 남긴다.
+ */
+/** 이보다 멀면 시외 수단을 반드시 함께 본다. */
+const INTERCITY_KM = 40
+
+function distanceKm(a: GeoPoint, b: GeoPoint): number {
+  const R = 6371
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180
+  const p1 = (a.lat * Math.PI) / 180
+  const p2 = (b.lat * Math.PI) / 180
+  const h = Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(p1) * Math.cos(p2)
+  return 2 * R * Math.asin(Math.sqrt(h))
+}
+
+async function searchKorea(start: GeoPoint, end: GeoPoint) {
+  const far = distanceKm(start, end) >= INTERCITY_KM
+
+  /*
+   * 먼 거리는 두 방법을 다 돌린다.
+   *
+   * 카카오는 대전→서울에도 광역버스를 엮어 "성공" 을 돌려준다. 그것만 믿으면
+   * 3시간짜리 시내버스 연속을 답이라고 내놓고 KTX 는 보이지도 않는다.
+   * 실제로 그렇게 나왔다 — 카카오가 실패할 때만 시외를 보면 늦다.
+   */
+  const [kakao, intercity] = await Promise.all([
+    searchTransitKakao(start, end),
+    far ? searchIntercity(start, end) : Promise.resolve(null),
+  ])
+
+  const routes = [...(intercity?.ok ? intercity.routes : []), ...(kakao.ok ? kakao.routes : [])]
+  if (routes.length > 0) {
+    routes.sort((a, b) => a.totalMin - b.totalMin)
+    return { ok: true as const, routes: routes.slice(0, 4) }
+  }
+
+  if (!kakao.ok && kakao.code === 'no-credentials') return kakao
+  const why = intercity && !intercity.ok ? intercity.message : !kakao.ok ? kakao.message : ''
+  return {
+    ok: false as const,
+    code: 'no-data' as const,
+    message: why || '이 구간의 대중교통 경로를 찾지 못했습니다',
+  }
+}
+
 async function withTimetables(routes: WireRoute[]): Promise<WireRoute[]> {
   const cache = new Map<string, Run[] | null>()
   const now = new Date()

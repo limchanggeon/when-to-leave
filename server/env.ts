@@ -48,15 +48,6 @@ export const serverEnv = {
    * ODsay 는 배차 간격만 주므로, 실제 출발 시각은 여기서 받아 붙인다.
    */
   tagoKey: req('TAGO_SERVICE_KEY'),
-  /** ODsay 대중교통 길찾기. https://lab.odsay.com 에서 발급. */
-  odsayKey: req('ODSAY_API_KEY'),
-  /**
-   * ODsay Web 키를 쓸 때 함께 보낼 Referer.
-   * Web 키는 도메인으로 사용자를 식별하므로, 서버에서 호출하면
-   * 콘솔에 등록한 Service URI 와 같은 값을 Referer 로 붙여줘야 한다.
-   * Server 키(고정 IP 등록)를 쓴다면 없어도 되고, 있어도 무해하다.
-   */
-  odsayReferer: req('ODSAY_SERVICE_URL') ?? 'http://localhost:4173',
   isProd: process.env.NODE_ENV === 'production',
 }
 
@@ -64,8 +55,8 @@ export const serverEnv = {
 export function missingServerEnv(): { name: string; breaks: string }[] {
   const out: { name: string; breaks: string }[] = []
   if (!serverEnv.kakaoRestKey)
-    out.push({ name: 'KAKAO_REST_API_KEY', breaks: '카카오 로그인, 장소 검색' })
-  if (!serverEnv.odsayKey)
-    out.push({ name: 'ODSAY_API_KEY', breaks: '경로 조회 전체 — 이 키가 없으면 경로가 나오지 않습니다' })
+    out.push({ name: 'KAKAO_REST_API_KEY', breaks: '카카오 로그인, 장소 검색, 경로 조회 전체' })
+  if (!serverEnv.tagoKey)
+    out.push({ name: 'TAGO_SERVICE_KEY', breaks: '열차·버스·항공 시각표 — 시외 경로가 나오지 않습니다' })
   return out
 }

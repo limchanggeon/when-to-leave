@@ -182,22 +182,16 @@ describe('seatStateOf', () => {
   })
 })
 
-describe('shapeRef', () => {
-  it('구간의 선형 참조가 엔진을 그대로 통과한다', () => {
-    // 지도는 이 참조를 보고 /api/lane 을 부른다. 엔진이 흘려버리면
-    // 지도가 조용히 직선으로 되돌아가므로 눈에 잘 안 띈다.
-    const withRef = specs().map((s, i) =>
-      s.kind === 'walk' ? s : { ...s, shapeRef: { mapObj: '31218:1:17:30', index: i } },
-    )
-    const solved = solveBackward(withRef, at(day, '11:30'), DEFAULT_POLICY)
+describe('shape', () => {
+  it('구간의 선형이 엔진을 그대로 통과한다', () => {
+    // 흘려버려도 지도가 조용히 점선으로 되돌아갈 뿐이라 눈에 잘 안 띈다.
+    const pts = [{ lat: 36.3, lng: 127.4 }, { lat: 36.4, lng: 127.5 }]
+    const withShape = specs().map((s) => (s.kind === 'walk' ? s : { ...s, shape: pts }))
+    const solved = solveBackward(withShape, at(day, '11:30'), DEFAULT_POLICY)
     expect(solved.ok).toBe(true)
     if (!solved.ok) return
 
-    const refs = solved.legs.map((l) => l.shapeRef?.index)
-    expect(refs).toEqual([undefined, 1, 2, undefined])
-    expect(solved.legs[1].shapeRef?.mapObj).toBe('31218:1:17:30')
-
-    // compact 를 거쳐도 남아야 한다
-    expect(compact(solved.legs)[2].shapeRef?.index).toBe(2)
+    expect(solved.legs.map((l) => l.shape?.length)).toEqual([undefined, 2, 2, undefined])
+    expect(compact(solved.legs)[2].shape).toEqual(pts)
   })
 })
