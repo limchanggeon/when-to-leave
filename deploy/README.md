@@ -14,7 +14,7 @@
 
 Oracle Cloud 콘솔 → Compute → Instances → Create.
 
-- **Image**: Ubuntu 24.04
+- **Image**: Ubuntu 26.04 LTS (코드네임 `resolute`) 또는 24.04 LTS. 둘 다 된다.
 - **Shape**: `VM.Standard.A1.Flex` (ARM, 상시 무료 4 OCPU / 24GB) 를 먼저 시도.
   용량 부족으로 거절되면 `VM.Standard.E2.1.Micro` (1 OCPU / 1GB) 로.
 - SSH 공개키 등록하고 생성. **Public IP 를 적어둔다.**
@@ -35,12 +35,28 @@ Add Ingress Rules 로 두 줄 추가.
 | `0.0.0.0/0` | TCP | 80 |
 | `0.0.0.0/0` | TCP | 443 |
 
-**(b) 인스턴스 안의 iptables** — 오라클 우분투 이미지는 22번 말고 전부 막아둔다:
+**(b) 인스턴스 안의 방화벽** — 오라클 우분투 이미지는 22번 말고 전부 막아둔다.
+막는 주체가 이미지마다 다르니 **먼저 무엇이 막고 있는지 본다**:
 
 ```bash
+sudo iptables -L INPUT -n --line-numbers
+systemctl is-active ufw netfilter-persistent 2>/dev/null
+```
+
+INPUT 사슬에 REJECT 규칙이 줄줄이 보이면 iptables 방식이다:
+
+```bash
+sudo apt-get install -y iptables-persistent   # 이미 있으면 넘어간다
+# REJECT 줄보다 위 번호에 끼워 넣어야 한다. 위에서 본 번호를 보고 정할 것.
 sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 80 -j ACCEPT
 sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 443 -j ACCEPT
 sudo netfilter-persistent save
+```
+
+`ufw` 가 active 로 나오면 그쪽이 주인이다. iptables 를 직접 건드리지 말고:
+
+```bash
+sudo ufw allow 80/tcp && sudo ufw allow 443/tcp && sudo ufw status
 ```
 
 ## 3. 기본 세팅
@@ -53,11 +69,20 @@ sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile
 sudo mkswap /swapfile && sudo swapon /swapfile
 echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 
-# Node 24 — node:sqlite 가 Node 22.5+ 를 요구한다
-curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
-sudo apt-get install -y nodejs
+# Node — node:sqlite 가 Node 22.5+ 를 요구한다.
+# Ubuntu 26.04(resolute) 는 기본 저장소에 22.22 가 있어서 이걸로 충분하다.
+sudo apt-get install -y nodejs npm
+node -v
+
+# 24.04 처럼 기본 Node 가 낮은 배포판이면 NodeSource 를 쓴다.
+# (저장소가 nodistro 하나라 배포판을 가리지 않는다)
+#   curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+#   sudo apt-get install -y nodejs
+
 sudo npm i -g pnpm
-node -v   # v24.x 인지 확인
+
+# node:sqlite 가 플래그 없이 되는지 확인. 여기서 막히면 Node 를 올려야 한다.
+node -e "const {DatabaseSync}=require('node:sqlite'); new DatabaseSync(':memory:').exec('create table t(a)'); console.log('node:sqlite OK')"
 ```
 
 ## 4. 앱 올리기
