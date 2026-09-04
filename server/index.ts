@@ -10,6 +10,8 @@ import {
   isConnected,
 } from './googleCalendar'
 import { randomBytes } from 'node:crypto'
+import { existsSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import {
   COOKIE_NAME,
   cookieOptions,
@@ -40,6 +42,9 @@ import {
 
 const app = express()
 app.use(express.json())
+
+// Caddy 뒤에 선다. 이게 없으면 req.ip 가 늘 프록시 주소로 보인다.
+app.set('trust proxy', 1)
 
 /** 쿠키 파서 — 의존성 하나 줄이려고 직접 읽는다. */
 function cookie(req: express.Request, name: string): string | undefined {
@@ -590,8 +595,48 @@ app.post('/api/calendar/events', async (req, res) => {
   res.json(r.data)
 })
 
+/*
+ * 빌드된 프론트엔드 서빙.
+ *
+ * 개발 중에는 Vite 가 화면을 띄우고 /api 만 이쪽으로 넘겨주지만,
+ * 운영에는 Vite 가 없다. 같은 서버가 화면까지 내보내야
+ * 프론트와 API 가 같은 주소를 쓰게 되고, 그래야 CORS 없이
+ * 세션 쿠키(sameSite: lax)가 그대로 동작한다.
+ *
+ * NODE_ENV 가 아니라 dist 존재 여부로 켠다 — 빌드를 안 했는데
+ * 켜져서 404 만 뱉는 상황이 더 헷갈리기 때문이다.
+ */
+const webRoot = resolve(process.cwd(), 'dist')
+const hasWeb = existsSync(join(webRoot, 'index.html'))
+
+if (hasWeb) {
+  app.use(
+    express.static(webRoot, {
+      index: false, // 폴백을 아래에서 직접 다룬다
+      setHeaders: (res, filePath) => {
+        // 해시가 붙은 에셋은 이름이 곧 버전이라 오래 캐시해도 안전하다.
+        // index.html 은 매번 확인해야 새 배포가 바로 보인다.
+        const immutable = filePath.includes(`${'/'}assets${'/'}`)
+        res.setHeader('Cache-Control', immutable ? 'public, max-age=31536000, immutable' : 'no-cache')
+      },
+    }),
+  )
+
+  // SPA 폴백. /login, /me 를 새로고침해도 열려야 한다.
+  // 라우트가 아닌 미들웨어로 두는 이유: Express 5 는 '*' 경로 문법이 바뀌어
+  // app.get('*') 가 그대로는 동작하지 않는다.
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next()
+    // 없는 API 는 index.html 이 아니라 404 여야 한다.
+    if (req.path === '/api' || req.path.startsWith('/api/')) return next()
+    // sendFile 기본값은 max-age=0 이라 의도가 흐릿하다. 명시해 둔다.
+    res.sendFile(join(webRoot, 'index.html'), { headers: { 'Cache-Control': 'no-cache' } })
+  })
+}
+
 app.listen(serverEnv.port, () => {
   console.log(`[server] http://localhost:${serverEnv.port}`)
+  console.log(hasWeb ? '[server] dist/ 서빙 중' : '[server] dist/ 없음 — API 만 응답합니다')
   const purged = purgeExpiredSessions()
   if (purged > 0) console.log(`[server] 만료 세션 ${purged}건 정리`)
   for (const { name, breaks } of missingServerEnv()) {

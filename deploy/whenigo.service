@@ -1,0 +1,52 @@
+# /etc/systemd/system/whenigo.service
+#
+#   sudo cp deploy/whenigo.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now whenigo
+#
+# 로그: journalctl -u whenigo -f
+
+[Unit]
+Description=언제나가 (whenigo) — 출발 시각 역산 서버
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=whenigo
+Group=whenigo
+WorkingDirectory=/srv/whenigo
+
+# 비밀값은 저장소가 아니라 이 파일에 둔다. root 소유 0600 으로.
+# systemd 가 root 권한으로 읽은 뒤 User 로 내려가므로 whenigo 는 읽을 필요가 없다.
+# 주의: EnvironmentFile 은 % 를 특별 취급하지 않는다.
+#       TAGO 키처럼 %2F 가 든 값도 그대로 적으면 된다.
+EnvironmentFile=/etc/whenigo.env
+Environment=NODE_ENV=production
+Environment=PORT=8787
+
+# DB 는 코드 밖에 둔다 — 배포로 /srv/whenigo 를 갈아끼워도 살아남아야 한다.
+# StateDirectory 가 /var/lib/whenigo 를 만들고 소유권까지 잡아준다.
+StateDirectory=whenigo
+Environment=DB_PATH=/var/lib/whenigo/app.db
+
+ExecStart=/srv/whenigo/node_modules/.bin/tsx server/index.ts
+Restart=always
+RestartSec=3
+
+# 죽었다 살아나기를 반복하면 그냥 멈춰서 사람이 보게 한다
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# 최소 권한. 이 서버가 쓸 곳은 DB 디렉터리 하나뿐이다.
+# 혹시 기동이 막히면 ProtectSystem 을 full 로 낮춰가며 원인을 좁힐 것.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

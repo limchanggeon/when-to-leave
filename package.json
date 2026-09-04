@@ -3,6 +3,10 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "//": "node:sqlite 는 Node 22.5 부터 있다. 그 아래에서는 서버가 아예 못 뜬다.",
+    "node": ">=22.5"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -10,10 +14,12 @@
     "test": "vitest run",
     "server": "tsx watch --env-file=.env server/index.ts",
     "dev:all": "concurrently -n web,api -c cyan,magenta \"vite\" \"tsx watch --env-file=.env server/index.ts\"",
-    "typecheck": "tsc -b && tsc --noEmit -p tsconfig.server.json"
+    "typecheck": "tsc -b && tsc --noEmit -p tsconfig.server.json",
+    "start": "tsx server/index.ts"
   },
   "dependencies": {
     "express": "^5.2.1",
+    "tsx": "^4.23.12",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.18.2"
@@ -25,7 +31,6 @@
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^10.0.5",
-    "tsx": "^4.23.12",
     "typescript": "^5.7.0",
     "vite": "^6.0.0",
     "vitest": "^2.1.0"

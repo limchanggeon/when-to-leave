@@ -1,0 +1,22 @@
+# /etc/caddy/Caddyfile
+#
+# Caddy 가 인증서를 알아서 받아오고 갱신한다. 80/443 이 열려 있고
+# 도메인의 A 레코드가 이 서버를 가리키고 있어야 한다.
+#
+#   sudo cp deploy/Caddyfile /etc/caddy/Caddyfile
+#   sudo systemctl reload caddy
+#
+# p-e.kr 은 Public Suffix List 에 없어서 Let's Encrypt 의
+# "도메인당 주 50장" 한도를 p-e.kr 쓰는 다른 사람들과 나눠 쓴다.
+# 한도에 걸리면 Caddy 가 ZeroSSL 로 알아서 넘어가므로 대개 그냥 발급된다.
+# 둘 다 실패하면 journalctl -u caddy 에 이유가 찍힌다.
+
+whenigo.p-e.kr {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8787
+
+	log {
+		output file /var/log/caddy/whenigo.log
+		format console
+	}
+}
