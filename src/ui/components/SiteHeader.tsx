@@ -1,10 +1,8 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthContext } from '../../auth/AuthContext'
 import type { I18nShape, Lang } from '../../i18n'
 import { usePrefs, type Theme } from '../PrefsContext'
 import { Logo } from './Logo'
-import { Tutorial } from './Tutorial'
 
 const LANGS: { id: Lang; short: string }[] = [
   { id: 'ko', short: '한국어' },
@@ -18,6 +16,7 @@ export function SiteHeader({
   t,
   solid,
   onHome,
+  onHowTo,
 }: {
   t: I18nShape
   solid: boolean
@@ -29,10 +28,14 @@ export function SiteHeader({
    * 눌리지 않는 것처럼 보였다. 홈 화면이 되돌리는 방법을 여기로 넘겨준다.
    */
   onHome?: () => void
+  /**
+   * 사용법을 여는 방법. 홈만 넘겨준다 — 짚어줄 화면이 거기뿐이라,
+   * 마이페이지에서 물음표를 눌러봐야 가리킬 자리가 없다.
+   */
+  onHowTo?: () => void
 }) {
   const { account, signOut } = useAuthContext()
   const { lang, setLang, theme, setTheme } = usePrefs()
-  const [howTo, setHowTo] = useState(false)
 
   const nextTheme = THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length]
 
@@ -58,15 +61,17 @@ export function SiteHeader({
           ))}
         </div>
 
-        <button
-          type="button"
-          className="siteheader__icon"
-          onClick={() => setHowTo(true)}
-          title={t.tutorial.open}
-          aria-label={t.tutorial.open}
-        >
-          ?
-        </button>
+        {onHowTo && (
+          <button
+            type="button"
+            className="siteheader__icon"
+            onClick={onHowTo}
+            title={t.tour.open}
+            aria-label={t.tour.open}
+          >
+            ?
+          </button>
+        )}
 
         <button
           type="button"
@@ -94,7 +99,6 @@ export function SiteHeader({
           </Link>
         )}
       </nav>
-      <Tutorial t={t} lang={lang} open={howTo} onClose={() => setHowTo(false)} />
     </header>
   )
 }

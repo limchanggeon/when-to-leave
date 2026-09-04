@@ -24,6 +24,7 @@ import { fetchMe, type SavedPlace } from '../../auth/me'
 import { Hero } from '../components/Hero'
 import { JourneyMap } from '../components/JourneyMap'
 import { SetupNotice } from '../components/SetupNotice'
+import { Tour } from '../components/Tour'
 
 /**
  * 판에 거는 날짜 딱지.
@@ -70,6 +71,7 @@ export function HomePage() {
    * 다시 잡게 만들 이유가 없다.
    */
   const [resetKey, setResetKey] = useState(0)
+  const [tour, setTour] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -177,7 +179,7 @@ export function HomePage() {
 
   return (
     <div className="page">
-      <SiteHeader t={t} solid={hasResult} onHome={goHome} />
+      <SiteHeader t={t} solid={hasResult} onHome={goHome} onHowTo={() => setTour(true)} />
       <QuickRoutes
         places={places}
         t={t}
@@ -318,6 +320,7 @@ export function HomePage() {
       </div>
 
       <SiteFooter t={t} />
+      <Tour t={t} open={tour} onClose={() => setTour(false)} />
     </div>
   )
 }

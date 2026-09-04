@@ -134,9 +134,9 @@ sudo /srv/whenigo/deploy/update.sh
   전체를 버리면 평일 것까지 날아간다
 - **p-e.kr은 Public Suffix List에 없다.** Let's Encrypt 한도를 남과 나눠 쓴다
   (Caddy가 실패하면 ZeroSSL로 넘어가므로 대개는 발급된다)
-- **사용법 캡처는 화면을 고치면 같이 낡는다.** `public/tutorial/{lang}-{n}.png`
-  는 실제 화면을 찍은 것이라, 시각 언어를 손댔으면 `pnpm shots` 로 다시 찍어
-  커밋해야 한다. 안 그러면 물음표를 눌렀을 때 지금 없는 화면이 나온다
+- **사용법(`Tour.tsx`)은 선택자로 화면을 짚는다.** `#field-to`, `.panel__submit`
+  같은 자리를 가리키므로, 그 선택자를 바꾸면 짚을 곳을 잃는다. 요소를 옮기거나
+  클래스를 갈 때는 `STEPS` 를 같이 볼 것
 - **없는 데이터는 없다고 말한다.** 어댑터 실패는 예외가 아니라 값(`{ok:false}`)이고
   화면은 `<DataGap>`으로 그 사실을 보여준다. 추정치로 메우지 않는다
 
@@ -144,7 +144,6 @@ sudo /srv/whenigo/deploy/update.sh
 
 ```bash
 pnpm dev:all      # vite + api 동시에
-pnpm shots        # 사용법 캡처 다시 찍기 (dev:all 이 떠 있어야 한다)
 pnpm build
 pnpm exec vitest run
 pnpm exec tsc -b --force && pnpm exec tsc --noEmit -p tsconfig.server.json
