@@ -21,6 +21,14 @@ export const serverEnv = {
   /**
    * 구글 OAuth 클라이언트 ID. ID 토큰의 aud 를 확인하는 데 쓴다.
    * 공개 값이라 클라이언트와 같은 값을 써도 되므로 VITE_ 쪽을 대체로 읽는다.
+   *
+   * ⚠ 그 대체는 **로컬에서만** 걸린다. 개발은 `.env` 한 장에 VITE_ 값과 서버
+   * 값이 같이 들어 있어 서버 프로세스가 VITE_GOOGLE_CLIENT_ID 를 보지만,
+   * 운영은 파일이 갈린다 — 서버는 /etc/whenigo.env 만 읽고 VITE_ 값은
+   * 빌드용 /srv/whenigo/.env 에 있어 프로세스 환경에 아예 없다.
+   * 그래서 운영에는 GOOGLE_CLIENT_ID 를 따로 넣어야 하고, 안 넣으면
+   * 로컬에서는 멀쩡한 구글 로그인이 운영에서만 죽는다. missingServerEnv 가
+   * 이걸 잡는다.
    */
   googleClientId: req('GOOGLE_CLIENT_ID') ?? req('VITE_GOOGLE_CLIENT_ID'),
   /**
@@ -58,5 +66,10 @@ export function missingServerEnv(): { name: string; breaks: string }[] {
     out.push({ name: 'KAKAO_REST_API_KEY', breaks: '카카오 로그인, 장소 검색, 경로 조회 전체' })
   if (!serverEnv.tagoKey)
     out.push({ name: 'TAGO_SERVICE_KEY', breaks: '열차·버스·항공 시각표 — 시외 경로가 나오지 않습니다' })
+  if (!serverEnv.googleClientId)
+    out.push({
+      name: 'GOOGLE_CLIENT_ID',
+      breaks: '구글 로그인 — 서버가 ID 토큰의 aud 를 확인하지 못해 로그인이 거부됩니다',
+    })
   return out
 }

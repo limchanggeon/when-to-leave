@@ -116,6 +116,20 @@ curl -s http://127.0.0.1:8787/api/health
 `VITE_` 로 시작하는 값은 여기가 아니라 **빌드하는 쪽**(`/srv/whenigo/.env`)에
 있어야 한다. 빌드 시점에 번들로 들어가기 때문이다.
 
+**두 파일에 같이 넣어야 하는 값이 하나 있다: `GOOGLE_CLIENT_ID`.**
+서버는 ID 토큰의 `aud` 를 확인하려고 이 값을 읽는데, 프로세스는
+`/etc/whenigo.env` 만 본다. 코드에 `VITE_GOOGLE_CLIENT_ID` 대체가 있지만
+그건 두 값이 한 파일에 있는 로컬에서만 걸린다. 운영에서 빠뜨리면 로컬에서
+멀쩡하던 구글 로그인이 여기서만 죽고, 화면에는 "GOOGLE_CLIENT_ID 가 서버에
+없습니다" 가 뜬다. `/api/health` 의 `missingEnv` 가 이걸 알려준다.
+
+```bash
+# 빌드용 .env 에 있는 공개 값을 그대로 서버 쪽에도 넣는다
+CID=$(sudo grep -E '^VITE_GOOGLE_CLIENT_ID=' /srv/whenigo/.env | cut -d= -f2-)
+printf 'GOOGLE_CLIENT_ID=%s\n' "$CID" | sudo tee -a /etc/whenigo.env > /dev/null
+sudo systemctl restart whenigo
+```
+
 ### DNS
 
 `whenigo.p-e.kr` 관리 화면 → **고급설정(DNS)** → **IP연결(A)**:
