@@ -216,6 +216,30 @@ export const ko = {
   units: { hour: '시간', minute: '분' },
   sections: { journey: '여정', map: '지도' },
   seat: { ok: '좌석 있음', soldOut: '매진' },
+  /** 물음표를 눌러 여는 사용법. 글이 아니라 실제 화면 캡처로 보여준다. */
+  tutorial: {
+    open: '사용법',
+    title: '언제나가 쓰는 법',
+    close: '닫기',
+    prev: '이전',
+    next: '다음',
+    done: '알겠습니다',
+    step: (n: number, of: number) => `${n} / ${of}`,
+    steps: [
+      {
+        title: '어디로, 몇 시까지 가는지 넣습니다',
+        body: '도착 시각을 비우면 지금 출발하는 기준으로 계산합니다.',
+      },
+      {
+        title: '나갈 시각이 판에 걸립니다',
+        body: '출발까지 남은 시간도 같이 셉니다. 임박하면 색이 바뀝니다.',
+      },
+      {
+        title: '구간별로 어떻게 가는지 보여줍니다',
+        body: '표가 없거나 다른 역에서 타고 싶으면, 다시 계산한 대안도 함께 나옵니다.',
+      },
+    ],
+  },
   nav: {
     home: '홈',
     how: '어떻게 동작하나',
@@ -268,14 +292,6 @@ export const ko = {
     earlier: (m: string) => `${m} 일찍`,
     later: (m: string) => `${m} 늦게`,
     same: '같은 시각',
-  },
-  empty: {
-    title: '어디로 가세요?',
-    body: '목적지와 도착 시각을 말하면 몇 시에 나가야 하는지 계산합니다.',
-    examples: '이렇게 물어보세요',
-    /* 목적지는 국내 경로 API 로 가므로 한국어 지명 그대로 두고, 딱지만 번역한다. */
-    exampleArrive: '부산 11시까지',
-    exampleNow: '지금 나가면 부산 언제?',
   },
   leg: {
     walk: '도보',

@@ -214,6 +214,29 @@ export const ja: I18nShape = {
   units: { hour: '時間', minute: '分' },
   sections: { journey: '行程', map: '地図' },
   seat: { ok: '空席あり', soldOut: '満席' },
+  tutorial: {
+    open: '使い方',
+    title: 'いつ出るの使い方',
+    close: '閉じる',
+    prev: '前へ',
+    next: '次へ',
+    done: 'わかりました',
+    step: (n: number, of: number) => `${n} / ${of}`,
+    steps: [
+      {
+        title: '行き先と到着時刻を入れます',
+        body: '到着時刻を空けておくと、今すぐ出発する前提で計算します。',
+      },
+      {
+        title: '出発時刻が表示されます',
+        body: '出発までの残り時間も数えます。近づくと色が変わります。',
+      },
+      {
+        title: '区間ごとの行き方が出ます',
+        body: '席がない、別の駅から乗りたいときのために、計算し直した代替案も並びます。',
+      },
+    ],
+  },
   nav: {
     home: 'ホーム',
     how: '仕組み',
@@ -266,13 +289,6 @@ export const ja: I18nShape = {
     earlier: (m) => `${m} 早い`,
     later: (m) => `${m} 遅い`,
     same: '同じ時刻',
-  },
-  empty: {
-    title: 'どちらへ行きますか？',
-    body: '目的地と到着時刻を伝えると、出発時刻を計算します。',
-    examples: 'こう聞いてください',
-    exampleArrive: '釜山に11時までに',
-    exampleNow: '今出たら釜山はいつ？',
   },
   leg: {
     walk: '徒歩',

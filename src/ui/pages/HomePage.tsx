@@ -40,17 +40,6 @@ function dayTag(d: Date, base: Date, c: I18nShape['clock']): string | null {
   return c.nDays(off)
 }
 
-/**
- * 눌러보는 예시. 딱지는 화면 언어를 따르고, 목적지는 한국어 지명 그대로 둔다 —
- * 국내 경로 API 가 그 글자를 그대로 검색하기 때문이다.
- */
-function examplesFor(t: I18nShape): { label: string; query: QueryInput }[] {
-  return [
-    { label: t.empty.exampleArrive, query: { mode: 'arriveBy', from: '집', to: '부산', when: '11:00' } },
-    { label: t.empty.exampleNow, query: { mode: 'departNow', from: '집', to: '부산', when: null } },
-  ]
-}
-
 export function HomePage() {
   const { lang } = usePrefs()
   const t = dictionaries[lang]
@@ -249,21 +238,7 @@ export function HomePage() {
               </div>
             ) : undefined
           }
-        aside={
-          <>
-            <section className="empty">
-              <p className="empty__label">{t.empty.examples}</p>
-              <div className="empty__chips">
-                {examplesFor(t).map((e) => (
-                  <button key={e.label} className="example" type="button" onClick={() => run(e.query)}>
-                    {e.label}
-                  </button>
-                ))}
-              </div>
-            </section>
-            <HowItWorks t={t} inline />
-          </>
-        }
+        aside={<HowItWorks t={t} inline />}
       >
         <SearchPanel
           key={resetKey}

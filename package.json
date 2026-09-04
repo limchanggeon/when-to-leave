@@ -15,7 +15,8 @@
     "server": "tsx watch --env-file=.env server/index.ts",
     "dev:all": "concurrently -n web,api -c cyan,magenta \"vite\" \"tsx watch --env-file=.env server/index.ts\"",
     "typecheck": "tsc -b && tsc --noEmit -p tsconfig.server.json",
-    "start": "tsx server/index.ts"
+    "start": "tsx server/index.ts",
+    "shots": "node scripts/shoot-tutorial.mjs"
   },
   "dependencies": {
     "express": "^5.2.1",
@@ -31,6 +32,7 @@
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^10.0.5",
+    "playwright-core": "^1.56.1",
     "typescript": "^5.7.0",
     "vite": "^6.0.0",
     "vitest": "^2.1.0"

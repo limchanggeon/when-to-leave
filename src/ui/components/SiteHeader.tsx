@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthContext } from '../../auth/AuthContext'
 import type { I18nShape, Lang } from '../../i18n'
 import { usePrefs, type Theme } from '../PrefsContext'
 import { Logo } from './Logo'
+import { Tutorial } from './Tutorial'
 
 const LANGS: { id: Lang; short: string }[] = [
   { id: 'ko', short: '한국어' },
@@ -30,6 +32,7 @@ export function SiteHeader({
 }) {
   const { account, signOut } = useAuthContext()
   const { lang, setLang, theme, setTheme } = usePrefs()
+  const [howTo, setHowTo] = useState(false)
 
   const nextTheme = THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length]
 
@@ -58,6 +61,16 @@ export function SiteHeader({
         <button
           type="button"
           className="siteheader__icon"
+          onClick={() => setHowTo(true)}
+          title={t.tutorial.open}
+          aria-label={t.tutorial.open}
+        >
+          ?
+        </button>
+
+        <button
+          type="button"
+          className="siteheader__icon"
           onClick={() => setTheme(nextTheme)}
           title={`${t.nav.theme}: ${t.nav.themes[theme]}`}
           aria-label={`${t.nav.theme}: ${t.nav.themes[theme]}`}
@@ -81,6 +94,7 @@ export function SiteHeader({
           </Link>
         )}
       </nav>
+      <Tutorial t={t} lang={lang} open={howTo} onClose={() => setHowTo(false)} />
     </header>
   )
 }
