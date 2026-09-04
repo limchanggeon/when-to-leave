@@ -2,35 +2,15 @@ import { Link } from 'react-router-dom'
 import type { I18nShape } from '../../i18n'
 import { Logo } from './Logo'
 
-/** 다단 푸터. 시안처럼 링크를 갈래별로 묶는다. */
+/**
+ * 한 줄 푸터.
+ *
+ * 전에는 서비스·계정·데이터 세 갈래로 아홉 개를 늘어놨는데, 그중 셋은
+ * 같은 /me 로 갔고 "구글 지도" 처럼 이 앱이 쓰지도 않는 링크가 섞여 있었다.
+ * 갈 곳이 세 군데면 세 개만 둔다 — 갈래를 나누는 건 그다음 문제다.
+ */
 export function SiteFooter({ t }: { t: I18nShape }) {
   const l = t.footerNav.links
-  const columns: { title: string; items: { label: string; to?: string; href?: string }[] }[] = [
-    {
-      title: t.footerNav.service,
-      items: [
-        { label: l.home, to: '/' },
-        { label: l.how, href: '#how' },
-        { label: l.calendar, to: '/me' },
-      ],
-    },
-    {
-      title: t.footerNav.account,
-      items: [
-        { label: l.login, to: '/login' },
-        { label: l.myPage, to: '/me' },
-        { label: l.places, to: '/me' },
-      ],
-    },
-    {
-      title: t.footerNav.data,
-      items: [
-        { label: l.odsay, href: 'https://www.data.go.kr' },
-        { label: l.kakao, href: 'https://developers.kakao.com' },
-        { label: l.google, href: 'https://developers.google.com/maps' },
-      ],
-    },
-  ]
 
   return (
     <footer className="sitefooter">
@@ -43,33 +23,17 @@ export function SiteFooter({ t }: { t: I18nShape }) {
           </div>
         </div>
 
-        <nav className="sitefooter__cols">
-          {columns.map((col) => (
-            <div className="sitefooter__col" key={col.title}>
-              <h3>{col.title}</h3>
-              <ul>
-                {col.items.map((item) => (
-                  <li key={item.label}>
-                    {item.to ? (
-                      <Link to={item.to}>{item.label}</Link>
-                    ) : (
-                      <a href={item.href} target={item.href?.startsWith('#') ? undefined : '_blank'} rel="noreferrer">
-                        {item.label}
-                      </a>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+        <nav className="sitefooter__links">
+          <a href="#how">{l.how}</a>
+          <Link to="/me">{l.myPage}</Link>
+          <a href="https://github.com/limchanggeon/when-to-leave" target="_blank" rel="noreferrer">
+            {l.source}
+          </a>
         </nav>
       </div>
 
       <div className="sitefooter__bar">
         <span>{t.footer.madeWith}</span>
-        <a href="https://github.com/limchanggeon/when-to-leave" target="_blank" rel="noreferrer">
-          {l.source} ↗
-        </a>
       </div>
     </footer>
   )

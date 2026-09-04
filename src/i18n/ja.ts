@@ -13,6 +13,11 @@ export const ja: I18nShape = {
       '何時に家を出ればいいかをお知らせします。',
     ],
   },
+  board: {
+    slotLabel: '出発時刻',
+    waiting: '行き先と到着時刻を入れるとここに表示されます',
+    query: '検索',
+  },
   search: {
     placeholder: '例: 新宿から東京駅まで11時までに',
     submit: '計算する',
@@ -57,7 +62,9 @@ export const ja: I18nShape = {
     tabLogin: 'ログイン',
     tabRegister: '新規登録',
     email: 'メールアドレス',
+    emailPlaceholder: 'name@example.com',
     password: 'パスワード',
+    passwordPlaceholder: '8文字以上',
     name: '名前',
     namePlaceholder: '表示名（任意）',
     submitLogin: 'ログイン',
@@ -219,9 +226,9 @@ export const ja: I18nShape = {
     title: '到着時刻から逆算します',
     lead: '地図アプリは「今出たら何時に着くか」までしか答えません。その逆の問いは、列車の時刻表があるため単純な引き算では解けません。',
     steps: [
-      { n: '01', title: '到着したい時刻を教えてください', body: '「11時までに大阪」のように目的地と時刻だけで十分です。' },
-      { n: '02', title: '区間を逆からたどります', body: '徒歩・乗り換え・時刻表を後ろから順に見て、各区間が守るべき締切を計算します。' },
-      { n: '03', title: '出発すべき時刻が出ます', body: '席がなければ別の駅・別の手段で計算し直し、代替案も一緒に表示します。' },
+      { title: '到着したい時刻を教えてください', body: '「11時までに大阪」のように目的地と時刻だけで十分です。' },
+      { title: '区間を逆からたどります', body: '徒歩・乗り換え・時刻表を後ろから順に見て、各区間が守るべき締切を計算します。' },
+      { title: '出発すべき時刻が出ます', body: '席がなければ別の駅・別の手段で計算し直し、代替案も一緒に表示します。' },
     ],
   },
   footer: {
@@ -236,7 +243,7 @@ export const ja: I18nShape = {
     arriveAt: (t) => `${t} 到着`,
     leaveIn: (m) => `${m} 後に出発`,
     leaveNow: '今すぐ出発',
-    overdue: (m) => `${m} 過ぎています`,
+    overdueLabel: '出発時刻を過ぎています',
     resolvedAs: (a: string, b: string) => `${a} → ${b} を基準`,
     countdownLabel: '出発まで',
     totalDuration: (m) => `合計 ${m}`,
@@ -262,6 +269,8 @@ export const ja: I18nShape = {
     title: 'どちらへ行きますか？',
     body: '目的地と到着時刻を伝えると、出発時刻を計算します。',
     examples: 'こう聞いてください',
+    exampleArrive: '釜山に11時までに',
+    exampleNow: '今出たら釜山はいつ？',
   },
   leg: {
     walk: '徒歩',

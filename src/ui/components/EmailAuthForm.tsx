@@ -58,6 +58,7 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          placeholder={t.emailAuth.emailPlaceholder}
           autoComplete="email"
           required
         />
@@ -69,6 +70,7 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          placeholder={t.emailAuth.passwordPlaceholder}
           autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
           required
         />

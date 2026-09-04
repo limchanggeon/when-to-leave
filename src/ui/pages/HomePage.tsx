@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { resolveWhen } from '../../parse/parse'
-import { diffMin, formatClock, humanDuration } from '../../engine/time'
-import { dictionaries } from '../../i18n'
+import { dayOffset, diffMin, formatClock, hhmm, humanDuration } from '../../engine/time'
+import { dictionaries, type I18nShape } from '../../i18n'
 import { planTrip, type PlanOutcome, type RouteOption } from '../planTrip'
 import { describeRoute } from '../../engine/rank'
 import { getLastResolved } from '../../adapters/live/koreaLive'
@@ -25,10 +25,31 @@ import { Hero } from '../components/Hero'
 import { JourneyMap } from '../components/JourneyMap'
 import { SetupNotice } from '../components/SetupNotice'
 
-const EXAMPLES: { label: string; query: QueryInput }[] = [
-  { label: '부산 11시까지', query: { mode: 'arriveBy', from: '집', to: '부산', when: '11:00' } },
-  { label: '지금 나가면 부산 언제?', query: { mode: 'departNow', from: '집', to: '부산', when: null } },
-]
+/**
+ * 판에 거는 날짜 딱지.
+ *
+ * formatClock 은 "내일 10:59" 한 덩어리로 주는데, 판에서는 숫자만 크게 걸고
+ * 날짜는 작은 딱지로 옆에 둬야 한다 — 호박색 숫자 안에 한글이 섞이면
+ * 제일 커야 할 것이 시각이 아니라 문장이 된다.
+ */
+function dayTag(d: Date, base: Date, c: I18nShape['clock']): string | null {
+  const off = dayOffset(d, base)
+  if (off === 0) return null
+  if (off === 1) return c.tomorrow
+  if (off === 2) return c.dayAfter
+  return c.nDays(off)
+}
+
+/**
+ * 눌러보는 예시. 딱지는 화면 언어를 따르고, 목적지는 한국어 지명 그대로 둔다 —
+ * 국내 경로 API 가 그 글자를 그대로 검색하기 때문이다.
+ */
+function examplesFor(t: I18nShape): { label: string; query: QueryInput }[] {
+  return [
+    { label: t.empty.exampleArrive, query: { mode: 'arriveBy', from: '집', to: '부산', when: '11:00' } },
+    { label: t.empty.exampleNow, query: { mode: 'departNow', from: '집', to: '부산', when: null } },
+  ]
+}
 
 export function HomePage() {
   const { lang } = usePrefs()
@@ -148,13 +169,19 @@ export function HomePage() {
 
       <Hero
         t={t}
+        pending={pending}
           headline={
             outcome?.kind === 'trip' && shown ? (
               <div className="verdict">
-                <p className="verdict__depart">
-                  <span className="verdict__time num">{clock(shown.legs[0].departAt)}</span>
-                  <span className="verdict__suffix">{t.result.departSuffix}</span>
-                </p>
+                <div className="verdict__depart">
+                  {dayTag(shown.legs[0].departAt, now, t.clock) && (
+                    <span className="verdict__day">
+                      {dayTag(shown.legs[0].departAt, now, t.clock)}
+                    </span>
+                  )}
+                  <span className="verdict__time num">{hhmm(shown.legs[0].departAt)}</span>
+                  <Countdown departAt={shown.legs[0].departAt} t={t} />
+                </div>
                 <p className="verdict__arrive">
                   {t.result.arriveAt(clock(shown.legs[shown.legs.length - 1].arriveAt))}
                   <span className="verdict__sep">·</span>
@@ -179,7 +206,6 @@ export function HomePage() {
                     {t.result.resolvedAs(resolved.from.name, resolved.to.name)}
                   </p>
                 )}
-                <Countdown departAt={shown.legs[0].departAt} t={t} />
                 <TripStats legs={shown.legs} t={t} />
               </div>
             ) : undefined
@@ -189,7 +215,7 @@ export function HomePage() {
             <section className="empty">
               <p className="empty__label">{t.empty.examples}</p>
               <div className="empty__chips">
-                {EXAMPLES.map((e) => (
+                {examplesFor(t).map((e) => (
                   <button key={e.label} className="example" type="button" onClick={() => run(e.query)}>
                     {e.label}
                   </button>

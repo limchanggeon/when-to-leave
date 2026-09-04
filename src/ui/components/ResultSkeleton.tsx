@@ -1,17 +1,15 @@
 /**
  * 계산 중 자리를 지키는 뼈대.
  *
- * 버튼만 "계산 중…" 으로 바뀌면 화면이 멈춘 것처럼 보인다.
  * 결과가 들어올 모양을 미리 보여주면 기다리는 느낌이 덜하고,
  * 결과가 나타날 때 화면이 덜 튄다.
+ *
+ * 답의 자리는 여기 두지 않는다 — 판이 이미 들고 있고, 거기서 꺼진 자릿수가
+ * 깜빡이고 있다. 가짜 답 상자를 하나 더 두면 답이 어디 걸리는지 흐려진다.
  */
 export function ResultSkeleton() {
   return (
     <div className="skeleton" aria-hidden="true">
-      <div className="skeleton__verdict">
-        <div className="sk sk--title" />
-        <div className="sk sk--line" />
-      </div>
       <div className="skeleton__columns">
         <div className="skeleton__main">
           {[0, 1, 2, 3].map((i) => (

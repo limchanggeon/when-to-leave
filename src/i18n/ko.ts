@@ -14,6 +14,12 @@ export const ko = {
       '몇 시에 집을 나서야 하는지 알려드립니다.',
     ],
   },
+  /** 판에 늘 걸려 있는 것 — 검색 전에는 빈 칸이, 검색 후에는 답이 들어간다. */
+  board: {
+    slotLabel: '나가실 시각',
+    waiting: '어디로 몇 시까지 가는지 넣으면 여기 걸립니다',
+    query: '조회',
+  },
   search: {
     placeholder: '예: 수서에서 동대구 11시까지',
     submit: '계산하기',
@@ -58,7 +64,9 @@ export const ko = {
     tabLogin: '로그인',
     tabRegister: '회원가입',
     email: '이메일',
+    emailPlaceholder: 'name@example.com',
     password: '비밀번호',
+    passwordPlaceholder: '8자 이상',
     name: '이름',
     namePlaceholder: '표시될 이름 (선택)',
     submitLogin: '로그인',
@@ -220,9 +228,9 @@ export const ko = {
     title: '도착 시각에서 거꾸로 계산합니다',
     lead: '지도 앱은 "지금 출발하면 언제 도착"까지만 답합니다. 그 반대 질문은 열차 시간표 때문에 단순 뺄셈으로 풀리지 않습니다.',
     steps: [
-      { n: '01', title: '도착해야 할 시각을 알려주세요', body: '"11시까지 부산" 처럼 목적지와 시각만 있으면 됩니다.' },
-      { n: '02', title: '구간을 거꾸로 훑습니다', body: '도보·환승·열차 시간표를 뒤에서부터 짚어가며 각 구간이 지켜야 할 데드라인을 계산합니다.' },
-      { n: '03', title: '나가야 할 시각이 나옵니다', body: '표가 없으면 다른 역·다른 수단으로 다시 계산해 대안까지 함께 보여줍니다.' },
+      { title: '도착해야 할 시각을 알려주세요', body: '"11시까지 부산" 처럼 목적지와 시각만 있으면 됩니다.' },
+      { title: '구간을 거꾸로 훑습니다', body: '도보·환승·열차 시간표를 뒤에서부터 짚어가며 각 구간이 지켜야 할 데드라인을 계산합니다.' },
+      { title: '나가야 할 시각이 나옵니다', body: '표가 없으면 다른 역·다른 수단으로 다시 계산해 대안까지 함께 보여줍니다.' },
     ],
   },
   footer: {
@@ -237,7 +245,7 @@ export const ko = {
     arriveAt: (t: string) => `${t} 도착`,
     leaveIn: (m: string) => `${m} 후 출발`,
     leaveNow: '지금 나가세요',
-    overdue: (m: string) => `${m} 지났어요`,
+    overdueLabel: '출발 시각이 지났어요',
     resolvedAs: (a: string, b: string) => `${a} → ${b} 기준`,
     countdownLabel: '출발까지',
     totalDuration: (m: string) => `총 ${m}`,
@@ -263,6 +271,9 @@ export const ko = {
     title: '어디로 가세요?',
     body: '목적지와 도착 시각을 말하면 몇 시에 나가야 하는지 계산합니다.',
     examples: '이렇게 물어보세요',
+    /* 목적지는 국내 경로 API 로 가므로 한국어 지명 그대로 두고, 딱지만 번역한다. */
+    exampleArrive: '부산 11시까지',
+    exampleNow: '지금 나가면 부산 언제?',
   },
   leg: {
     walk: '도보',
