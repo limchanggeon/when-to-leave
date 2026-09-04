@@ -1,7 +1,7 @@
 import { config } from '../config'
 import { loadScript } from '../auth/types'
-import type { Place } from '../engine/types'
-import { withCoords, type MapFailure, type MapHandle, type MapProvider } from './types'
+import type { Leg } from '../engine/types'
+import { placesOf, withCoords, type MapFailure, type MapHandle, type MapProvider } from './types'
 
 const SDK = (key: string) =>
   `https://maps.googleapis.com/maps/api/js?key=${key}&v=weekly`
@@ -23,13 +23,13 @@ export const googleMap: MapProvider = {
   configured: Boolean(config.google.mapsKey),
   supports: (country) => country !== 'KR',
 
-  async render(el: HTMLElement, places: Place[]) {
+  async render(el: HTMLElement, legs: Leg[]) {
     const key = config.google.mapsKey
     if (!key) {
       return { ok: false as const, failure: { code: 'not-configured', provider: 'google-map', envVar: 'VITE_GOOGLE_MAPS_KEY' } as MapFailure }
     }
 
-    const points = withCoords(places)
+    const points = withCoords(placesOf(legs))
     if (points.length === 0) {
       return { ok: false as const, failure: { code: 'no-coords', provider: 'google-map' } as MapFailure }
     }

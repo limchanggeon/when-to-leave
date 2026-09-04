@@ -3,6 +3,12 @@ import { fetchJson } from './http'
 import type { GeoPoint } from './geocode'
 
 const PATH_URL = 'https://api.odsay.com/v1/api/searchPubTransPathT'
+const LANE_URL = 'https://api.odsay.com/v1/api/loadLane'
+
+export interface LatLng {
+  lat: number
+  lng: number
+}
 
 /** 클라이언트로 넘길 구간. JSON 으로 안전한 값만 담는다(시각은 ISO 문자열). */
 export interface WireLeg {
@@ -31,6 +37,14 @@ export interface WireLeg {
    * 이 앱의 알맹이가 여기서 살아난다.
    */
   runs?: { departAt: string; arriveAt: string; carrier: string; fare?: number }[]
+  /**
+   * 이 구간이 실제로 지나는 길(위경도 열).
+   *
+   * 없으면 지도가 양 끝을 직선으로 잇는데, 그러면 산이나 강 위를
+   * 가로지르는 그림이 나온다 — 경로 선택은 멀쩡한데 그림만 거짓말을 한다.
+   * 도보 구간은 ODsay 가 선형을 주지 않으므로 계속 비어 있다.
+   */
+  shape?: LatLng[]
 }
 
 export interface WireRoute {
@@ -83,10 +97,15 @@ interface OdsayError {
   msg?: string
 }
 
+interface LaneResponse {
+  result?: { lane?: { section?: { graphPos?: { x: number; y: number }[] }[] }[] }
+  error?: OdsayResponse['error']
+}
+
 interface OdsayResponse {
   /** 객체로 올 때도 있고 배열로 올 때도 있다(쿼터 초과는 배열). */
   error?: OdsayError | OdsayError[]
-  result?: { path?: { info?: { totalTime?: number }; subPath?: OdsaySubPath[] }[] }
+  result?: { path?: { info?: { totalTime?: number; mapObj?: string }; subPath?: OdsaySubPath[] }[] }
 }
 
 function readError(err: OdsayResponse['error']): { code: string; message: string } | null {
@@ -176,6 +195,52 @@ function toLegs(subPaths: OdsaySubPath[], from: GeoPoint, to: GeoPoint): WireLeg
   })
 }
 
+/**
+ * 경로의 실제 선형을 받아온다.
+ *
+ * lane[i] 가 i 번째 대중교통 구간에 순서대로 대응한다(확인함).
+ * 호출이 경로당 하나 더 늘어나므로 mapObj 로 캐시한다 — 같은 경로면
+ * mapObj 도 같아서 재조회가 없다. 실패는 null 로 기억해 재시도도 막는다.
+ */
+const laneCache = new Map<string, LatLng[][] | null>()
+
+async function loadLane(mapObj: string): Promise<LatLng[][] | null> {
+  const hit = laneCache.get(mapObj)
+  if (hit !== undefined) return hit
+
+  const url =
+    `${LANE_URL}?apiKey=${encodeURIComponent(serverEnv.odsayKey!)}` +
+    `&mapObject=0:0@${encodeURIComponent(mapObj)}`
+  const res = await fetchJson<LaneResponse>(
+    url,
+    { headers: { Referer: serverEnv.odsayReferer } },
+    { label: 'ODsay 노선 선형' },
+  )
+
+  let lanes: LatLng[][] | null = null
+  if (res.ok && !readError(res.data.error)) {
+    const got = (res.data.result?.lane ?? []).map((l) =>
+      (l.section ?? []).flatMap((sec) =>
+        (sec.graphPos ?? []).map((g) => ({ lat: g.y, lng: g.x })),
+      ),
+    )
+    if (got.some((g) => g.length > 1)) lanes = got
+  }
+  laneCache.set(mapObj, lanes)
+  return lanes
+}
+
+/** 선형을 대중교통 구간에 순서대로 붙인다. 도보는 건너뛴다. */
+function attachShapes(legs: WireLeg[], lanes: LatLng[][] | null): WireLeg[] {
+  if (!lanes) return legs
+  let i = 0
+  return legs.map((leg) => {
+    if (leg.kind === 'walk') return leg
+    const shape = lanes[i++]
+    return shape && shape.length > 1 ? { ...leg, shape } : leg
+  })
+}
+
 /** 두 지점 사이 거리(km). 시내/시외 검색을 가르는 데 쓴다. */
 function distanceKm(a: GeoPoint, b: GeoPoint): number {
   const R = 6371
@@ -241,11 +306,15 @@ async function call(from: GeoPoint, to: GeoPoint, searchType: 0 | 1): Promise<Ro
     return { ok: false, code: 'upstream-error', message: err.message }
   }
 
-  const paths = json.result?.path ?? []
-  const routes: WireRoute[] = paths
-    .slice(0, 3) // 대안까지 최대 3개
-    .map((p) => ({ legs: toLegs(p.subPath ?? [], from, to), totalMin: p.info?.totalTime ?? 0 }))
-    .filter((r) => r.legs.length > 0)
+  const paths = (json.result?.path ?? []).slice(0, 3) // 대안까지 최대 3개
+  const built = await Promise.all(
+    paths.map(async (p) => {
+      const legs = toLegs(p.subPath ?? [], from, to)
+      const lanes = p.info?.mapObj ? await loadLane(p.info.mapObj) : null
+      return { legs: attachShapes(legs, lanes), totalMin: p.info?.totalTime ?? 0 }
+    }),
+  )
+  const routes: WireRoute[] = built.filter((r) => r.legs.length > 0)
 
   if (routes.length === 0) {
     return { ok: false, code: 'no-data', message: '이 구간의 대중교통 경로를 찾지 못했습니다' }

@@ -1,4 +1,4 @@
-import type { LegSpec, Place } from '../../engine/types'
+import type { LatLng, LegSpec, Place } from '../../engine/types'
 import type { AdapterResult, LabeledRoute, RouteAdapter, RouteRequest } from '../types'
 import { fail } from '../types'
 
@@ -16,6 +16,8 @@ interface WireLeg {
   fare?: number
   /** 실제 운행 시각(TAGO). 있으면 이 구간은 이산 구간이 된다. */
   runs?: { departAt: string; arriveAt: string; carrier: string; fare?: number }[]
+  /** 구간이 실제로 지나는 길(ODsay loadLane). 도보 구간에는 없다. */
+  shape?: LatLng[]
 }
 
 interface WireRoute {
@@ -68,6 +70,7 @@ const toSpecs = (legs: WireLeg[]): LegSpec[] =>
       departures: departures?.length ? departures : undefined,
       source: SOURCE,
       origin: 'live' as const,
+      shape: leg.shape,
     }
   })
 

@@ -25,6 +25,12 @@ export interface SeatInfo {
  * - 연속 구간(도보/택시): durationMin 만 쓴다.
  * - 이산 구간(열차/항공/지하철): departures 중 하나를 엔진이 고른다.
  */
+/** 위경도 한 점. 구간이 실제로 지나는 길을 그리는 데 쓴다. */
+export interface LatLng {
+  lat: number
+  lng: number
+}
+
 export interface LegSpec {
   kind: LegKind
   from: Place
@@ -57,6 +63,11 @@ export interface LegSpec {
    * 구간이 생기면 그때 구분해 표시하기 위한 자리다.
    */
   origin: 'mock' | 'live'
+  /**
+   * 이 구간이 실제로 지나는 길. 없으면 지도가 양 끝을 직선으로 잇는데,
+   * 그러면 산이나 강 위를 가로지르는 그림이 나온다.
+   */
+  shape?: LatLng[]
 }
 
 export interface Departure {
@@ -92,6 +103,8 @@ export interface Leg {
   source: string
   origin: 'mock' | 'live'
   bookingUrl?: string
+  /** 구간이 실제로 지나는 길. spec 에서 그대로 넘어온다. */
+  shape?: LatLng[]
 }
 
 export interface Trip {

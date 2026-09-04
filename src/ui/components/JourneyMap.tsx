@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CountryCode } from '../../adapters/types'
-import type { Leg, Place } from '../../engine/types'
+import type { Leg } from '../../engine/types'
 import { pickMap } from '../../map/registry'
 import type { MapFailure, MapHandle } from '../../map/types'
 import type { I18nShape } from '../../i18n'
@@ -44,8 +44,7 @@ export function JourneyMap({
     const el = ref.current
     if (!el || !provider) return
 
-    const places: Place[] = [...legs.map((l) => l.from), legs[legs.length - 1].to]
-    provider.render(el, places).then((r) => {
+    provider.render(el, legs).then((r) => {
       if (cancelled) return
       setFailure(r.ok ? null : r.failure)
       handleRef.current = r.ok ? r.handle : null
