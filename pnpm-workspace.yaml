@@ -2,5 +2,12 @@
 #
 # pnpm 은 의존성의 빌드 스크립트를 기본으로 막는다(공급망 보호). esbuild 는
 # 그 단계에서 자기 실행 파일을 놓기 때문에, 막히면 vite build 가 실패한다.
+#
+# 키 이름이 버전 사이에 바뀌었다. 둘 다 적어 어느 쪽이든 통하게 한다.
+#   pnpm 11+  → allowBuilds
+#   pnpm 10.x → onlyBuiltDependencies
+allowBuilds:
+  esbuild: true
+
 onlyBuiltDependencies:
   - esbuild
