@@ -38,11 +38,24 @@ Compute Engine → 인스턴스 만들기. **무료 한도를 지키려면 네 �
 
 ### AWS Lightsail — 월 $5, 대신 서울
 
-인스턴스 생성 → 리전 **서울(ap-northeast-2)** → Linux/Unix → OS 전용 →
-**Ubuntu** → $5 플랜. 첫 3개월 무료.
+<https://lightsail.aws.amazon.com/> → 우측 상단 리전이 **서울(ap-northeast-2)**
+인지 확인 → **인스턴스 생성**
 
-만든 뒤 **네트워킹 탭에서 고정 IP 연결**, 그리고 방화벽에 **HTTP(80)** 과
-**HTTPS(443)** 규칙 추가.
+| 항목 | 값 |
+|---|---|
+| 인스턴스 위치 | 서울, 가용 영역 A |
+| 플랫폼 | Linux/Unix |
+| 블루프린트 | **OS 전용** → Ubuntu (최신 LTS) |
+| 플랜 | **$5/월** (1GB RAM). 첫 3개월 무료 |
+| 이름 | `whenigo` |
+
+만든 뒤 인스턴스 → **네트워킹** 탭에서 두 가지:
+
+1. **고정 IP 생성**해서 이 인스턴스에 연결 (붙어 있는 동안은 무료)
+2. IPv4 방화벽에 **HTTP(80)** 과 **HTTPS(443)** 규칙 추가
+
+블루프린트가 Ubuntu 24.04 여도 상관없다. 기본 Node 가 18 이라 부족하지만
+bootstrap 이 알아서 NodeSource 로 올린다.
 
 > S3 나 Amplify 같은 정적 웹 호스팅으로는 안 된다. 파일만 내보내는 서비스라
 > Node 서버와 SQLite 가 돌 곳이 없다.
@@ -51,37 +64,30 @@ Compute Engine → 인스턴스 만들기. **무료 한도를 지키려면 네 �
 
 저장소가 **비공개**라 스크립트를 VM 으로 옮기는 방법이 갈린다.
 
-### 가장 쉬운 길 — 저장소를 공개로
+> **저장소를 공개로 돌리지 말 것.** 초기 커밋(`710ebb5`)의 `.env.example` 에
+> 브라우저용 키 두 개(`VITE_KAKAO_JS_KEY`, `VITE_GOOGLE_MAPS_KEY`)가 값째로
+> 들어갔다가 나중에 지워졌다. 파일에서는 지웠지만 **히스토리에는 남아 있다.**
+> 서버 비밀값(client_secret·ODsay·TAGO)은 커밋된 적이 없다.
 
-```bash
-gh repo edit limchanggeon/when-to-leave --visibility public --accept-visibility-change-consequences
-```
-
-코드에 비밀값은 없다. `.env` 는 `.gitignore` 에 있어 올라간 적이 없고
-`.env.example` 은 빈 껍데기다. 공개로 돌리면 VM 에서 이 한 줄이면 끝난다:
-
-```bash
-curl -fsSLO https://raw.githubusercontent.com/limchanggeon/when-to-leave/main/deploy/bootstrap.sh
-sudo DOMAIN=whenigo.p-e.kr \
-     REPO=https://github.com/limchanggeon/when-to-leave.git \
-     bash bootstrap.sh
-```
-
-### 비공개로 두겠다면 — 맥에서 올려보내기
+### 맥에서 스크립트를 올려보낸다
 
 먼저 스크립트를 VM 으로 복사한다.
 
 ```bash
+# Lightsail — 계정 → SSH 키 에서 기본 키를 내려받아 두고
+chmod 400 ~/Downloads/LightsailDefaultKey-ap-northeast-2.pem
+scp -i ~/Downloads/LightsailDefaultKey-ap-northeast-2.pem \
+    deploy/bootstrap.sh ubuntu@<고정IP>:~
+
 # GCP
 gcloud compute scp deploy/bootstrap.sh <인스턴스이름>:~ --zone <존>
-
-# Lightsail / EC2
-scp -i <키.pem> deploy/bootstrap.sh ubuntu@<서버IP>:~
 ```
 
 그리고 VM 에서:
 
 ```bash
+ssh -i ~/Downloads/LightsailDefaultKey-ap-northeast-2.pem ubuntu@<고정IP>
+
 sudo DOMAIN=whenigo.p-e.kr \
      REPO=git@github.com:limchanggeon/when-to-leave.git \
      bash bootstrap.sh
