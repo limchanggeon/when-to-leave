@@ -45,6 +45,14 @@ export interface WireLeg {
    * 도보 구간은 ODsay 가 선형을 주지 않으므로 계속 비어 있다.
    */
   shape?: LatLng[]
+  /**
+   * 어느 TAGO 시각표에 물어봐야 하는가.
+   *
+   * ODsay 의 trafficType 은 고속버스(5)와 시외버스(6)를 구분하는데
+   * kind 로 옮기면 둘 다 'bus' 가 되어 사라진다. 시각표 서비스가
+   * 서로 다르고 터미널 코드 체계까지 달라서(NAEK… vs NAI…) 여기 남긴다.
+   */
+  tagoKind?: 'train' | 'expressBus' | 'suburbsBus' | 'subway' | 'flight'
 }
 
 export interface WireRoute {
@@ -55,6 +63,15 @@ export interface WireRoute {
 export type RouteResult =
   | { ok: true; routes: WireRoute[] }
   | { ok: false; code: 'no-credentials' | 'no-data' | 'network' | 'upstream-error'; message: string }
+
+/** 시각표를 어디서 받아올지. 시내버스(2)는 TAGO 에 해당 서비스가 없다. */
+const TAGO_KIND: Record<number, NonNullable<WireLeg['tagoKind']>> = {
+  1: 'subway',
+  4: 'train',
+  5: 'expressBus',
+  6: 'suburbsBus',
+  7: 'flight',
+}
 
 /** 시내: 1=지하철 2=버스 3=도보 / 시외: 4=기차 5=고속버스 6=시외버스 7=항공 */
 const TRAFFIC: Record<number, WireLeg['kind']> = {
@@ -191,6 +208,7 @@ function toLegs(subPaths: OdsaySubPath[], from: GeoPoint, to: GeoPoint): WireLeg
       runsPerDay: sub.intervalCount,
       fare: sub.payment,
       premiumSeat: sub.trainSpSeatYn === 'Y' ? true : undefined,
+      tagoKind: TAGO_KIND[sub.trafficType],
     }
   })
 }

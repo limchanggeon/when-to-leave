@@ -34,6 +34,13 @@ import { geocode, reverseGeocode, type GeoPoint } from './geocode'
 import { searchTransitRoute, type WireRoute } from './odsay'
 import { trainsBetween } from './tago'
 import {
+  expressBusesBetween,
+  flightsBetween,
+  suburbsBusesBetween,
+  subwayDeparturesBetween,
+  type Run,
+} from './tagoSchedules'
+import {
   GOOGLE_HAS_NO_TRANSIT,
   geocodeWorld,
   searchTransitGoogle,
@@ -251,7 +258,7 @@ app.post('/api/route', async (req, res) => {
     // 첫 경로가 추천안, 나머지는 대안으로 쓴다
     // 열차 구간에 실제 시각표를 붙인다. ODsay 는 배차 간격만 주므로
     // 이게 없으면 역산이 "몇 분마다 온다" 수준에 머문다.
-    const enriched = await withTrainTimetables(route.routes)
+    const enriched = await withTimetables(route.routes)
     res.json({ routes: enriched, from: start, to: end })
   } catch (e) {
     // 여기까지 온 건 예상 못 한 오류다. 원본은 서버 로그에만 남기고
@@ -365,15 +372,26 @@ app.post('/api/auth/google', async (req, res) => {
  * 같은 구간이 여러 경로에 겹쳐 나오므로 한 번만 조회해 나눠 쓴다 —
  * 공공데이터포털은 일일 호출 한도가 있다.
  */
-async function withTrainTimetables(routes: WireRoute[]): Promise<WireRoute[]> {
-  const cache = new Map<string, Awaited<ReturnType<typeof trainsBetween>>>()
+/**
+ * ODsay 가 준 구간에 **실제 운행 시각**을 채운다.
+ *
+ * ODsay 는 소요시간과 평균 배차만 준다. 시각이 붙은 구간만 엔진에서
+ * 이산 구간이 되어 "이 편을 타려면 언제까지 도착해야 하는가" 를 앞으로
+ * 전파한다 — 이 앱의 알맹이다. 못 채운 구간은 예전처럼 연속 구간으로 남는다.
+ *
+ * 수단마다 TAGO 서비스가 다르고, 시내버스는 시각표 서비스 자체가 없다.
+ */
+async function withTimetables(routes: WireRoute[]): Promise<WireRoute[]> {
+  const cache = new Map<string, Run[] | null>()
+  const now = new Date()
 
   for (const route of routes) {
     for (const leg of route.legs) {
-      if (leg.kind !== 'train') continue
-      const key = `${leg.from.name}>${leg.to.name}`
+      if (!leg.tagoKind) continue
+
+      const key = `${leg.tagoKind}:${leg.from.name}>${leg.to.name}`
       if (!cache.has(key)) {
-        cache.set(key, await trainsBetween(leg.from.name, leg.to.name, new Date()))
+        cache.set(key, await lookupRuns(leg, now))
       }
       const runs = cache.get(key)
       if (!runs?.length) continue
@@ -381,12 +399,40 @@ async function withTrainTimetables(routes: WireRoute[]): Promise<WireRoute[]> {
       leg.runs = runs.map((r) => ({
         departAt: r.departAt,
         arriveAt: r.arriveAt,
-        carrier: [r.grade, r.trainNo].filter(Boolean).join(' ').trim(),
+        carrier: r.carrier,
         fare: r.fare,
       }))
     }
   }
   return routes
+}
+
+async function lookupRuns(leg: WireRoute['legs'][number], now: Date): Promise<Run[] | null> {
+  const a = leg.from.name
+  const b = leg.to.name
+  switch (leg.tagoKind) {
+    case 'train': {
+      const runs = await trainsBetween(a, b, now)
+      return (
+        runs?.map((r) => ({
+          departAt: r.departAt,
+          arriveAt: r.arriveAt,
+          carrier: [r.grade, r.trainNo].filter(Boolean).join(' ').trim(),
+          fare: r.fare,
+        })) ?? null
+      )
+    }
+    case 'expressBus':
+      return expressBusesBetween(a, b, now)
+    case 'suburbsBus':
+      return suburbsBusesBetween(a, b, now)
+    case 'flight':
+      return flightsBetween(a, b, now)
+    case 'subway':
+      return subwayDeparturesBetween(a, b, now, leg.durationMin)
+    default:
+      return null
+  }
 }
 
 app.post('/api/auth/logout', (req, res) => {

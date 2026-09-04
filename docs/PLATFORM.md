@@ -28,3 +28,42 @@ CSS는 지금은 일반 CSS를 쓰되, 나중에 RN을 고르면 style 객체로
 
 - 로컬 저장은 `src/ui/storage.ts` 의 인터페이스 뒤에 둔다(웹은 localStorage, 앱은 나중에 SecureStore 등으로 교체).
 - 날짜는 항상 `Date` 객체로 다루고 포맷은 `src/engine/time.ts` 에서만 한다 — 플랫폼별 로케일 API에 흩뿌리지 않는다.
+
+
+## TAGO (공공데이터포털) — 찔러보고 알아낸 것
+
+문서와 실제가 자주 어긋난다. 아래는 전부 실제 호출로 확인한 값이다.
+
+### 오퍼레이션 대소문자가 서비스마다 다르다
+
+가장 많이 시간을 버린 함정. 틀리면 키 문제처럼 보이는
+`[12] 해당 오픈API 서비스가 없거나 폐기됨` 이 온다.
+
+| 서비스 | 첫 글자 | 예 |
+|---|---|---|
+| TrainInfo · ExpBusInfo · SuburbsBusInfo · SubwayInfo · DmstcFlightNvgInfo | **대문자** | `GetStrtpntAlocFndTrainInfo` |
+| ArvlInfoInqireService · BusLcInfoInqireService | **소문자** | `getSttnAcctoArvlPrearngeInfoList` |
+
+### 그 밖의 함정
+
+- **시외버스 터미널 목록은 `GetSuberbsBusTrminlList`** 다.
+  도시별(`GetCtyAcctoSuberbsBusTrminlList`)은 존재하지 않는다.
+- **터미널 코드 체계가 고속과 시외가 다르다.** 고속은 `NAEK300`,
+  시외는 `NAI3455101`. 같은 "대전복합" 이라도 서로 못 쓴다.
+- **시각 자릿수가 다르다.** 고속버스·항공은 12자리(`202609040600`),
+  시외버스는 14자리(`20260904063000`). 앞 12자리만 쓰면 둘 다 맞는다.
+- **지하철에는 노선의 역 순서를 주는 API 가 없다**(오퍼레이션이 4개뿐).
+  대신 역 ID 에 순번이 들어 있다 — 강남 `MTRS12222`, 역삼 `2221`,
+  삼성 `2219`. 종점 ID 가 목적지와 같은 쪽인 방향을 고르면 상·하행이 갈린다.
+- **지하철 dailyTypeCode 는 01(평일)/02(토)/03(일·공휴일)** 이고,
+  **02 가 비어 있는 노선이 있다.** 하루가 비었다고 전체를 버리면 안 된다.
+- **키 하나가 모든 서비스를 열지 않는다.** 서비스마다 따로 신청해야 하고,
+  미신청이면 `[30] 등록되지 않은 서비스키` 가 온다.
+
+### 아직 못 붙인 것
+
+- **버스도착정보**(`ArvlInfoInqireService`)는 동작하지만 `nodeId` 가 필요하다.
+  좌표로 정류소를 찾아주는 **정류소정보**(`BusSttnInfoInqireService`)가
+  미신청이라 ODsay 의 정류장과 이어붙일 수 없다.
+- **버스위치정보**(`BusLcInfoInqireService`)는 `routeId` 가 필요하고,
+  그것을 주는 **노선정보**(`BusRouteInfoInqireService`)도 미신청이다.

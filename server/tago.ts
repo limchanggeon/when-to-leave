@@ -1,7 +1,25 @@
 import { serverEnv } from './env'
 import { fetchJson } from './http'
 
-const BASE = 'https://apis.data.go.kr/1613000/TrainInfo'
+const ROOT = 'https://apis.data.go.kr/1613000'
+
+/**
+ * TAGO 서비스별 엔드포인트.
+ *
+ * ⚠ 오퍼레이션 이름의 대소문자가 **서비스마다 다르다.** 실시간 계열은
+ * 소문자로, 시각표 계열은 대문자로 시작한다. 반대로 부르면 조용히
+ * "[12] 해당 오픈API 서비스가 없거나 폐기됨" 이 온다 — 키 문제로 착각하기 쉽다.
+ * 아래 주석의 대소문자는 전부 실제로 찔러보고 확인한 것이다.
+ */
+export const TAGO = {
+  train: 'TrainInfo', //          GetCtyCodeList / GetCtyAcctoTrainSttnList / GetStrtpntAlocFndTrainInfo
+  expBus: 'ExpBusInfo', //        GetExpBusTrminlList / GetStrtpntAlocFndExpbusInfo
+  suburbsBus: 'SuburbsBusInfo', //GetSuberbsBusTrminlList / GetStrtpntAlocFndSuberbsBusInfo
+  subway: 'SubwayInfo', //        GetKwrdFndSubwaySttnList / GetSubwaySttnAcctoSchdulList
+  flight: 'DmstcFlightNvgInfo', //GetArprtList / GetFlightOpratInfoList
+  busArrival: 'ArvlInfoInqireService', // getSttnAcctoArvlPrearngeInfoList  ← 소문자
+  busLocation: 'BusLcInfoInqireService', // getRouteAcctoBusLcList          ← 소문자
+} as const
 
 /**
  * 국내 열차 시각표(TAGO).
@@ -19,7 +37,7 @@ export interface TrainRun {
   fare?: number
 }
 
-interface TagoResponse<T> {
+export interface TagoResponse<T> {
   response?: {
     header?: { resultCode?: string; resultMsg?: string }
     body?: { totalCount?: number; items?: { item?: T | T[] } }
@@ -28,9 +46,14 @@ interface TagoResponse<T> {
 }
 
 /** items.item 은 하나면 객체, 여럿이면 배열로 온다. */
-const asList = <T,>(v: T | T[] | undefined): T[] => (v ? (Array.isArray(v) ? v : [v]) : [])
+export const asList = <T,>(v: T | T[] | undefined): T[] => (v ? (Array.isArray(v) ? v : [v]) : [])
 
-async function call<T>(op: string, params: Record<string, string>): Promise<T[] | null> {
+/** 어느 TAGO 서비스든 부른다. 실패는 예외가 아니라 null 이다 — 화면이 빈 칸을 알린다. */
+export async function tagoCall<T>(
+  service: string,
+  op: string,
+  params: Record<string, string>,
+): Promise<T[] | null> {
   if (!serverEnv.tagoKey) return null
 
   const query = new URLSearchParams({
@@ -40,16 +63,23 @@ async function call<T>(op: string, params: Record<string, string>): Promise<T[] 
     pageNo: '1',
     ...params,
   })
-  const res = await fetchJson<TagoResponse<T>>(`${BASE}/${op}?${query}`, {}, { label: 'TAGO 열차정보' })
+  const res = await fetchJson<TagoResponse<T>>(
+    `${ROOT}/${service}/${op}?${query}`,
+    {},
+    { label: `TAGO ${service}` },
+  )
   if (!res.ok) return null
 
   const err = res.data.OpenAPI_ServiceResponse?.cmmMsgHeader
   if (err) {
-    console.error(`[tago] ${op}: ${err.returnAuthMsg} (${err.returnReasonCode})`)
+    console.error(`[tago] ${service}/${op}: ${err.returnAuthMsg} (${err.returnReasonCode})`)
     return null
   }
   return asList(res.data.response?.body?.items?.item)
 }
+
+const call = <T,>(op: string, params: Record<string, string>) =>
+  tagoCall<T>(TAGO.train, op, params)
 
 /* ---------------- 역 이름 → 코드 ---------------- */
 
@@ -111,8 +141,13 @@ interface TrainRow {
   adultcharge?: string | number
 }
 
-/** "20260901063400" → Date */
-function parseStamp(v: string | number | undefined): Date | null {
+/**
+ * "20260901063400" → Date.
+ *
+ * 자릿수가 서비스마다 다르다 — 고속버스·항공은 12자리(분까지),
+ * 시외버스는 14자리(초까지)로 온다. 앞 12자리만 쓰면 둘 다 맞는다.
+ */
+export function parseStamp(v: string | number | undefined): Date | null {
   const s = String(v ?? '')
   if (s.length < 12) return null
   const d = new Date(
@@ -125,7 +160,7 @@ function parseStamp(v: string | number | undefined): Date | null {
   return Number.isNaN(d.getTime()) ? null : d
 }
 
-const yyyymmdd = (d: Date) =>
+export const yyyymmdd = (d: Date) =>
   `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`
 
 /**
