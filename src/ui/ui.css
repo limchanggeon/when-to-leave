@@ -516,18 +516,54 @@
 
 /* ================= 푸터 ================= */
 .sitefooter { border-top: 1px solid var(--rule); background: var(--surface); margin-top: auto; }
-.sitefooter__inner {
-  max-width: 1120px; margin: 0 auto; padding: var(--sp-8) var(--sp-6);
-  display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-8); flex-wrap: wrap;
+
+/*
+ * 갈래를 나눈 링크 판. 마지막 칸은 로고와 한 줄짜리 표어가 들어가고,
+ * 남는 폭을 그 칸이 먹어 링크들이 왼쪽에 모이게 한다.
+ */
+.sitefooter__cols {
+  max-width: 1120px; margin: 0 auto; padding: var(--sp-10) var(--sp-6) var(--sp-8);
+  display: grid; gap: var(--sp-8);
+  grid-template-columns: repeat(4, minmax(0, max-content)) 1fr;
 }
-.sitefooter__brand { display: flex; align-items: flex-start; gap: var(--sp-3); max-width: 340px; }
-.sitefooter__logo { width: 30px; height: 30px; color: var(--brand); flex: 0 0 auto; }
-.sitefooter__name { margin: 0; font-weight: 700; font-size: 1rem; }
-.sitefooter__tagline { margin: var(--sp-1) 0 0; font-size: 0.88rem; color: var(--ink-soft); line-height: 1.6; }
-/* 갈래로 묶을 만큼 링크가 많지 않다 — 한 줄로 둔다 */
-.sitefooter__links { display: flex; gap: var(--sp-6); flex-wrap: wrap; padding-top: var(--sp-1); }
-.sitefooter__links a { font-size: 0.88rem; color: var(--ink); text-decoration: none; }
-.sitefooter__links a:hover { color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }
+.sitefooter__col { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2); }
+.sitefooter__head {
+  margin: 0 0 var(--sp-1); font-size: 0.9rem; font-weight: 700; color: var(--ink);
+}
+.sitefooter__col a,
+.sitefooter__linkbtn {
+  font-size: 0.86rem; color: var(--ink-soft); text-decoration: none; line-height: 1.5;
+}
+/* 사용법은 화면을 여는 동작이라 button 이다. 생김새만 링크와 맞춘다 */
+.sitefooter__linkbtn {
+  background: none; border: 0; padding: 0; font: inherit; font-size: 0.86rem;
+  color: var(--ink-soft); cursor: pointer; text-align: left;
+}
+.sitefooter__col a:hover,
+.sitefooter__linkbtn:hover { color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }
+
+.sitefooter__mark { justify-self: end; text-align: right; }
+.sitefooter__logo { width: 34px; height: 34px; color: var(--brand); margin-left: auto; }
+/* 표어는 안내판의 숫자가 아니므로 크게 가지 않는다 — 한 급만 올린다 */
+.sitefooter__sign {
+  margin: var(--sp-3) 0 0; font-size: 1.02rem; font-weight: 700; color: var(--ink);
+}
+
+/* 승강장 옆 고지문. 링크 판과 가는 선 하나로 나눈다 */
+.sitefooter__base {
+  border-top: 1px solid var(--rule);
+  max-width: 1120px; margin: 0 auto; padding: var(--sp-5) var(--sp-6) var(--sp-10);
+}
+.sitefooter__facts { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-6); margin: 0 0 var(--sp-3); }
+.sitefooter__facts > div { display: flex; gap: var(--sp-2); font-size: 0.84rem; }
+.sitefooter__facts dt { color: var(--ink-faint); }
+.sitefooter__facts dd { margin: 0; color: var(--ink); font-weight: 600; }
+.sitefooter__facts a { color: var(--ink); text-decoration: none; }
+.sitefooter__facts a:hover { color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }
+.sitefooter__note {
+  margin: 0 0 var(--sp-1); font-size: 0.8rem; color: var(--ink-faint);
+  line-height: 1.65; max-width: 68ch;
+}
 
 /* ================= 로그인 =================
  *
@@ -690,10 +726,20 @@
 @media (max-width: 860px) {
   .siteheader__link, .siteheader__who { display: none; }
 }
+@media (max-width: 900px) {
+  /* 다섯 칸이 눌리기 시작하는 폭. 로고 칸을 아래로 내려 링크에 폭을 준다 */
+  .sitefooter__cols { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .sitefooter__mark { grid-column: 1 / -1; justify-self: start; text-align: left; }
+  .sitefooter__logo { margin-left: 0; }
+}
+
 @media (max-width: 640px) {
   .shell { padding: var(--sp-5) var(--sp-4) var(--sp-10); }
   .how { padding: var(--sp-8) var(--sp-4); }
-  .sitefooter__inner { flex-direction: column; padding: var(--sp-8) var(--sp-4); }
+  .sitefooter__cols { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: var(--sp-8) var(--sp-4) var(--sp-6); gap: var(--sp-6); }
+  .sitefooter__mark { grid-column: 1 / -1; justify-self: start; text-align: left; }
+  .sitefooter__logo { margin-left: 0; }
+  .sitefooter__base { padding: var(--sp-5) var(--sp-4) var(--sp-8); }
   .siteheader { padding: var(--sp-3) var(--sp-4); }
   .panel__row { flex-direction: column; align-items: stretch; }
   .panel__swap { align-self: center; width: 44px; height: 36px; border-bottom: none; }
@@ -772,13 +818,6 @@
   margin: 0; font-family: var(--font-num); font-variant-numeric: tabular-nums;
   font-size: 1.12rem; font-weight: 700; color: var(--night-ink);
 }
-.sitefooter__bar {
-  border-top: 1px solid var(--rule);
-  max-width: 1120px; margin: 0 auto; padding: var(--sp-4) var(--sp-6);
-  display: flex; justify-content: space-between; gap: var(--sp-4); flex-wrap: wrap;
-  font-size: 0.82rem; color: var(--ink-faint);
-}
-.sitefooter__bar a { color: var(--brand); font-weight: 600; text-decoration: none; }
 
 @media (max-width: 1100px) {
   /* 좁아지면 지도와 대안을 한 줄로 내린다 */
@@ -796,12 +835,24 @@
   .siteheader__who { display: none; }
 }
 
+/*
+ * 아주 좁은 화면(아이폰 표준 폭)에서 머리말이 넘쳐 페이지가 가로로 밀렸다.
+ * 이름·버튼이 모두 nowrap 이라 flex 가 줄이지 못한 탓이다.
+ *
+ * 언어 전환이 폭을 가장 많이 먹는데(107px), 한국어 사용자가 가장 덜 누르는
+ * 것이기도 하다. 그래서 여기만 눈금을 더 줄인다 — 지우지는 않는다.
+ */
+@media (max-width: 420px) {
+  .siteheader { padding: var(--sp-3) var(--sp-2); gap: var(--sp-1); }
+  .langswitch__btn { padding: 5px 6px; font-size: 0.72rem; }
+  .siteheader__nav { gap: var(--sp-2); }
+}
+
 @media (max-width: 640px) {
   .quickrow__inner { padding: var(--sp-3) var(--sp-4); }
   .stats { flex-wrap: wrap; }
   .stats__item { flex: 1 1 40%; }
-  .sitefooter__bar { padding: var(--sp-4); }
-}
+  }
 
 .quickrow__item:disabled { opacity: 0.45; cursor: not-allowed; }
 .quickrow__note { flex: 0 0 auto; font-size: 0.78rem; color: var(--night-soft); }

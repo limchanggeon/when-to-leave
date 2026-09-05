@@ -187,20 +187,22 @@ export const ko = {
     account: '내 계정',
   },
   footerNav: {
-    service: '서비스',
-    data: '데이터',
+    /* 갈래 이름. 실제로 갈 수 있는 곳만 묶는다. */
+    trip: '길찾기',
     account: '계정',
+    data: '데이터 출처',
+    project: '프로젝트',
     links: {
       home: '홈',
       how: '어떻게 동작하나',
+      tour: '사용법',
       login: '로그인',
       myPage: '마이페이지',
-      places: '저장한 장소',
-      calendar: '캘린더 연동',
-      odsay: '카카오맵 · 공공데이터(TAGO)',
-      kakao: '카카오맵',
-      google: '구글 지도',
+      kakao: '카카오맵 — 길찾기·장소',
+      tago: '국토교통부 TAGO — 시각표',
+      portal: '공공데이터포털',
       source: '소스 보기',
+      contact: '문의하기',
     },
   },
   quickRoutes: {
@@ -283,6 +285,15 @@ export const ko = {
     tagline: '도착 시각에서 출발 시각을 역산하는 이동 비서',
     madeWith: '카카오맵과 공공데이터포털의 시각표로 계산합니다',
     repo: '소스 보기',
+    /* 아래는 안내판 옆에 붙은 고지문이다. 없는 사업자 정보를 지어내지 않는다. */
+    operator: '만든 사람',
+    operatorName: '임창건',
+    contactLabel: '문의',
+    contactEmail: 'ckdrjs0101@mokwon.ac.kr',
+    nonprofit: '개인이 만들어 운영하는 비영리 서비스입니다. 광고도 결제도 없습니다',
+    disclaimer:
+      '시각표는 국토교통부와 카카오가 제공한 값을 그대로 씁니다. 실제 운행과 다를 수 있으니 타기 전에 운수사 안내를 확인하세요',
+    sign: '제때 나가세요',
   },
   result: {
     departAt: (t: string) => `${t}에 나가세요`,

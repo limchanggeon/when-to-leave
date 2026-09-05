@@ -348,7 +348,7 @@ export function HomePage() {
         )}
       </div>
 
-      <SiteFooter t={t} />
+      <SiteFooter t={t} onHowTo={() => setTour(true)} />
       <Tour t={t} open={tour} onClose={() => setTour(false)} />
     </div>
   )
