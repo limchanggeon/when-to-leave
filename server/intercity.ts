@@ -150,15 +150,37 @@ async function hubsNear(point: GeoPoint, kind: HubKind, limit = 3): Promise<Hub[
   )
   if (!res.ok) return []
 
-  const hubs = (res.data.documents ?? [])
+  const found = (res.data.documents ?? [])
     .filter((d) => ok(d.category_name ?? '', d.place_name ?? ''))
     .map((d) => ({
       name: (d.place_name ?? '').trim(),
       lat: Number(d.y),
       lng: Number(d.x),
       distanceM: Number(d.distance ?? 0),
+      /* 터미널인지 정류소인지. 카카오 분류가 그대로 알려준다. */
+      isTerminal: /터미널/.test(d.category_name ?? ''),
     }))
     .filter((h) => h.name && Number.isFinite(h.lat) && Number.isFinite(h.lng))
+
+  /*
+   * 터미널을 정류소보다 앞세운다.
+   *
+   * 거리만으로 고르면 큰 터미널이 코앞의 작은 정류소들에 밀려난다. 실제로
+   * 둔산동에서 인천공항을 물으면 시외 허브 세 자리를 대전청사 정류소 셋이
+   * 차지해, 정작 공항버스가 다니는 대전복합터미널이 후보에 못 들었다.
+   * 그래서 환승 세 번짜리 시내 경로가 답이 됐다.
+   *
+   * 정류소를 버리지는 않는다 — 인천공항의 공항버스 승차장이 바로 정류소라,
+   * 빼면 도착 쪽 허브가 사라진다. 순서만 뒤에 둔다.
+   */
+  const hubs = found
+    .slice()
+    .sort((a, b) => Number(b.isTerminal) - Number(a.isTerminal) || a.distanceM - b.distanceM)
+    /*
+     * 같은 터미널의 동관·서관처럼 한 곳이 여러 줄로 오는 걸 접는다.
+     * 안 접으면 세 자리를 한 터미널이 다 먹어 다른 후보가 사라진다.
+     */
+    .filter((h, i, all) => !all.slice(0, i).some((prev) => h.name.startsWith(prev.name)))
 
   hubCache.set(key, hubs)
   return hubs.slice(0, limit)
