@@ -46,7 +46,7 @@ export async function changePassword(
   if (!row) return { ok: false, code: 'no-password', message: '계정을 찾지 못했습니다' }
 
   if (row.password_hash) {
-    if (!current || !(await verifyPassword(current, row.password_hash))) {
+    if (!current || !(await verifyPassword(current, row.password_hash)).ok) {
       return { ok: false, code: 'wrong-current', message: '현재 비밀번호가 올바르지 않습니다' }
     }
   }

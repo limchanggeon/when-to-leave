@@ -71,7 +71,7 @@ export const ja: I18nShape = {
     namePlaceholder: '表示名（任意）',
     submitLogin: 'ログイン',
     submitRegister: '登録して始める',
-    passwordHint: '8文字以上',
+    passwordHint: '8文字以上。短く複雑なものより長い文のほうが安全です',
     or: 'または',
     working: '処理中…',
   },

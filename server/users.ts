@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { db } from './db/index'
-import { hashPassword, verifyPassword } from './password'
+import { fakeVerify, hashPassword, verifyPassword } from './password'
 
 export interface User {
   id: string
@@ -73,11 +73,32 @@ export async function registerWithPassword(
  * 이메일이 없을 때와 비밀번호가 틀릴 때를 **구분해서 알려주지 않는다** —
  * 구분하면 어떤 이메일이 가입돼 있는지 알아낼 수 있다.
  * 소셜로만 가입한 계정(password_hash 가 null)도 같은 답을 준다.
+ *
+ * 문구만 같게 해서는 부족하다. 계정이 없을 때 바로 돌아가면 응답이 눈에 띄게
+ * 빨라서, 시간만 재도 가입 여부를 알 수 있다. 그래서 없을 때도 같은 무게의
+ * 해싱을 한 번 돌린다.
  */
 export async function authenticate(email: string, password: string): Promise<User | null> {
   const row = findByEmail(email)
-  if (!row?.password_hash) return null
-  return (await verifyPassword(password, row.password_hash)) ? toUser(row) : null
+  if (!row?.password_hash) {
+    await fakeVerify(password)
+    return null
+  }
+
+  const { ok, needsRehash } = await verifyPassword(password, row.password_hash)
+  if (!ok) return null
+
+  // 옛 계수로 저장된 해시는 맞힌 김에 지금 계수로 올린다.
+  // 이때가 평문을 손에 쥐고 있는 유일한 순간이라, 놓치면 영영 못 올린다.
+  if (needsRehash) {
+    try {
+      const upgraded = await hashPassword(password)
+      db().prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(upgraded, row.id)
+    } catch {
+      // 올리지 못해도 로그인 자체는 성공한 것이다. 다음 로그인에 다시 시도한다.
+    }
+  }
+  return toUser(row)
 }
 
 /**

@@ -22,6 +22,7 @@ import {
 } from './session'
 import { authenticate, registerWithPassword, type User } from './users'
 import { checkPassword } from './password'
+import * as limiter from './rateLimit'
 import { deletePlace, listPlaces, savePlace } from './places'
 import {
   accountMeta,
@@ -50,7 +51,11 @@ import {
 } from './googleRoutes'
 
 const app = express()
-app.use(express.json())
+/*
+ * 본문 크기 상한. 기본값(100kb)보다 훨씬 작게 잡는다 — 이 API 가 받는 건
+ * 지명·시각·이메일뿐이라 그 이상 필요 없고, 큰 본문은 그 자체로 공격이 된다.
+ */
+app.use(express.json({ limit: '16kb' }))
 
 // Caddy 뒤에 선다. 이게 없으면 req.ip 가 늘 프록시 주소로 보인다.
 app.set('trust proxy', 1)
@@ -291,6 +296,25 @@ app.post('/api/reverse-geocode', async (req, res) => {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+/**
+ * 너무 자주 시도했을 때의 응답.
+ *
+ * 얼마나 남았는지는 알려준다 — 숨겨봐야 공격자는 그냥 계속 두드리고,
+ * 오타를 낸 사람만 언제 다시 되는지 몰라 답답해진다.
+ */
+function tooMany(res: express.Response, blocked: limiter.Blocked): void {
+  res.setHeader('Retry-After', String(blocked.retryAfterSec))
+  res.status(429).json({
+    error: {
+      code: 'too-many-attempts',
+      message: `시도가 너무 많습니다. ${blocked.retryAfterSec}초 뒤에 다시 해주세요`,
+    },
+  })
+}
+
+/** 제한의 기준이 되는 주소. trust proxy 를 켜뒀으므로 req.ip 가 실제 접속자다. */
+const ipOf = (req: express.Request) => req.ip ?? 'unknown'
+
 /** 이메일·비밀번호 회원가입. */
 app.post('/api/auth/register', async (req, res) => {
   const { email, password, name } = req.body as {
@@ -303,11 +327,32 @@ app.post('/api/auth/register', async (req, res) => {
     res.status(400).json({ error: { code: 'bad-email', message: '이메일 형식이 올바르지 않습니다' } })
     return
   }
-  const problem = password ? checkPassword(password) : { code: 'too-short', message: '비밀번호를 입력해 주세요' }
+  const problem = password
+    ? checkPassword(password, email)
+    : { code: 'too-short' as const, message: '비밀번호를 입력해 주세요' }
   if (problem) {
     res.status(400).json({ error: { code: problem.code, message: problem.message } })
     return
   }
+
+  /*
+   * 여기서부터 센다. 형식 검사를 통과한 뒤다.
+   *
+   * 앞에 두면 비밀번호를 몇 번 잘못 적은 사람이 한 시간씩 잠긴다 —
+   * 그 시도들은 사용자 표를 건드리지도 않아서 아무것도 알려주지 않는다.
+   * 반면 이 아래는 "이미 가입된 이메일입니다" 를 돌려주는 자리라, 여기를
+   * 반복하면 어떤 이메일이 가입돼 있는지 훑을 수 있다. 이메일을 보내
+   * 확인시킬 수단이 없는 동안에는 그 응답을 없앨 수 없으므로(없애면 남의
+   * 이메일로 가입을 시도했을 때 사용자가 영문을 모른다), 대신 느리게 만든다.
+   * 계정을 무더기로 만드는 것도 같은 자리에서 막힌다.
+   */
+  const ipKey = `register:${ipOf(req)}`
+  const blocked = limiter.check(ipKey, limiter.REGISTER_IP)
+  if (blocked) {
+    tooMany(res, blocked)
+    return
+  }
+  limiter.fail(ipKey, limiter.REGISTER_IP)
 
   const result = await registerWithPassword(email, password!, name ?? null)
   if (!result.ok) {
@@ -327,8 +372,26 @@ app.post('/api/auth/login', async (req, res) => {
     return
   }
 
+  /*
+   * 주소와 계정 양쪽으로 센다.
+   *
+   * 주소만 세면 여러 곳에서 한 계정을 두드릴 수 있고, 계정만 세면 한 곳에서
+   * 여러 계정을 훑을 수 있다. 이게 없으면 비밀번호 규칙을 아무리 조여도
+   * 무한히 찔러볼 수 있어서 결국 뚫린다 — 실제 방어는 대부분 여기서 나온다.
+   */
+  const ipKey = `login-ip:${ipOf(req)}`
+  const accountKey = `login-account:${email.trim().toLowerCase()}`
+  const blocked =
+    limiter.check(ipKey, limiter.LOGIN_IP) ?? limiter.check(accountKey, limiter.LOGIN_ACCOUNT)
+  if (blocked) {
+    tooMany(res, blocked)
+    return
+  }
+
   const user = await authenticate(email, password)
   if (!user) {
+    limiter.fail(ipKey, limiter.LOGIN_IP)
+    limiter.fail(accountKey, limiter.LOGIN_ACCOUNT)
     // 어떤 이메일이 가입돼 있는지 알아낼 수 없도록 사유를 구분하지 않는다
     res.status(401).json({
       error: { code: 'invalid-credentials', message: '이메일 또는 비밀번호가 올바르지 않습니다' },
@@ -336,6 +399,9 @@ app.post('/api/auth/login', async (req, res) => {
     return
   }
 
+  // 맞힌 사람은 계속 세고 있을 이유가 없다. 주소 쪽은 남겨둔다 —
+  // 계정 하나를 맞혔다고 그 주소의 다른 시도까지 풀어줄 이유는 없다.
+  limiter.succeed(accountKey)
   res.cookie(COOKIE_NAME, createSession(user.id), cookieOptions)
   res.json({ account: user })
 })
@@ -524,9 +590,21 @@ app.patch('/api/me', (req, res) => {
 app.post('/api/me/password', async (req, res) => {
   const user = requireUser(req, res)
   if (!user) return
+
+  // 여기도 현재 비밀번호를 맞혀야 통과한다 — 즉 두드릴 수 있는 자리다.
+  // 세션을 훔친 뒤 비밀번호까지 바꿔 계정을 통째로 가져가는 걸 늦춘다.
+  const key = `password:${user.id}`
+  const blocked = limiter.check(key, limiter.PASSWORD_USER)
+  if (blocked) {
+    tooMany(res, blocked)
+    return
+  }
+
   const { current, next } = req.body as { current?: string; next?: string }
 
-  const problem = next ? checkPassword(next) : { code: 'too-short', message: '새 비밀번호를 입력해 주세요' }
+  const problem = next
+    ? checkPassword(next, user.email)
+    : { code: 'too-short' as const, message: '새 비밀번호를 입력해 주세요' }
   if (problem) {
     res.status(400).json({ error: { code: problem.code, message: problem.message } })
     return
@@ -534,9 +612,11 @@ app.post('/api/me/password', async (req, res) => {
 
   const r = await changePassword(user.id, current, next!)
   if (!r.ok) {
+    limiter.fail(key, limiter.PASSWORD_USER)
     res.status(400).json({ error: { code: r.code, message: r.message } })
     return
   }
+  limiter.succeed(key)
   res.json({ ok: true })
 })
 

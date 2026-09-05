@@ -73,7 +73,7 @@ export const ko = {
     namePlaceholder: '표시될 이름 (선택)',
     submitLogin: '로그인',
     submitRegister: '가입하고 시작하기',
-    passwordHint: '8자 이상',
+    passwordHint: '8자 이상. 짧고 복잡한 것보다 긴 문장이 안전합니다',
     or: '또는',
     working: '처리 중…',
   },
