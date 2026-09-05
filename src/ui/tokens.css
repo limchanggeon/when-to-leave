@@ -55,6 +55,14 @@
   --brass: var(--signal-deep);
   --brass-wash: var(--signal-wash);
 
+  /*
+   * 그래프 색. 눈으로 고르지 않고 검증기로 확인한 값이다
+   * (밝기 밴드·채도 하한·색각 분리·대비). 밝은 바탕 기준.
+   */
+  --chart-bar: #2C6FC9;
+  --chart-accent: #8A5A00;   /* 오늘 — 판의 호박색은 흰 바탕에서 1.8:1 뿐이라 못 쓴다 */
+  --chart-grid: #E4E8ED;
+
   /* 숫자는 안내판 글자다 — 폭이 넓고 자릿수가 흔들리지 않아야 한다 */
   --font-sans: 'Noto Sans KR', 'Noto Sans JP', 'Apple SD Gothic Neo', system-ui,
     -apple-system, sans-serif;
@@ -113,6 +121,10 @@
     --amber: #E6A93E;
     --teal-wash: #102A23;
     --rust-wash: #2B1917;
+    /* 다크는 자동 반전이 아니라 그 표면에 대고 따로 검증한 값이다 */
+    --chart-bar: #4E86D0;
+    --chart-accent: #B87E12;
+    --chart-grid: #1F2F42;
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
     --shadow-raise: 0 6px 24px rgba(0, 0, 0, 0.5);
   }
@@ -140,6 +152,9 @@
   --amber: #E6A93E;
   --teal-wash: #102A23;
   --rust-wash: #2B1917;
+  --chart-bar: #4E86D0;
+  --chart-accent: #B87E12;
+  --chart-grid: #1F2F42;
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
   --shadow-raise: 0 6px 24px rgba(0, 0, 0, 0.5);
 }

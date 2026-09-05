@@ -928,3 +928,52 @@
 .adminlog li { font-size: 0.86rem; line-height: 1.6; color: var(--ink-soft); }
 .adminlog li strong { color: var(--ink); }
 .adminlog__detail, .adminlog__actor { color: var(--ink-faint); font-size: 0.8rem; }
+
+/* ================= 대시보드 그래프 ================= */
+/* 넷이 한 줄에 들어가야 서로 견줘진다. 하나만 다음 줄로 떨어지면
+   그것만 다른 것처럼 보인다. */
+.dashgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(212px, 1fr)); gap: var(--sp-5); }
+
+.daybars { margin: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+.daybars__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); }
+.daybars__title { font-size: 0.86rem; font-weight: 700; color: var(--ink); }
+/* 합계가 이 그래프의 머릿수 — 제일 크게 */
+.daybars__total { font-size: 1.5rem; font-weight: 800; line-height: 1; color: var(--ink); }
+
+/* 툴팁이 앉을 자리를 미리 비워둔다. 안 그러면 위의 합계 숫자를 덮는다. */
+.daybars__plot { position: relative; padding-top: 22px; }
+.daybars__plot svg { display: block; width: 100%; height: 56px; overflow: visible; }
+.daybars__hits { position: absolute; inset: 0; display: flex; }
+/* 손이 닿는 자리는 막대보다 넓다. 1px 막대를 정확히 짚을 수는 없다. */
+.daybars__hit { flex: 1; background: none; border: none; padding: 0; cursor: default; }
+.daybars__hit:focus-visible { outline: 2px solid var(--signal); outline-offset: -2px; }
+
+.daybars__tip {
+  position: absolute; top: 0; transform: translateX(-50%);
+  /* 양 끝에서 화면 밖으로 나가지 않게 붙잡는다 */
+  max-width: 100%;
+  padding: 3px var(--sp-2); white-space: nowrap; pointer-events: none;
+  background: var(--night); color: var(--night-ink);
+  border-radius: var(--radius-sm); font-size: 0.74rem; font-weight: 600;
+}
+
+.daybars__foot {
+  display: flex; justify-content: space-between; gap: var(--sp-2);
+  font-size: 0.72rem; color: var(--ink-faint);
+}
+.daybars__peak { color: var(--ink-soft); }
+
+.daybars__table summary {
+  cursor: pointer; font-size: 0.74rem; color: var(--ink-faint);
+  list-style: none;
+}
+.daybars__table summary::-webkit-details-marker { display: none; }
+.daybars__table summary::before { content: '▸ '; }
+.daybars__table[open] summary::before { content: '▾ '; }
+.daybars__table summary:hover { color: var(--ink); }
+.daybars__table table { width: 100%; margin-top: var(--sp-2); border-collapse: collapse; font-size: 0.78rem; }
+.daybars__table th, .daybars__table td { text-align: left; padding: 2px 0; border-bottom: 1px solid var(--rule); }
+.daybars__table th { color: var(--ink-faint); font-weight: 600; }
+.daybars__table td:last-child, .daybars__table th:last-child { text-align: right; }
+/* 표가 길어지면 접힌 채로도 화면을 밀지 않게 */
+.daybars__table[open] table { display: block; max-height: 220px; overflow-y: auto; }

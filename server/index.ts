@@ -34,6 +34,7 @@ import {
 import { checkPassword } from './password'
 import * as limiter from './rateLimit'
 import * as admin from './admin'
+import * as metrics from './metrics'
 import { VERIFY_TTL_MS, consume, issue } from './emailTokens'
 import { sendMail } from './mail'
 import { verifyMail, alreadyRegisteredMail } from './mailText'
@@ -167,6 +168,8 @@ app.post('/api/auth/kakao', async (req, res) => {
  * ODsay·카카오 키는 서버에만 있으므로 브라우저는 이 엔드포인트만 안다.
  */
 app.post('/api/route', async (req, res) => {
+  // 이 앱에서 사람이 실제로 하는 일. 방문 수보다 이게 진짜 사용량이다.
+  metrics.bump('search')
   const { from, to } = req.body as {
     from?: { name?: string; lat?: number; lng?: number }
     to?: { name?: string; lat?: number; lng?: number }
@@ -398,6 +401,7 @@ app.post('/api/auth/register', async (req, res) => {
    * 링크를 누르면 그때 로그인된다 — 사용자가 겪는 걸음 수는 같다.
    */
   if (result.ok) {
+    metrics.bump('signup')
     const token = issue(result.user.id, result.user.email, 'verify', VERIFY_TTL_MS)
     await sendMail(verifyMail(result.user.email, token))
   } else {
@@ -526,6 +530,7 @@ app.post('/api/auth/login', async (req, res) => {
   // 맞힌 사람은 계속 세고 있을 이유가 없다. 주소 쪽은 남겨둔다 —
   // 계정 하나를 맞혔다고 그 주소의 다른 시도까지 풀어줄 이유는 없다.
   limiter.succeed(accountKey)
+  metrics.bump('login')
   res.cookie(COOKIE_NAME, createSession(user.id), cookieOptions)
   res.json({ account: user })
 })
@@ -807,6 +812,19 @@ app.delete('/api/me', (req, res) => {
   res.json({ ok: true })
 })
 
+/**
+ * 방문 한 번.
+ *
+ * 브라우저가 앱을 처음 열 때 한 번만 부른다(클라이언트가 sessionStorage 로
+ * 중복을 막는다). 쿠키도 IP 도 쓰지 않으므로 "순 방문자" 가 아니라
+ * **브라우저 세션 수**다 — 화면에도 그렇게 적는다. 셀 수 없는 것을 센 척하지
+ * 않는다.
+ */
+app.post('/api/visit', (_req, res) => {
+  metrics.bump('visit')
+  res.status(204).end()
+})
+
 /* ---------------- 관리자 ----------------
  *
  * 첫 관리자는 화면에서 만들 수 없다. 그런 입구가 있으면 그게 곧 뒷문이다.
@@ -816,7 +834,12 @@ app.delete('/api/me', (req, res) => {
 app.get('/api/admin/overview', (req, res) => {
   const me = requireAdmin(req, res)
   if (!me) return
-  res.json({ stats: admin.stats(), users: admin.listUsers(), log: admin.recentLog() })
+  res.json({
+    stats: admin.stats(),
+    users: admin.listUsers(),
+    log: admin.recentLog(),
+    days: metrics.recentDays(30),
+  })
 })
 
 app.post('/api/admin/users/:id/verify', (req, res) => {

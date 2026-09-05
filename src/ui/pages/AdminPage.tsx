@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { dictionaries } from '../../i18n'
 import { usePrefs } from '../PrefsContext'
 import { SiteHeader } from '../components/SiteHeader'
+import { DayBars } from '../components/DayBars'
 
 interface AdminUser {
   id: string
@@ -16,7 +17,15 @@ interface AdminUser {
   places: number
   sessions: number
 }
+interface DayRow {
+  day: string
+  visit: number
+  search: number
+  signup: number
+  login: number
+}
 interface Overview {
+  days: DayRow[]
   stats: Record<string, number>
   users: AdminUser[]
   log: { id: number; actorEmail: string; action: string; targetEmail: string | null; detail: string | null; createdAt: number }[]
@@ -104,7 +113,7 @@ export function AdminPage() {
         {data && (
           <>
             <section className="card">
-              <h2 className="card__title">한눈에</h2>
+              <h2 className="card__title">지금</h2>
               <dl className="stats stats--paper">
                 {Object.entries(data.stats).map(([k, v]) => (
                   <div className="stats__item" key={k}>
@@ -113,6 +122,36 @@ export function AdminPage() {
                   </div>
                 ))}
               </dl>
+            </section>
+
+            <section className="card">
+              <h2 className="card__title">최근 30일</h2>
+              <p className="card__hint">
+                지표마다 자릿수가 달라 한 축에 겹치지 않고 따로 그린다. 방문은 브라우저
+                세션 수다 — 쿠키도 IP 도 쓰지 않아 같은 사람인지 알 수 없다.
+              </p>
+              <div className="dashgrid">
+                <DayBars
+                  title="검색"
+                  points={data.days.map((d) => ({ day: d.day, value: d.search }))}
+                  total={data.days.reduce((s, d) => s + d.search, 0)}
+                />
+                <DayBars
+                  title="방문"
+                  points={data.days.map((d) => ({ day: d.day, value: d.visit }))}
+                  total={data.days.reduce((s, d) => s + d.visit, 0)}
+                />
+                <DayBars
+                  title="로그인"
+                  points={data.days.map((d) => ({ day: d.day, value: d.login }))}
+                  total={data.days.reduce((s, d) => s + d.login, 0)}
+                />
+                <DayBars
+                  title="가입"
+                  points={data.days.map((d) => ({ day: d.day, value: d.signup }))}
+                  total={data.days.reduce((s, d) => s + d.signup, 0)}
+                />
+              </div>
             </section>
 
             <section className="card">

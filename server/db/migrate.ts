@@ -163,6 +163,27 @@ const MIGRATIONS: Migration[] = [
       CREATE INDEX idx_admin_log_time ON admin_log(created_at DESC);
     `,
   },
+  {
+    id: 5,
+    name: 'daily_counts',
+    sql: `
+      /*
+       * 하루치 집계만 센다. 개별 방문 기록을 남기지 않는다.
+       *
+       * IP 도 방문자 식별자도 저장하지 않는다 — 대시보드에 필요한 건
+       * "어제 몇 번" 이지 "누가" 가 아니다. 남기지 않으면 새지도 않는다.
+       *
+       * day 는 **한국 날짜**(YYYY-MM-DD)다. 서버가 UTC 라도 timezone.ts 가
+       * 시간대를 못 박아 두므로 자정 경계가 사용자 감각과 맞는다.
+       */
+      CREATE TABLE daily_counts (
+        day    TEXT NOT NULL,
+        metric TEXT NOT NULL,
+        count  INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (day, metric)
+      );
+    `,
+  },
 ]
 
 export function migrate(conn: DatabaseSync): void {
