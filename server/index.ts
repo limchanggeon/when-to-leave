@@ -37,6 +37,13 @@ import * as admin from './admin'
 import * as metrics from './metrics'
 import { VERIFY_TTL_MS, consume, issue } from './emailTokens'
 import { sendMail } from './mail'
+import {
+  checkContact,
+  listContact,
+  markContactRead,
+  submitContact,
+  unreadContactCount,
+} from './contact'
 import { verifyMail, alreadyRegisteredMail } from './mailText'
 import { deletePlace, listPlaces, savePlace } from './places'
 import {
@@ -338,12 +345,25 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
  * 얼마나 남았는지는 알려준다 — 숨겨봐야 공격자는 그냥 계속 두드리고,
  * 오타를 낸 사람만 언제 다시 되는지 몰라 답답해진다.
  */
+/**
+ * 얼마나 기다려야 하는지를 사람 말로.
+ *
+ * 초로만 적으면 "3588초 뒤에 다시 해주세요" 같은 문장이 나온다. 읽는 사람은
+ * 그걸 60으로 나눠야 한다. 창이 한 시간인 문의 쪽이 특히 그랬다.
+ */
+function humanWait(sec: number): string {
+  if (sec < 90) return `${sec}초`
+  const min = Math.ceil(sec / 60)
+  if (min < 90) return `${min}분`
+  return `${Math.ceil(min / 60)}시간`
+}
+
 function tooMany(res: express.Response, blocked: limiter.Blocked): void {
   res.setHeader('Retry-After', String(blocked.retryAfterSec))
   res.status(429).json({
     error: {
       code: 'too-many-attempts',
-      message: `시도가 너무 많습니다. ${blocked.retryAfterSec}초 뒤에 다시 해주세요`,
+      message: `시도가 너무 많습니다. ${humanWait(blocked.retryAfterSec)} 뒤에 다시 해주세요`,
     },
   })
 }
@@ -830,6 +850,68 @@ app.post('/api/visit', (_req, res) => {
  * 첫 관리자는 화면에서 만들 수 없다. 그런 입구가 있으면 그게 곧 뒷문이다.
  * 서버에서 `pnpm admin:grant <이메일>` 로 세운다.
  */
+
+/*
+ * 문의 접수.
+ *
+ * 로그인을 요구하지 않는다 — 로그인이 안 돼서 묻는 사람이 제일 많다.
+ * 대신 IP 로 세고(시간당 5통), 봇이 채우는 미끼 칸을 둔다.
+ */
+app.post('/api/contact', async (req, res) => {
+  const { email, body, website } = req.body as { email?: string; body?: string; website?: string }
+
+  /*
+   * 미끼 칸. 사람에게는 보이지 않으니 비어 있어야 정상이다.
+   * 채워져 있으면 봇이므로, 막혔다고 알리지 않고 접수된 척한다 —
+   * 알려주면 다음 시도에서 그 칸만 비우고 다시 온다.
+   */
+  if (typeof website === 'string' && website.trim() !== '') {
+    res.json({ received: true, mailed: true })
+    return
+  }
+
+  const problem = checkContact(email ?? '', body ?? '')
+  if (problem) {
+    res.status(400).json({ error: { code: problem.code, message: problem.message } })
+    return
+  }
+
+  const ipKey = `contact:${ipOf(req)}`
+  const blocked = limiter.check(ipKey, limiter.CONTACT_IP)
+  if (blocked) {
+    tooMany(res, blocked)
+    return
+  }
+  limiter.fail(ipKey, limiter.CONTACT_IP)
+
+  const me = readSession(req.cookies?.[COOKIE_NAME])
+  const msg = await submitContact({
+    email: email!.trim(),
+    body: body!.trim(),
+    userId: me?.id ?? null,
+  })
+
+  /*
+   * 메일이 못 나갔어도 접수는 접수다 — 문의는 DB 에 들어 있다.
+   * 보낸 사람에게 "실패했습니다" 라고 하면 없는 문제를 알리는 셈이고,
+   * 같은 문의를 다섯 번 더 보내게 만든다. 실패 사실은 관리 화면이 안다.
+   */
+  res.json({ received: true, mailed: msg.mailSentAt !== null })
+})
+
+/** 문의함. 목록과 읽음 표시만 있다 — 답장은 메일로 한다. */
+app.get('/api/admin/contact', (req, res) => {
+  const me = requireAdmin(req, res)
+  if (!me) return
+  res.json({ messages: listContact(), unread: unreadContactCount() })
+})
+
+app.post('/api/admin/contact/:id/read', (req, res) => {
+  const me = requireAdmin(req, res)
+  if (!me) return
+  markContactRead(req.params.id)
+  res.json({ ok: true })
+})
 
 app.get('/api/admin/overview', (req, res) => {
   const me = requireAdmin(req, res)

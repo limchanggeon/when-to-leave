@@ -32,6 +32,21 @@ interface Overview {
   log: { id: number; actorEmail: string; action: string; targetEmail: string | null; detail: string | null; createdAt: number }[]
 }
 
+interface ContactRow {
+  id: string
+  fromEmail: string
+  body: string
+  createdAt: number
+  /** null 이면 아직 메일로 못 알렸다는 뜻. 숨기지 않고 표시한다. */
+  mailSentAt: number | null
+  mailError: string | null
+  readAt: number | null
+}
+interface Inbox {
+  messages: ContactRow[]
+  unread: number
+}
+
 const STAT_LABEL: Record<string, string> = {
   users: '계정',
   verified: '확인됨',
@@ -65,8 +80,9 @@ export function AdminPage() {
   const [data, setData] = useState<Overview | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
-  /** 보고 있는 칸. 셋뿐이라 스크롤보다 갈아 끼우는 편이 빠르다. */
-  const [tab, setTab] = useState<'overview' | 'users' | 'log'>('overview')
+  /** 보고 있는 칸. 몇 개 안 되니 스크롤보다 갈아 끼우는 편이 빠르다. */
+  const [tab, setTab] = useState<'overview' | 'users' | 'contact' | 'log'>('overview')
+  const [inbox, setInbox] = useState<Inbox | null>(null)
 
   async function load() {
     const res = await fetch('/api/admin/overview', { credentials: 'include' })
@@ -77,9 +93,21 @@ export function AdminPage() {
     setData((await res.json()) as Overview)
     setError(null)
   }
+  async function loadInbox() {
+    const res = await fetch('/api/admin/contact', { credentials: 'include' })
+    if (res.ok) setInbox((await res.json()) as Inbox)
+  }
   useEffect(() => {
     void load()
+    void loadInbox()
   }, [])
+
+  /* 펼쳐 읽는 순간 읽음으로 표시한다 — 따로 누르게 하면 아무도 안 누른다. */
+  async function openMessage(id: string, was: number | null) {
+    if (was !== null) return
+    await fetch(`/api/admin/contact/${id}/read`, { method: 'POST', credentials: 'include' })
+    await loadInbox()
+  }
 
   async function act(u: AdminUser, path: string, init: RequestInit, confirmMsg?: string) {
     if (confirmMsg && !window.confirm(confirmMsg)) return
@@ -105,9 +133,12 @@ export function AdminPage() {
   const delta =
     yesterdaySearch > 0 ? Math.round(((todaySearch - yesterdaySearch) / yesterdaySearch) * 100) : null
 
+  const unread = inbox?.unread ?? 0
   const TABS = [
     { id: 'overview', label: '개요' },
     { id: 'users', label: '계정' },
+    /* 안 읽은 게 있으면 숫자를 달아둔다. 없으면 그냥 이름만 */
+    { id: 'contact', label: unread > 0 ? `문의함 ${unread}` : '문의함' },
     { id: 'log', label: '기록' },
   ] as const
 
@@ -228,6 +259,45 @@ export function AdminPage() {
                   </div>
                 ))}
               </div>
+            </section>
+          )}
+
+          {tab === 'contact' && (
+            <section className="panel">
+              <h2 className="panel__title">문의함</h2>
+              <p className="panel__hint">
+                푸터의 문의하기로 들어온 것. 저장이 먼저라 메일이 막혀도 여기 남는다.
+                답장은 적힌 주소로 메일을 보내면 된다.
+              </p>
+              {inbox === null ? (
+                <p className="card__empty">불러오는 중…</p>
+              ) : inbox.messages.length === 0 ? (
+                <p className="card__empty">아직 없습니다.</p>
+              ) : (
+                <ul className="inbox">
+                  {inbox.messages.map((m) => (
+                    <li key={m.id} className={`inbox__item ${m.readAt === null ? 'is-new' : ''}`}>
+                      <details onToggle={() => void openMessage(m.id, m.readAt)}>
+                        <summary className="inbox__head">
+                          <span className="inbox__from">{m.fromEmail}</span>
+                          <span className="num inbox__when">{when(m.createdAt)}</span>
+                          {/* 메일이 못 나갔으면 그 사실을 숨기지 않는다 */}
+                          {m.mailSentAt === null && (
+                            <span className="inbox__unsent" title={m.mailError ?? ''}>
+                              메일 미발송
+                            </span>
+                          )}
+                        </summary>
+                        <p className="inbox__body">{m.body}</p>
+                        {m.mailError && <p className="inbox__err">{m.mailError}</p>}
+                        <a className="inbox__reply" href={`mailto:${m.fromEmail}`}>
+                          메일로 답장하기
+                        </a>
+                      </details>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
           )}
 

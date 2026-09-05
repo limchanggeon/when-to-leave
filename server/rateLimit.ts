@@ -87,6 +87,11 @@ export const REGISTER_IP: Limit = { windowMs: 60 * 60_000, max: 10 }
  * 남의 주소를 넣고 반복하면 그 사람 받은편지함이 찬다.
  */
 export const RESEND_IP: Limit = { windowMs: 60 * 60_000, max: 5 }
+/**
+ * 문의. 로그인 없이 누구나 열 수 있는 입구라, 여기가 제일 시끄러워지기 쉽다.
+ * 사람이 한 시간에 다섯 번 넘게 문의할 일은 없다.
+ */
+export const CONTACT_IP: Limit = { windowMs: 60 * 60_000, max: 5 }
 /** 비밀번호 변경은 현재 비밀번호를 맞혀야 하므로, 그걸 두드리는 것도 막는다. */
 export const PASSWORD_USER: Limit = { windowMs: 15 * 60_000, max: 8 }
 

@@ -186,6 +186,23 @@ export const ko = {
     calendar: '캘린더',
     account: '내 계정',
   },
+  contact: {
+    open: '문의하기',
+    title: '문의하기',
+    lead: '무엇이든 물어보세요. 적어주신 주소로 답장드립니다',
+    emailLabel: '회신받을 이메일',
+    emailHint: '답장을 받을 주소입니다',
+    bodyLabel: '내용',
+    bodyPlaceholder: '어떤 화면에서 무엇을 하려다 막히셨는지 적어주시면 빨리 찾습니다',
+    counter: (n: number, max: number) => `${n} / ${max}자`,
+    submit: '보내기',
+    sending: '보내는 중…',
+    cancel: '닫기',
+    doneTitle: '문의를 받았습니다',
+    doneBody: '적어주신 주소로 답장드리겠습니다',
+    close: '확인',
+    failed: '보내지 못했습니다. 잠시 뒤 다시 시도해 주세요',
+  },
   footerNav: {
     /* 갈래 이름. 실제로 갈 수 있는 곳만 묶는다. */
     trip: '길찾기',

@@ -184,6 +184,34 @@ const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: 6,
+    name: 'contact_messages',
+    sql: `
+      /*
+       * 문의함.
+       *
+       * 메일로 전달하는 게 목적이지만 **저장을 먼저 한다.** SES 가 샌드박스라
+       * 인증되지 않은 주소로는 못 보내는데, 그때 메일만 시도했다면 보낸 사람은
+       * "보냈습니다" 를 보고 우리는 아무것도 못 받는다. 그게 제일 나쁘다.
+       * 저장이 성공했으면 문의는 도착한 것이고, 메일은 그걸 알리는 수단일 뿐이다.
+       *
+       * mail_sent_at 이 null 이면 아직 메일로 못 알렸다는 뜻이다.
+       * user_id 는 로그인 상태로 보냈을 때만 채운다(계정이 지워지면 같이 비운다).
+       */
+      CREATE TABLE contact_messages (
+        id           TEXT PRIMARY KEY,
+        from_email   TEXT    NOT NULL,
+        body         TEXT    NOT NULL,
+        user_id      TEXT    REFERENCES users(id) ON DELETE SET NULL,
+        created_at   INTEGER NOT NULL,
+        mail_sent_at INTEGER,
+        mail_error   TEXT,
+        read_at      INTEGER
+      );
+      CREATE INDEX idx_contact_created ON contact_messages (created_at DESC);
+    `,
+  },
 ]
 
 export function migrate(conn: DatabaseSync): void {

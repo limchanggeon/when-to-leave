@@ -514,6 +514,92 @@
 .how--inline .how__step-body { color: var(--night-soft); }
 .how--inline .how__step + .how__step::before { color: var(--night-soft); }
 
+/* ================= 관리자 문의함 ================= */
+.inbox { list-style: none; margin: 0; padding: 0; }
+.inbox__item { border-bottom: 1px solid var(--rule); }
+.inbox__item:last-child { border-bottom: 0; }
+/* 안 읽은 것만 왼쪽에 표시를 세운다 — 색이 아니라 자리로 구분한다 */
+.inbox__item.is-new { border-left: 3px solid var(--signal-deep); }
+.inbox__head {
+  display: flex; align-items: baseline; gap: var(--sp-3); flex-wrap: wrap;
+  padding: var(--sp-3) var(--sp-4); cursor: pointer; list-style: none;
+}
+.inbox__head::-webkit-details-marker { display: none; }
+.inbox__head:hover { background: var(--sunk); }
+.inbox__from { font-weight: 600; font-size: 0.92rem; }
+/* 펼치면 바탕이 회색으로 바뀐다 — ink-faint 는 거기서 4.44:1 로 모자란다 */
+.inbox__when { font-size: 0.82rem; color: var(--ink-soft); margin-left: auto; }
+.inbox__unsent {
+  font-size: 0.76rem; font-weight: 600; color: var(--rust);
+  background: var(--rust-wash); padding: 2px var(--sp-2); border-radius: var(--radius-sm);
+}
+.inbox__body {
+  margin: 0; padding: 0 var(--sp-4) var(--sp-3) var(--sp-4);
+  font-size: 0.9rem; line-height: 1.7; white-space: pre-wrap; color: var(--ink);
+}
+.inbox__err { margin: 0; padding: 0 var(--sp-4) var(--sp-3); font-size: 0.8rem; color: var(--rust); }
+.inbox__reply {
+  display: inline-block; margin: 0 var(--sp-4) var(--sp-4);
+  font-size: 0.86rem; font-weight: 600; color: var(--brand);
+}
+
+/* ================= 문의 팝업 ================= */
+/*
+ * 닫혀 있을 때 UA 의 display:none 을 이기지 않도록 [open] 으로 묶는다.
+ * 그냥 .contact { display: flex } 로 두면 닫힌 창이 화면을 덮는다.
+ */
+.contact {
+  border: 1px solid var(--rule-strong); border-radius: var(--radius-lg);
+  padding: 0; max-width: 520px; width: min(520px, calc(100vw - 2 * var(--sp-4)));
+  background: var(--surface); color: var(--ink);
+  box-shadow: 0 24px 60px rgba(12, 26, 43, 0.22);
+}
+.contact[open] { display: block; }
+.contact::backdrop { background: rgba(12, 26, 43, 0.55); }
+
+.contact__form, .contact__done { padding: var(--sp-8) var(--sp-6) var(--sp-6); }
+.contact__title { margin: 0; font-size: 1.28rem; font-weight: 700; letter-spacing: -0.01em; }
+.contact__lead { margin: var(--sp-2) 0 var(--sp-6); font-size: 0.9rem; color: var(--ink-soft); line-height: 1.6; }
+
+.contact__label { display: block; font-size: 0.86rem; font-weight: 600; margin-bottom: var(--sp-2); }
+.contact__input, .contact__area {
+  width: 100%; box-sizing: border-box;
+  border: 1px solid var(--rule-strong); border-radius: var(--radius-md);
+  padding: 10px var(--sp-3); font: inherit; font-size: 0.94rem;
+  background: var(--surface); color: var(--ink);
+}
+.contact__area { resize: vertical; min-height: 140px; line-height: 1.6; }
+.contact__input:focus-visible, .contact__area:focus-visible {
+  outline: 2px solid var(--brand); outline-offset: 1px; border-color: var(--brand);
+}
+.contact__hint { margin: var(--sp-2) 0 var(--sp-5); font-size: 0.8rem; color: var(--ink-faint); }
+/* 글자 수는 세어주기만 한다 — 넘치기 전에는 조용히 있는다 */
+.contact__count { margin: var(--sp-2) 0 0; font-size: 0.78rem; color: var(--ink-faint); text-align: right; }
+
+/* 미끼 칸. 화면에서 완전히 빼되 display:none 은 피한다 — 봇이 그걸 보고 거른다 */
+.contact__trap {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+
+.contact__error {
+  margin: var(--sp-4) 0 0; padding: var(--sp-3);
+  background: var(--rust-wash); color: var(--rust);
+  border-radius: var(--radius-md); font-size: 0.86rem;
+}
+
+.contact__actions { display: flex; justify-content: flex-end; gap: var(--sp-3); margin-top: var(--sp-6); }
+.contact__cancel, .contact__send {
+  font: inherit; font-size: 0.92rem; font-weight: 600;
+  padding: 10px var(--sp-5); border-radius: var(--radius-md); cursor: pointer;
+}
+.contact__cancel { background: none; border: 1px solid var(--rule-strong); color: var(--ink-soft); }
+.contact__cancel:hover { border-color: var(--edge); color: var(--ink); }
+.contact__send { background: var(--brand); border: 1px solid var(--brand); color: #FFFFFF; }
+.contact__send:hover { background: var(--brand-strong); }
+.contact__send:disabled { opacity: 0.6; cursor: default; }
+.contact__done .contact__send { margin-top: var(--sp-2); }
+
 /* ================= 푸터 ================= */
 .sitefooter { border-top: 1px solid var(--rule); background: var(--surface); margin-top: auto; }
 

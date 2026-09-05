@@ -1,6 +1,9 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuthContext } from '../../auth/AuthContext'
 import type { I18nShape } from '../../i18n'
 import { Logo } from './Logo'
+import { ContactDialog } from './ContactDialog'
 
 const REPO = 'https://github.com/limchanggeon/when-to-leave'
 
@@ -17,8 +20,11 @@ const REPO = 'https://github.com/limchanggeon/when-to-leave'
  * 그 줄 전체가 거짓이 된다. 대신 없는 이유를 한 줄로 적는다.
  */
 export function SiteFooter({ t, onHowTo }: { t: I18nShape; onHowTo?: () => void }) {
+  /* 로그인해 있으면 문의 창의 회신 주소를 미리 채운다. */
+  const { account } = useAuthContext()
   const l = t.footerNav.links
   const f = t.footer
+  const [contact, setContact] = useState(false)
 
   return (
     <footer className="sitefooter">
@@ -56,7 +62,9 @@ export function SiteFooter({ t, onHowTo }: { t: I18nShape; onHowTo?: () => void 
           <a href={REPO} target="_blank" rel="noreferrer">
             {l.source}
           </a>
-          <a href={`mailto:${f.contactEmail}`}>{l.contact}</a>
+          <button type="button" className="sitefooter__linkbtn" onClick={() => setContact(true)}>
+            {l.contact}
+          </button>
         </section>
 
         <div className="sitefooter__mark">
@@ -81,6 +89,13 @@ export function SiteFooter({ t, onHowTo }: { t: I18nShape; onHowTo?: () => void 
         <p className="sitefooter__note">{f.nonprofit}</p>
         <p className="sitefooter__note">{f.disclaimer}</p>
       </div>
+
+      <ContactDialog
+        t={t}
+        open={contact}
+        onClose={() => setContact(false)}
+        defaultEmail={account?.email}
+      />
     </footer>
   )
 }

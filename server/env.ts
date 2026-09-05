@@ -69,6 +69,13 @@ export const serverEnv = {
   awsSecretAccessKey: req('AWS_SECRET_ACCESS_KEY'),
   /** 보내는 사람. SES 에서 확인된 도메인의 주소여야 한다. */
   mailFrom: req('MAIL_FROM'),
+  /**
+   * 문의를 받을 주소.
+   *
+   * 기본값을 코드에 둔다 — 이건 비밀이 아니라 푸터에도 적혀 있는 값이고,
+   * 환경변수를 빠뜨렸다고 문의가 갈 곳을 잃으면 안 된다.
+   */
+  contactTo: req('CONTACT_TO') ?? 'ckdrjs0101@mokwon.ac.kr',
   /** 메일 속 링크가 가리킬 주소. 운영에서는 https://whenigo.p-e.kr 이다. */
   publicOrigin: (req('PUBLIC_ORIGIN') ?? 'http://localhost:5173').replace(/\/$/, ''),
   isProd: process.env.NODE_ENV === 'production',
