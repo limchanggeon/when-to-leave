@@ -5,7 +5,7 @@ import type { Leg } from './types'
 const at = (hhmm: string) => new Date(`2026-09-05T${hhmm}:00+09:00`)
 
 /** 구간을 간단히 짓는다. walk 는 도보, 나머지는 탑승. */
-const leg = (kind: Leg['kind'], from: string, to: string): Leg =>
+const leg = (kind: Leg['kind'], from: string, to: string, tagoKind?: Leg['tagoKind']): Leg =>
   ({
     kind,
     from: { name: 'a' },
@@ -13,6 +13,7 @@ const leg = (kind: Leg['kind'], from: string, to: string): Leg =>
     departAt: at(from),
     arriveAt: at(to),
     confidence: 'estimated',
+    tagoKind,
   }) as Leg
 
 /**
@@ -41,7 +42,7 @@ const 공항버스: Rankable = {
     leg('walk', '15:25', '15:28'),
     leg('bus', '15:28', '15:50'),
     leg('walk', '15:50', '15:53'),
-    leg('bus', '15:53', '19:07'),
+    leg('bus', '15:53', '19:07', 'suburbsBus'), // 공항버스
   ],
 }
 
@@ -81,5 +82,28 @@ describe('경로 순위', () => {
     const a = first([환승많은길, 공항버스], 'arriveBy')
     const b = first([공항버스, 환승많은길], 'arriveBy')
     expect(a).toBe(b)
+  })
+
+  it('아무리 늦게 나가도 시내 사슬이 시외 수단을 이기지 못한다', () => {
+    // 분 단위 저울만으로는 조금 더 늦게 나가는 사슬이 나오면 또 진다.
+    // "기차로 갈 길을 시내버스로 갈아타며 가라" 는 답은 틀린 답이라 순서로 못 박았다.
+    const 아주늦게나가는사슬 = { ...환승많은길, departAt: at('18:30'), arriveAt: at('20:59') }
+    expect(first([아주늦게나가는사슬, 공항버스], 'arriveBy')).toBe(공항버스)
+    expect(first([아주늦게나가는사슬, 공항버스], 'departNow')).toBe(공항버스)
+  })
+
+  it('시외 수단끼리는 기존 규칙대로 겨룬다', () => {
+    const 늦게 = {
+      departAt: at('16:00'),
+      arriveAt: at('19:42'),
+      legs: [leg('bus', '16:00', '19:42', 'expressBus')],
+    }
+    expect(first([공항버스, 늦게], 'arriveBy')).toBe(늦게)
+  })
+
+  it('시내끼리는 아무것도 달라지지 않는다', () => {
+    const 시내A = { departAt: at('16:00'), arriveAt: at('17:00'), legs: [leg('bus', '16:00', '17:00')] }
+    const 시내B = { departAt: at('15:30'), arriveAt: at('16:30'), legs: [leg('bus', '15:30', '16:30')] }
+    expect(first([시내A, 시내B], 'arriveBy')).toBe(시내A)
   })
 })

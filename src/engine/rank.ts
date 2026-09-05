@@ -41,6 +41,16 @@ const isSoldOut = (r: Rankable) => seatStateOf(r.legs) === 'sold-out'
 const SEAT_TIEBREAK: Record<SeatState, number> = { ok: 0, unknown: 1, 'sold-out': 2 }
 
 /**
+ * 시외 수단. 기차·고속버스·시외버스(공항버스 포함)·항공.
+ *
+ * 지하철은 뺀다 — 시내 수단이다.
+ */
+const INTERCITY_KINDS = new Set(['train', 'expressBus', 'suburbsBus', 'flight'])
+
+const usesIntercity = (legs: Leg[]) =>
+  legs.some((l) => l.tagoKind !== undefined && INTERCITY_KINDS.has(l.tagoKind))
+
+/**
  * 환승 한 번의 값. 분 단위.
  *
  * 갈아타는 일은 시간만 드는 게 아니다 — 짐을 들고 계단을 오르내리고, 놓칠까
@@ -92,6 +102,23 @@ export function compareRoutes(a: Rankable, b: Rankable, mode: Mode): number {
   const soldA = isSoldOut(a)
   const soldB = isSoldOut(b)
   if (soldA !== soldB) return soldA ? 1 : -1
+
+  /*
+   * 장거리는 시외 수단이 먼저다.
+   *
+   * 분 단위 저울로는 이걸 못 지킨다. 실제로 대전 → 인천공항에서 "46분 늦게
+   * 나가도 된다" 는 이유로, 환승 3회에 도보 33분짜리 시내 사슬이 공항버스를
+   * 이겼다. 저울을 아무리 기울여도 조금 더 늦게 나가는 사슬이 나오면 또 진다.
+   *
+   * 기차로 갈 수 있는 길을 시내버스로 갈아타며 가라는 답은 틀린 답이다.
+   * 그래서 값이 아니라 **순서**로 못 박는다. 시외 수단을 쓰는 경로끼리,
+   * 안 쓰는 경로끼리 먼저 나누고 그 안에서 기존 규칙을 적용한다.
+   *
+   * 시내 구간만 있는 짧은 여정에서는 양쪽 다 false 라 아무것도 달라지지 않는다.
+   */
+  const farA = usesIntercity(a.legs)
+  const farB = usesIntercity(b.legs)
+  if (farA !== farB) return farA ? -1 : 1
 
   if (mode === 'arriveBy') {
     // 늦게 나가도 되는 쪽이 좋다. 다만 환승·도보의 수고를 값으로 쳐서 뺀다.

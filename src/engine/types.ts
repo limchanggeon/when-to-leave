@@ -55,6 +55,13 @@ export interface LegSpec {
    * 없으면 수단별 기본 정책값을 쓴다.
    */
   bufferMin?: number
+  /**
+   * 시외 수단인지. 기차·고속버스·시외버스(공항버스 포함)·항공이면 채워진다.
+   *
+   * kind 만으로는 고속버스와 시내버스가 둘 다 'bus' 라 구분이 사라진다.
+   * 순위가 "장거리는 시외 수단으로" 를 지키려면 이 구분이 필요하다.
+   */
+  tagoKind?: 'train' | 'expressBus' | 'suburbsBus' | 'subway' | 'flight'
   /** 어느 어댑터가 답했는지 — 디버깅과 신뢰도 표시에 쓴다. */
   source: string
   /**
@@ -100,6 +107,8 @@ export interface Leg {
   source: string
   origin: 'mock' | 'live'
   bookingUrl?: string
+  /** 시외 수단 구분. spec 에서 그대로 넘어온다 — 순위가 쓴다. */
+  tagoKind?: LegSpec['tagoKind']
   /** 이 구간이 실제로 지나는 길. spec 에서 그대로 넘어온다. */
   shape?: LatLng[]
 }

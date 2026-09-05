@@ -18,6 +18,8 @@ interface WireLeg {
   runs?: { departAt: string; arriveAt: string; carrier: string; fare?: number }[]
   /** 실제 좌표. 카카오는 경로 응답에 함께 오므로 이쪽이 채워진다. */
   shape?: LatLng[]
+  /** 시외 수단 구분. 순위가 쓴다. */
+  tagoKind?: LegSpec['tagoKind']
 }
 
 interface WireRoute {
@@ -67,6 +69,8 @@ const toSpecs = (legs: WireLeg[]): LegSpec[] =>
       carrier: leg.carrier,
       frequencyMin: departures?.length ? undefined : leg.frequencyMin,
       fare: leg.fare,
+      // 순위가 "장거리는 시외 수단으로" 를 지키려면 이 구분이 넘어가야 한다
+      tagoKind: leg.tagoKind,
       departures: departures?.length ? departures : undefined,
       source: SOURCE,
       origin: 'live' as const,
