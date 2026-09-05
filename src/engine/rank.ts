@@ -41,6 +41,45 @@ const isSoldOut = (r: Rankable) => seatStateOf(r.legs) === 'sold-out'
 const SEAT_TIEBREAK: Record<SeatState, number> = { ok: 0, unknown: 1, 'sold-out': 2 }
 
 /**
+ * 환승 한 번의 값. 분 단위.
+ *
+ * 갈아타는 일은 시간만 드는 게 아니다 — 짐을 들고 계단을 오르내리고, 놓칠까
+ * 신경 쓰고, 한 번 어긋나면 뒤가 다 밀린다. 교통 계획에서 환승 한 번을
+ * 차내 5~15분과 같게 치는 관행을 따르되, 이 앱은 공항처럼 짐을 든 장거리를
+ * 자주 다루므로 위쪽을 쓴다.
+ */
+const TRANSFER_COST_MIN = 15
+
+/** 걷는 1분의 값. 차에 앉아 가는 1분보다 힘들지만 환승만큼 위험하진 않다. */
+const WALK_COST_PER_MIN = 0.5
+
+/**
+ * 이 여정이 요구하는 수고. 분으로 환산한다.
+ *
+ * 이게 없으면 순위가 환승과 도보를 **0원으로 친다.** 실제로 그래서
+ * "35분 늦게 나가도 된다" 는 이유 하나로 환승 3회에 도보 39분짜리가,
+ * 환승 1회에 도보 6분이고 1시간 50분 일찍 닿는 공항버스를 이겼다
+ * (2026-09-05, 대전 → 인천공항).
+ */
+function effortMin(legs: Leg[]): number {
+  const rides = legs.filter((l) => l.kind !== 'walk').length
+  const walkMin = legs
+    .filter((l) => l.kind === 'walk')
+    .reduce((sum, l) => sum + (l.arriveAt.getTime() - l.departAt.getTime()) / 60_000, 0)
+  return Math.max(0, rides - 1) * TRANSFER_COST_MIN + walkMin * WALK_COST_PER_MIN
+}
+
+/**
+ * 수고를 반영한 출발 시각.
+ *
+ * 수고가 큰 경로는 그만큼 **일찍 나가는 셈으로** 친다. 그래야 "조금 늦게
+ * 나가도 된다" 는 이유로 훨씬 고단한 길을 고르지 않는다.
+ * 값(분)을 그대로 빼므로 비교가 여전히 하나의 수직선 위에서 이뤄진다 —
+ * 정렬 비교자는 반드시 전순서여야 해서, 조건부 우열 규칙을 쓸 수 없다.
+ */
+const effectiveDeparture = (r: Rankable) => r.departAt.getTime() - effortMin(r.legs) * 60_000
+
+/**
  * 경로 비교. 낮을수록 먼저 온다.
  *
  * 1. 매진은 뒤로 — 못 타는 편은 아무리 빨라도 소용없다.
@@ -55,7 +94,8 @@ export function compareRoutes(a: Rankable, b: Rankable, mode: Mode): number {
   if (soldA !== soldB) return soldA ? 1 : -1
 
   if (mode === 'arriveBy') {
-    const byDeparture = b.departAt.getTime() - a.departAt.getTime()
+    // 늦게 나가도 되는 쪽이 좋다. 다만 환승·도보의 수고를 값으로 쳐서 뺀다.
+    const byDeparture = effectiveDeparture(b) - effectiveDeparture(a)
     if (byDeparture !== 0) return byDeparture
     const byArrival = a.arriveAt.getTime() - b.arriveAt.getTime()
     if (byArrival !== 0) return byArrival
