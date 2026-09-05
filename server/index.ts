@@ -16,6 +16,7 @@ import {
   COOKIE_NAME,
   cookieOptions,
   createSession,
+  destroyOtherSessions,
   destroySession,
   purgeExpiredSessions,
   readSession,
@@ -617,6 +618,8 @@ app.post('/api/me/password', async (req, res) => {
     return
   }
   limiter.succeed(key)
+  // 바꿨으면 다른 데서 열려 있던 세션은 끊는다 — 지금 이 브라우저만 남는다
+  destroyOtherSessions(user.id, cookie(req, COOKIE_NAME))
   res.json({ ok: true })
 })
 

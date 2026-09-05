@@ -52,6 +52,21 @@ export function destroySession(token: string | undefined): void {
   if (id) db().prepare('DELETE FROM sessions WHERE id = ?').run(id)
 }
 
+/**
+ * 이 사용자의 다른 세션을 모두 끊는다. 지금 쓰는 것만 남긴다.
+ *
+ * 비밀번호를 바꾸는 이유의 절반은 "누가 내 계정에 들어온 것 같다" 이다.
+ * 그런데 해시만 갈면 이미 들어와 있는 쪽은 쿠키를 그대로 들고 있어서
+ * 아무 일도 일어나지 않는다. 바꾸는 순간 나머지를 다 끊어야 뜻이 맞는다.
+ */
+export function destroyOtherSessions(userId: string, keepToken: string | undefined): number {
+  const keep = keepToken?.split('.')[0] ?? ''
+  const r = db()
+    .prepare('DELETE FROM sessions WHERE user_id = ? AND id != ?')
+    .run(userId, keep)
+  return Number(r.changes ?? 0)
+}
+
 /** 만료된 세션 정리. 서버 시작 때 한 번 부른다. */
 export function purgeExpiredSessions(): number {
   const r = db().prepare('DELETE FROM sessions WHERE expires_at < ?').run(Date.now())
