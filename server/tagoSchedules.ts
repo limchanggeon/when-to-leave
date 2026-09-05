@@ -325,10 +325,22 @@ function samePair(
   return null
 }
 
-/** 평일 01 / 토요일 02 / 일요일·공휴일 03. 값을 확인해 둔 것이다. */
-export function dailyTypeCode(d: Date): string {
+/**
+ * 그날 쓸 시각표 코드. 평일 01 / 토요일 02 / 일요일·공휴일 03.
+ *
+ * **토요일은 후보가 둘이다.** 노선마다 시각표를 몇 벌로 나누는지가 다르다 —
+ * 서울 1~9호선처럼 평일·토요일·휴일 세 벌인 곳도 있고, 공항철도처럼
+ * 평일·휴일 두 벌인 곳도 있다. 후자는 토요일에 휴일 시각표로 운행하므로
+ * 02 를 물으면 0편이 온다. 그때 03 을 쓰는 건 추정이 아니라 그 노선이
+ * 실제로 그날 굴리는 시각표를 쓰는 것이다.
+ *
+ * 순서대로 물어보고 먼저 걸리는 것을 쓴다.
+ */
+export function dailyTypeCodes(d: Date): string[] {
   const day = d.getDay()
-  return day === 0 ? '03' : day === 6 ? '02' : '01'
+  if (day === 0) return ['03']
+  if (day === 6) return ['02', '03']
+  return ['01']
 }
 
 export const hhmmss = (v: string | undefined, base: Date): Date | null => {
@@ -374,20 +386,23 @@ export async function subwayDeparturesBetween(
     day.setDate(day.getDate() + i)
 
     let matched: { rows: SubwaySchedRow[] } | null = null
-    for (const ud of ['U', 'D']) {
-      const rows =
-        (await tagoCall<SubwaySchedRow>(TAGO.subway, 'GetSubwaySttnAcctoSchdulList', {
-          subwayStationId: pair.dep,
-          dailyTypeCode: dailyTypeCode(day),
-          upDownTypeCode: ud,
-          numOfRows: '400',
-        })) ?? []
-      const end = rows[0]?.endSubwayStationId ? splitId(rows[0].endSubwayStationId) : null
-      if (!end || end.prefix !== a.prefix) continue
-      // 종점이 목적지와 같은 쪽에 있어야 그 방향 열차가 목적지를 지난다
-      if (end.order > a.order === towardHigher) {
-        matched = { rows }
-        break
+    // 토요일은 02 를 먼저 보고, 그 노선에 토요일 시각표가 따로 없으면 03 으로 간다
+    outer: for (const code of dailyTypeCodes(day)) {
+      for (const ud of ['U', 'D']) {
+        const rows =
+          (await tagoCall<SubwaySchedRow>(TAGO.subway, 'GetSubwaySttnAcctoSchdulList', {
+            subwayStationId: pair.dep,
+            dailyTypeCode: code,
+            upDownTypeCode: ud,
+            numOfRows: '400',
+          })) ?? []
+        const end = rows[0]?.endSubwayStationId ? splitId(rows[0].endSubwayStationId) : null
+        if (!end || end.prefix !== a.prefix) continue
+        // 종점이 목적지와 같은 쪽에 있어야 그 방향 열차가 목적지를 지난다
+        if (end.order > a.order === towardHigher) {
+          matched = { rows }
+          break outer
+        }
       }
     }
     /*

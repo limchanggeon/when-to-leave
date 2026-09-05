@@ -2,7 +2,7 @@
 import './timezone'
 import { describe, expect, it } from 'vitest'
 import { SERVER_TZ } from './timezone'
-import { dailyTypeCode, hhmmss } from './tagoSchedules'
+import { dailyTypeCodes, hhmmss } from './tagoSchedules'
 
 /*
  * 이 시험은 **UTC 서버에서 9시간 밀리던 버그**를 잡아둔다(2026-09-05).
@@ -30,10 +30,17 @@ describe('서버 시간대', () => {
   })
 
   it('요일을 한국 날짜로 센다 — 시각표가 평일·토·일로 갈린다', () => {
-    // 2026-09-05 는 토요일. 한국 시각 00:30 은 UTC 로는 아직 금요일이다.
-    expect(dailyTypeCode(new Date('2026-09-05T00:30:00+09:00'))).toBe('02')
-    expect(dailyTypeCode(new Date('2026-09-06T00:30:00+09:00'))).toBe('03') // 일요일
-    expect(dailyTypeCode(new Date('2026-09-07T00:30:00+09:00'))).toBe('01') // 월요일
+    // 2026-09-05 는 토요일. 한국 시각 00:30 은 UTC 로는 아직 금요일이라,
+    // 시간대를 못 박지 않으면 여기서 평일 시각표를 받아온다.
+    expect(dailyTypeCodes(new Date('2026-09-05T00:30:00+09:00'))).toEqual(['02', '03'])
+    expect(dailyTypeCodes(new Date('2026-09-06T00:30:00+09:00'))).toEqual(['03']) // 일요일
+    expect(dailyTypeCodes(new Date('2026-09-07T00:30:00+09:00'))).toEqual(['01']) // 월요일
+  })
+
+  it('토요일은 휴일 시각표를 대안으로 갖는다', () => {
+    // 공항철도처럼 평일·휴일 두 벌로만 운영하는 노선은 02 가 비어 있다.
+    // 그때 03 으로 넘어가는 건 추정이 아니라 그 노선이 실제로 그날 굴리는 표다.
+    expect(dailyTypeCodes(new Date('2026-09-05T12:00:00+09:00'))).toEqual(['02', '03'])
   })
 
   it('잘못된 값에는 null 을 준다', () => {
