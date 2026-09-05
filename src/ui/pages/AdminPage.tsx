@@ -4,6 +4,7 @@ import { dictionaries } from '../../i18n'
 import { usePrefs } from '../PrefsContext'
 import { SiteHeader } from '../components/SiteHeader'
 import { DayBars } from '../components/DayBars'
+import { AreaTrend } from '../components/AreaTrend'
 
 interface AdminUser {
   id: string
@@ -64,6 +65,8 @@ export function AdminPage() {
   const [data, setData] = useState<Overview | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  /** 보고 있는 칸. 셋뿐이라 스크롤보다 갈아 끼우는 편이 빠르다. */
+  const [tab, setTab] = useState<'overview' | 'users' | 'log'>('overview')
 
   async function load() {
     const res = await fetch('/api/admin/overview', { credentials: 'include' })
@@ -94,68 +97,97 @@ export function AdminPage() {
     await load()
   }
 
+  const days = data?.days ?? []
+  const searches = days.map((d) => ({ day: d.day, value: d.search }))
+  const todaySearch = searches.at(-1)?.value ?? 0
+  const yesterdaySearch = searches.at(-2)?.value ?? 0
+  /* 어제가 0이면 증감률이 무한대가 된다. 그럴 땐 비율 대신 아무것도 말하지 않는다. */
+  const delta =
+    yesterdaySearch > 0 ? Math.round(((todaySearch - yesterdaySearch) / yesterdaySearch) * 100) : null
+
+  const TABS = [
+    { id: 'overview', label: '개요' },
+    { id: 'users', label: '계정' },
+    { id: 'log', label: '기록' },
+  ] as const
+
   return (
     <div className="page">
       <SiteHeader t={t} solid />
-      <div className="shell">
-        <Link className="mypage__back" to="/">
-          ← 홈으로
-        </Link>
-        <h1 className="mypage__title">관리자</h1>
+      <div className="admin">
+        {/* 판과 같은 색이라 머리글에서 이어져 한 덩어리로 보인다 */}
+        <nav className="adminnav" aria-label="관리자 메뉴">
+          {TABS.map((x) => (
+            <button
+              key={x.id}
+              type="button"
+              className={`adminnav__item ${tab === x.id ? 'is-on' : ''}`}
+              onClick={() => setTab(x.id)}
+              aria-current={tab === x.id ? 'page' : undefined}
+            >
+              {x.label}
+            </button>
+          ))}
+          <Link className="adminnav__home" to="/">
+            ← 홈으로
+          </Link>
+        </nav>
 
-        {error && (
-          <div className="notice notice--bad" role="alert">
-            <span aria-hidden="true">⚠</span>
-            <span>{error}</span>
-          </div>
-        )}
+        <main className="adminmain">
+          {error && (
+            <div className="notice notice--bad" role="alert">
+              <span aria-hidden="true">⚠</span>
+              <span>{error}</span>
+            </div>
+          )}
 
-        {data && (
-          <>
-            <section className="card">
-              <h2 className="card__title">지금</h2>
-              <dl className="stats stats--paper">
-                {Object.entries(data.stats).map(([k, v]) => (
-                  <div className="stats__item" key={k}>
-                    <dt>{STAT_LABEL[k] ?? k}</dt>
-                    <dd className="num">{v}</dd>
-                  </div>
-                ))}
-              </dl>
-            </section>
+          {data && tab === 'overview' && (
+            <>
+              <section className="panel panel--hero">
+                <p className="hero__label">오늘 검색</p>
+                <p className="hero__value num">{todaySearch.toLocaleString('ko-KR')}</p>
+                <p className="hero__delta">
+                  {delta === null ? (
+                    <span className="hero__flat">어제 기록 없음</span>
+                  ) : (
+                    <span className={delta >= 0 ? 'hero__up' : 'hero__down'}>
+                      {delta >= 0 ? '▲' : '▼'} {Math.abs(delta)}% <span>어제 대비</span>
+                    </span>
+                  )}
+                </p>
+                <AreaTrend title="최근 30일 검색" points={searches} />
+              </section>
 
-            <section className="card">
-              <h2 className="card__title">최근 30일</h2>
-              <p className="card__hint">
-                지표마다 자릿수가 달라 한 축에 겹치지 않고 따로 그린다. 방문은 브라우저
-                세션 수다 — 쿠키도 IP 도 쓰지 않아 같은 사람인지 알 수 없다.
-              </p>
-              <div className="dashgrid">
-                <DayBars
-                  title="검색"
-                  points={data.days.map((d) => ({ day: d.day, value: d.search }))}
-                  total={data.days.reduce((s, d) => s + d.search, 0)}
-                />
-                <DayBars
-                  title="방문"
-                  points={data.days.map((d) => ({ day: d.day, value: d.visit }))}
-                  total={data.days.reduce((s, d) => s + d.visit, 0)}
-                />
-                <DayBars
-                  title="로그인"
-                  points={data.days.map((d) => ({ day: d.day, value: d.login }))}
-                  total={data.days.reduce((s, d) => s + d.login, 0)}
-                />
-                <DayBars
-                  title="가입"
-                  points={data.days.map((d) => ({ day: d.day, value: d.signup }))}
-                  total={data.days.reduce((s, d) => s + d.signup, 0)}
-                />
-              </div>
-            </section>
+              <section className="panel">
+                <h2 className="panel__title">지금</h2>
+                <dl className="stats stats--paper">
+                  {Object.entries(data.stats).map(([k, v]) => (
+                    <div className="stats__item" key={k}>
+                      <dt>{STAT_LABEL[k] ?? k}</dt>
+                      <dd className="num">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
 
-            <section className="card">
-              <h2 className="card__title">계정 {data.users.length}개</h2>
+              <section className="panel">
+                <h2 className="panel__title">그 밖의 30일</h2>
+                <p className="panel__hint">
+                  지표마다 자릿수가 달라 한 축에 겹치지 않고 따로 그린다. 방문은 브라우저
+                  세션 수다 — 쿠키도 IP 도 쓰지 않아 같은 사람인지 알 수 없다.
+                </p>
+                <div className="dashgrid">
+                  <DayBars title="방문" points={days.map((d) => ({ day: d.day, value: d.visit }))} total={days.reduce((s, d) => s + d.visit, 0)} />
+                  <DayBars title="로그인" points={days.map((d) => ({ day: d.day, value: d.login }))} total={days.reduce((s, d) => s + d.login, 0)} />
+                  <DayBars title="가입" points={days.map((d) => ({ day: d.day, value: d.signup }))} total={days.reduce((s, d) => s + d.signup, 0)} />
+                </div>
+              </section>
+            </>
+          )}
+
+          {data && tab === 'users' && (
+            <section className="panel">
+              <h2 className="panel__title">계정 {data.users.length}개</h2>
               <div className="adminlist">
                 {data.users.map((u) => (
                   <div className="adminrow" key={u.id}>
@@ -168,9 +200,7 @@ export function AdminPage() {
                         </span>
                         {u.hasPassword && <span className="chip chip--muted">비밀번호</span>}
                         {u.providers.map((p) => (
-                          <span className="chip chip--muted" key={p}>
-                            {p}
-                          </span>
+                          <span className="chip chip--muted" key={p}>{p}</span>
                         ))}
                       </span>
                       <span className="adminrow__meta num">
@@ -179,66 +209,32 @@ export function AdminPage() {
                     </div>
                     <div className="adminrow__acts">
                       {!u.emailVerified && (
-                        <button
-                          type="button"
-                          className="btn btn--ghost"
-                          disabled={busy === u.id}
-                          onClick={() => act(u, '/verify', { method: 'POST' })}
-                        >
-                          확인 처리
-                        </button>
+                        <button type="button" className="btn btn--ghost" disabled={busy === u.id}
+                          onClick={() => act(u, '/verify', { method: 'POST' })}>확인 처리</button>
                       )}
                       {u.sessions > 0 && (
-                        <button
-                          type="button"
-                          className="btn btn--ghost"
-                          disabled={busy === u.id}
-                          onClick={() =>
-                            act(u, '/revoke-sessions', { method: 'POST' }, `${u.email} 의 로그인을 전부 끊을까요?`)
-                          }
-                        >
-                          세션 끊기
-                        </button>
+                        <button type="button" className="btn btn--ghost" disabled={busy === u.id}
+                          onClick={() => act(u, '/revoke-sessions', { method: 'POST' }, `${u.email} 의 로그인을 전부 끊을까요?`)}>세션 끊기</button>
                       )}
-                      <button
-                        type="button"
-                        className="btn btn--ghost"
-                        disabled={busy === u.id}
-                        onClick={() =>
-                          act(
-                            u,
-                            '/admin',
-                            { method: 'POST', body: JSON.stringify({ on: !u.isAdmin }) },
-                            u.isAdmin ? `${u.email} 을 관리자에서 내릴까요?` : `${u.email} 을 관리자로 세울까요?`,
-                          )
-                        }
-                      >
+                      <button type="button" className="btn btn--ghost" disabled={busy === u.id}
+                        onClick={() => act(u, '/admin', { method: 'POST', body: JSON.stringify({ on: !u.isAdmin }) },
+                          u.isAdmin ? `${u.email} 을 관리자에서 내릴까요?` : `${u.email} 을 관리자로 세울까요?`)}>
                         {u.isAdmin ? '관리자 내리기' : '관리자 세우기'}
                       </button>
-                      <button
-                        type="button"
-                        className="btn btn--danger"
-                        disabled={busy === u.id}
-                        onClick={() =>
-                          act(
-                            u,
-                            '',
-                            { method: 'DELETE' },
-                            `${u.email} 계정을 지웁니다. 저장한 장소와 연동도 함께 사라지고 되돌릴 수 없습니다. 계속할까요?`,
-                          )
-                        }
-                      >
-                        삭제
-                      </button>
+                      <button type="button" className="btn btn--danger" disabled={busy === u.id}
+                        onClick={() => act(u, '', { method: 'DELETE' },
+                          `${u.email} 계정을 지웁니다. 저장한 장소와 연동도 함께 사라지고 되돌릴 수 없습니다. 계속할까요?`)}>삭제</button>
                     </div>
                   </div>
                 ))}
               </div>
             </section>
+          )}
 
-            <section className="card">
-              <h2 className="card__title">관리 기록</h2>
-              <p className="card__hint">누가 언제 무엇을 했는지. 대상이 지워져도 남는다.</p>
+          {data && tab === 'log' && (
+            <section className="panel">
+              <h2 className="panel__title">관리 기록</h2>
+              <p className="panel__hint">누가 언제 무엇을 했는지. 대상이 지워져도 남는다.</p>
               {data.log.length === 0 ? (
                 <p className="card__empty">아직 없습니다.</p>
               ) : (
@@ -255,8 +251,8 @@ export function AdminPage() {
                 </ul>
               )}
             </section>
-          </>
-        )}
+          )}
+        </main>
       </div>
     </div>
   )

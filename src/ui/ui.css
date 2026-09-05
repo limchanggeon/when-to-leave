@@ -977,3 +977,88 @@
 .daybars__table td:last-child, .daybars__table th:last-child { text-align: right; }
 /* 표가 길어지면 접힌 채로도 화면을 밀지 않게 */
 .daybars__table[open] table { display: block; max-height: 220px; overflow-y: auto; }
+
+
+/* ================= 관리자 대시보드 =================
+ *
+ * 이 앱은 "상자를 늘어놓지 않는다" 가 원칙이지만 여기만 예외다.
+ * 그 원칙은 사용자 화면에서 "무엇이 답인지" 흐려지는 걸 막으려는 것이고,
+ * 관리자 화면은 애초에 여러 지표를 나란히 놓고 견주는 자리다.
+ */
+.admin { flex: 1; display: grid; grid-template-columns: 176px 1fr; align-items: start; }
+
+/* 판과 같은 색이라 머리글에서 이어져 위쪽이 한 덩어리로 보인다 */
+.adminnav {
+  position: sticky; top: 57px; align-self: stretch;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: var(--sp-5) var(--sp-3);
+  background: var(--night); min-height: calc(100vh - 57px);
+}
+.adminnav__item {
+  text-align: left; padding: var(--sp-2) var(--sp-3);
+  background: transparent; border: none; border-radius: var(--radius-md);
+  cursor: pointer; font-family: inherit; font-size: 0.92rem; font-weight: 600;
+  color: var(--night-soft);
+}
+.adminnav__item:hover { color: var(--night-ink); }
+/* 지금 보고 있는 칸 — 판에서 "켜져 있는 것" 은 호박색이다 */
+.adminnav__item.is-on { background: var(--night-raised); color: var(--signal); }
+.adminnav__home {
+  margin-top: auto; padding: var(--sp-2) var(--sp-3);
+  font-size: 0.84rem; color: var(--night-soft); text-decoration: none;
+}
+.adminnav__home:hover { color: var(--night-ink); }
+
+.adminmain {
+  min-width: 0; display: flex; flex-direction: column; gap: var(--sp-6);
+  padding: var(--sp-6);
+  max-width: 1000px;
+}
+
+.panel { display: flex; flex-direction: column; gap: var(--sp-3); }
+.panel + .panel { padding-top: var(--sp-6); border-top: 1px solid var(--rule); }
+.panel__title { margin: 0; font-size: 1rem; font-weight: 700; letter-spacing: -0.01em; }
+.panel__hint { margin: 0; font-size: 0.86rem; color: var(--ink-soft); }
+
+/* 히어로 — 이 화면에서 제일 먼저 읽혀야 하는 하나 */
+.hero__label { margin: 0; font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); letter-spacing: 0.02em; }
+.hero__value {
+  margin: 0; font-family: var(--font-num); font-variant-numeric: tabular-nums;
+  font-weight: 800; font-size: clamp(2.6rem, 6vw, 3.6rem); line-height: 0.9;
+  letter-spacing: -0.04em; color: var(--ink);
+}
+.hero__delta { margin: 0; font-size: 0.9rem; font-weight: 600; }
+/* 색만으로 읽히지 않게 화살표와 글자를 함께 둔다 */
+.hero__up { color: var(--teal); }
+.hero__down { color: var(--rust); }
+.hero__up span, .hero__down span { color: var(--ink-faint); font-weight: 500; }
+.hero__flat { color: var(--ink-faint); font-weight: 500; }
+
+/* ---- 면적 그래프 ---- */
+.trend { margin: var(--sp-3) 0 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+.trend__title { font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); }
+.trend__plot { position: relative; }
+.trend__plot svg { display: block; width: 100%; height: 150px; overflow: visible; }
+.trend__hits { position: absolute; inset: 0; display: flex; }
+.trend__hit { flex: 1; background: none; border: none; padding: 0; cursor: default; }
+.trend__hit:focus-visible { outline: 2px solid var(--signal); outline-offset: -2px; }
+.trend__tip {
+  position: absolute; top: -4px; transform: translateX(-50%);
+  padding: 3px var(--sp-2); white-space: nowrap; pointer-events: none;
+  background: var(--night); color: var(--night-ink);
+  border-radius: var(--radius-sm); font-size: 0.74rem; font-weight: 600;
+}
+/* 최고값만 적는다. 눈금을 촘촘히 깔면 데이터보다 눈금이 먼저 읽힌다. */
+.trend__max { position: absolute; top: -2px; left: 0; font-size: 0.72rem; color: var(--ink-faint); }
+.trend__axis { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--ink-faint); }
+
+@media (max-width: 720px) {
+  /* 좁으면 사이드바를 가로줄로 눕힌다 — 세로로 두면 본문이 눌린다 */
+  .admin { grid-template-columns: 1fr; }
+  .adminnav {
+    position: static; min-height: 0; flex-direction: row; align-items: center;
+    gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); overflow-x: auto;
+  }
+  .adminnav__home { margin-top: 0; margin-left: auto; white-space: nowrap; }
+  .adminmain { padding: var(--sp-5) var(--sp-4); }
+}
