@@ -7,6 +7,8 @@ export interface User {
   email: string
   name: string | null
   avatarUrl: string | null
+  /** 주소를 실제로 확인했는지. 소셜은 제공자가 확인해준 것만 인정한다. */
+  emailVerified: boolean
 }
 
 interface UserRow {
@@ -15,6 +17,7 @@ interface UserRow {
   password_hash: string | null
   name: string | null
   avatar_url: string | null
+  email_verified_at: number | null
 }
 
 const toUser = (r: UserRow): User => ({
@@ -22,6 +25,7 @@ const toUser = (r: UserRow): User => ({
   email: r.email,
   name: r.name,
   avatarUrl: r.avatar_url,
+  emailVerified: r.email_verified_at !== null,
 })
 
 /** 이메일은 대소문자를 구분하지 않는다. 저장도 조회도 소문자로 통일한다. */
@@ -39,32 +43,70 @@ export function findById(id: string): User | null {
 }
 
 export type RegisterResult =
+  /** 계정이 생겼거나(created) 미인증 계정을 덮어썼다(replaced). 둘 다 메일을 보낸다. */
   | { ok: true; user: User }
-  | { ok: false; code: 'email-taken'; message: string }
+  /** 이미 **확인된** 주소다. 화면에는 알리지 않고, 주인에게만 메일로 알린다. */
+  | { ok: false; code: 'email-verified-elsewhere'; user: User }
 
+/**
+ * 이메일·비밀번호 가입.
+ *
+ * 이미 있는 주소라도 **아직 확인되지 않았으면 덮어쓴다.** 남의 주소로 미리
+ * 가입해두고 자리를 차지하는 걸 막기 위해서다 — 진짜 주인이 다시 가입하면
+ * 그 계정을 가져간다. 확인되지 않은 계정은 아무도 그 주소의 주인임을
+ * 증명한 적이 없으므로 지켜줄 이유가 없다.
+ *
+ * 이미 확인된 주소면 아무것도 바꾸지 않는다. 대신 호출한 쪽이 주인에게
+ * "누가 이 주소로 가입을 시도했다" 고 알린다.
+ */
 export async function registerWithPassword(
   email: string,
   password: string,
   name: string | null,
 ): Promise<RegisterResult> {
-  if (findByEmail(email)) {
-    return { ok: false, code: 'email-taken', message: '이미 가입된 이메일입니다' }
+  const existing = findByEmail(email)
+  if (existing?.email_verified_at !== null && existing !== null) {
+    return { ok: false, code: 'email-verified-elsewhere', user: toUser(existing) }
+  }
+
+  const hash = await hashPassword(password)
+  const now = Date.now()
+
+  if (existing) {
+    // 미인증 계정을 이어받는다. 딸린 것들도 같이 지운다 —
+    // 앞사람이 저장해둔 장소가 새 주인에게 넘어가면 안 된다.
+    const conn = db()
+    conn.prepare('DELETE FROM sessions WHERE user_id = ?').run(existing.id)
+    conn.prepare('DELETE FROM places WHERE user_id = ?').run(existing.id)
+    conn.prepare('DELETE FROM email_tokens WHERE user_id = ?').run(existing.id)
+    conn
+      .prepare('UPDATE users SET password_hash = ?, name = ?, created_at = ? WHERE id = ?')
+      .run(hash, name?.trim() || null, now, existing.id)
+    return { ok: true, user: toUser({ ...existing, password_hash: hash, name: name?.trim() || null }) }
   }
 
   const user: UserRow = {
     id: randomUUID(),
     email: normalizeEmail(email),
-    password_hash: await hashPassword(password),
+    password_hash: hash,
     name: name?.trim() || null,
     avatar_url: null,
+    email_verified_at: null,
   }
   db()
     .prepare(
       'INSERT INTO users (id, email, password_hash, name, avatar_url, created_at) VALUES (?, ?, ?, ?, ?, ?)',
     )
-    .run(user.id, user.email, user.password_hash, user.name, user.avatar_url, Date.now())
+    .run(user.id, user.email, user.password_hash, user.name, user.avatar_url, now)
 
   return { ok: true, user: toUser(user) }
+}
+
+/** 주소를 확인 완료로 표시한다. 이미 확인돼 있으면 시각을 덮어쓰지 않는다. */
+export function markEmailVerified(userId: string): void {
+  db()
+    .prepare('UPDATE users SET email_verified_at = ? WHERE id = ? AND email_verified_at IS NULL')
+    .run(Date.now(), userId)
 }
 
 /**
@@ -129,15 +171,28 @@ export function upsertSocialUser(input: {
     ? normalizeEmail(input.email)
     : `${input.provider}_${input.providerUserId}@social.local`
 
+  /*
+   * 제공자가 확인해준 주소만 확인 완료로 친다. 우리 코드는 확인된 경우에만
+   * 주소를 받아오므로(구글 email_verified, 카카오 is_email_verified),
+   * 여기 실제 주소가 왔다는 것 자체가 확인됐다는 뜻이다.
+   * 주소를 못 받아 지어낸 @social.local 은 실재하지 않으므로 제외한다.
+   */
+  const verifiedAt = input.email ? Date.now() : null
+
   let user = findByEmail(email) ? toUser(findByEmail(email)!) : null
   if (!user) {
     const id = randomUUID()
     conn
       .prepare(
-        'INSERT INTO users (id, email, password_hash, name, avatar_url, created_at) VALUES (?, ?, NULL, ?, ?, ?)',
+        'INSERT INTO users (id, email, password_hash, name, avatar_url, created_at, email_verified_at) VALUES (?, ?, NULL, ?, ?, ?, ?)',
       )
-      .run(id, email, input.name, input.avatarUrl, Date.now())
-    user = { id, email, name: input.name, avatarUrl: input.avatarUrl }
+      .run(id, email, input.name, input.avatarUrl, Date.now(), verifiedAt)
+    user = { id, email, name: input.name, avatarUrl: input.avatarUrl, emailVerified: verifiedAt !== null }
+  } else if (verifiedAt && !user.emailVerified) {
+    // 비밀번호로 먼저 가입해 미인증이던 계정에 소셜을 붙였다면, 제공자가
+    // 확인해준 것이므로 이 시점에 확인 완료가 된다.
+    conn.prepare('UPDATE users SET email_verified_at = ? WHERE id = ?').run(verifiedAt, user.id)
+    user = { ...user, emailVerified: true }
   }
 
   conn

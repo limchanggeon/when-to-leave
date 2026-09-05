@@ -82,6 +82,11 @@ export const LOGIN_ACCOUNT: Limit = { windowMs: 15 * 60_000, max: 8 }
  * 잘못 적었다고 한 시간 잠기면 안 된다.
  */
 export const REGISTER_IP: Limit = { windowMs: 60 * 60_000, max: 10 }
+/**
+ * 인증 메일 다시 보내기. 메일을 보내는 자리라 남을 괴롭히는 데 쓰일 수 있다 —
+ * 남의 주소를 넣고 반복하면 그 사람 받은편지함이 찬다.
+ */
+export const RESEND_IP: Limit = { windowMs: 60 * 60_000, max: 5 }
 /** 비밀번호 변경은 현재 비밀번호를 맞혀야 하므로, 그걸 두드리는 것도 막는다. */
 export const PASSWORD_USER: Limit = { windowMs: 15 * 60_000, max: 8 }
 

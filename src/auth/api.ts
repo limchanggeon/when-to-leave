@@ -48,7 +48,11 @@ export async function serverLogout(): Promise<void> {
   }
 }
 
-export type EmailAuthResult = { ok: true; account: Account } | { ok: false; message: string }
+export type EmailAuthResult =
+  | { ok: true; account: Account }
+  /** 가입은 계정을 바로 주지 않는다 — 메일 속 링크를 눌러야 로그인된다. */
+  | { ok: true; sent: true }
+  | { ok: false; message: string; code?: string }
 
 async function post(path: string, body: unknown): Promise<EmailAuthResult> {
   try {
@@ -58,14 +62,24 @@ async function post(path: string, body: unknown): Promise<EmailAuthResult> {
       credentials: 'include',
       body: JSON.stringify(body),
     })
-    const json = (await res.json()) as { account: Account } | ApiError
+    const json = (await res.json()) as { account: Account } | { sent: true } | ApiError
     if (!res.ok || 'error' in json) {
-      return { ok: false, message: 'error' in json ? json.error.message : '요청에 실패했습니다' }
+      return {
+        ok: false,
+        message: 'error' in json ? json.error.message : '요청에 실패했습니다',
+        code: 'error' in json ? json.error.code : undefined,
+      }
     }
+    if ('sent' in json) return { ok: true, sent: true }
     return { ok: true, account: json.account }
   } catch {
     return { ok: false, message: '서버에 연결하지 못했습니다 — pnpm server 가 떠 있는지 확인하세요' }
   }
+}
+
+/** 인증 메일 다시 보내기. 주소가 있든 없든 같은 답이 온다. */
+export async function resendVerification(email: string): Promise<EmailAuthResult> {
+  return post('/api/auth/verify/resend', { email })
 }
 
 export const registerWithEmail = (email: string, password: string, name: string) =>

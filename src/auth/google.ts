@@ -11,9 +11,16 @@ import { loadScript, type AuthProvider, type AuthResult } from './types'
  */
 async function exchange(credential: string): Promise<AuthResult> {
   const r = await verifyGoogleCredential(credential)
-  return r.ok
-    ? { ok: true, account: r.account }
-    : { ok: false, failure: { code: 'failed', provider: 'google', detail: r.message } }
+  // 이 경로는 늘 계정을 돌려준다. 'sent' 는 이메일 가입에만 오는 모양이다.
+  if (r.ok && 'account' in r) return { ok: true, account: r.account }
+  return {
+    ok: false,
+    failure: {
+      code: 'failed',
+      provider: 'google',
+      detail: r.ok ? '서버가 계정을 돌려주지 않았습니다' : r.message,
+    },
+  }
 }
 
 const SDK = 'https://accounts.google.com/gsi/client'

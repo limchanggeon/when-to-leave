@@ -72,6 +72,19 @@ export function HomePage() {
    */
   const [resetKey, setResetKey] = useState(0)
   const [tour, setTour] = useState(false)
+  /**
+   * 메일 링크를 누르고 돌아온 결과. 서버가 /?verify=... 로 보내준다.
+   *
+   * 읽고 나면 주소에서 지운다 — 새로고침할 때마다 같은 알림이 다시 뜨거나,
+   * 그 주소를 남에게 복사해 보내는 걸 막는다.
+   */
+  const [verifyNotice] = useState<keyof I18nShape['verifyNotice'] | null>(() => {
+    if (typeof window === 'undefined') return null
+    const v = new URLSearchParams(window.location.search).get('verify')
+    if (!v) return null
+    window.history.replaceState({}, '', window.location.pathname)
+    return v === 'unknown' ? 'invalid' : (v as keyof I18nShape['verifyNotice'])
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -253,6 +266,15 @@ export function HomePage() {
       </Hero>
 
       <div className="shell">
+        {verifyNotice && t.verifyNotice[verifyNotice] && (
+          <div
+            className={`notice ${verifyNotice === 'ok' ? 'notice--ok' : 'notice--warn'}`}
+            role="status"
+          >
+            <span aria-hidden="true">{verifyNotice === 'ok' ? '✓' : '!'}</span>
+            <span>{t.verifyNotice[verifyNotice]}</span>
+          </div>
+        )}
         <SetupNotice />
 
         {pending && <ResultSkeleton />}

@@ -72,6 +72,8 @@ export async function exchangeKakaoCode(
     id: number
     kakao_account?: {
       email?: string
+      /** 카카오가 그 주소를 확인했는지. 확인 안 된 주소는 받지 않는다. */
+      is_email_verified?: boolean
       profile?: { nickname?: string; profile_image_url?: string }
     }
   }
@@ -82,7 +84,12 @@ export async function exchangeKakaoCode(
     user: upsertSocialUser({
       provider: 'kakao',
       providerUserId: String(me.id),
-      email: me.kakao_account?.email ?? null,
+      /*
+       * 카카오가 확인한 주소만 받는다. 구글 쪽(googleAuth.ts)과 같은 규칙이다.
+       * 확인 안 된 주소를 그대로 받으면, 남의 주소를 넣어둔 카카오 계정으로
+       * 그 주소의 기존 계정에 올라탈 수 있다.
+       */
+      email: me.kakao_account?.is_email_verified ? (me.kakao_account.email ?? null) : null,
       name: me.kakao_account?.profile?.nickname ?? null,
       avatarUrl: me.kakao_account?.profile?.profile_image_url ?? null,
     }),

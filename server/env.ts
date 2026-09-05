@@ -56,6 +56,15 @@ export const serverEnv = {
    * ODsay 는 배차 간격만 주므로, 실제 출발 시각은 여기서 받아 붙인다.
    */
   tagoKey: req('TAGO_SERVICE_KEY'),
+  /**
+   * 메일 전송기. 'console' 이면 실제로 나가지 않고 로그에만 찍힌다.
+   *
+   * 운영에서 이 값이 console 이면 인증 메일이 조용히 사라진다 —
+   * 그래서 missingServerEnv 가 잡는다.
+   */
+  mailTransport: req('MAIL_TRANSPORT') ?? 'console',
+  /** 메일 속 링크가 가리킬 주소. 운영에서는 https://whenigo.p-e.kr 이다. */
+  publicOrigin: (req('PUBLIC_ORIGIN') ?? 'http://localhost:5173').replace(/\/$/, ''),
   isProd: process.env.NODE_ENV === 'production',
 }
 
@@ -70,6 +79,17 @@ export function missingServerEnv(): { name: string; breaks: string }[] {
     out.push({
       name: 'GOOGLE_CLIENT_ID',
       breaks: '구글 로그인 — 서버가 ID 토큰의 aud 를 확인하지 못해 로그인이 거부됩니다',
+    })
+  // 개발에서는 콘솔로 보는 게 맞다. 운영에서 그러면 메일이 조용히 사라진다.
+  if (serverEnv.isProd && serverEnv.mailTransport === 'console')
+    out.push({
+      name: 'MAIL_TRANSPORT',
+      breaks: '이메일 인증 — 메일이 실제로 발송되지 않고 서버 로그에만 찍힙니다',
+    })
+  if (serverEnv.isProd && !req('PUBLIC_ORIGIN'))
+    out.push({
+      name: 'PUBLIC_ORIGIN',
+      breaks: '이메일 인증 — 메일 속 링크가 localhost 를 가리킵니다',
     })
   return out
 }

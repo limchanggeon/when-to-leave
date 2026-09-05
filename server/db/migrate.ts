@@ -91,6 +91,50 @@ const MIGRATIONS: Migration[] = [
       CREATE INDEX idx_trips_user ON trips(user_id, depart_at);
     `,
   },
+  {
+    id: 3,
+    name: 'email_verified_at, email_tokens',
+    sql: `
+      ALTER TABLE users ADD COLUMN email_verified_at INTEGER;
+
+      /*
+       * 기존 계정 처리.
+       *
+       * 소셜로 만든 계정만 인정한다 — 제공자가 주소를 확인해줬고, 우리 코드도
+       * 확인된 경우에만 그 주소를 받는다(구글 email_verified, 카카오
+       * is_email_verified). 제공자가 주소를 안 줘서 지어낸 @social.local 은
+       * 실재하는 주소가 아니므로 제외한다.
+       *
+       * 비밀번호 계정은 확인한 적이 없으므로 그대로 미인증이다. 지금까지
+       * 확인 절차가 없었다고 확인한 셈 칠 수는 없다.
+       */
+      UPDATE users SET email_verified_at = created_at
+      WHERE id IN (SELECT user_id FROM identities)
+        AND email NOT LIKE '%@social.local';
+
+      /*
+       * 메일로 보내는 한 번짜리 표. 인증과 비밀번호 재설정이 같이 쓴다.
+       *
+       * token_hash 가 열쇠다 — 원문을 저장하지 않는다. 메일 속 링크는 그
+       * 자체가 자격증명이라, 표가 새면 원문이 그대로 남의 계정 열쇠가 된다.
+       * (32바이트 난수라 대입할 여지가 없어 SHA-256 이면 충분하다.)
+       *
+       * email 을 같이 적는 이유: 링크를 누르기 전에 주소를 바꿨다면 옛 링크가
+       * 새 주소를 인증해선 안 된다.
+       */
+      CREATE TABLE email_tokens (
+        token_hash TEXT PRIMARY KEY,
+        user_id    TEXT NOT NULL,
+        purpose    TEXT NOT NULL,
+        email      TEXT NOT NULL,
+        expires_at INTEGER NOT NULL,
+        used_at    INTEGER,
+        created_at INTEGER NOT NULL
+      );
+      CREATE INDEX idx_email_tokens_user ON email_tokens(user_id, purpose);
+      CREATE INDEX idx_email_tokens_expiry ON email_tokens(expires_at);
+    `,
+  },
 ]
 
 export function migrate(conn: DatabaseSync): void {

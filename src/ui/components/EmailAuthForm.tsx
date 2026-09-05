@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { loginWithEmail, registerWithEmail } from '../../auth/api'
+import { loginWithEmail, registerWithEmail, resendVerification } from '../../auth/api'
 import { useAuthContext } from '../../auth/AuthContext'
 import type { I18nShape } from '../../i18n'
 
@@ -14,6 +14,13 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /**
+   * 메일을 보낸 뒤의 상태. 폼을 치우고 "받은편지함을 보세요" 로 바꾼다 —
+   * 가입 직후 할 일은 이 화면에 더 입력하는 게 아니라 메일을 여는 것이다.
+   */
+  const [sentTo, setSentTo] = useState<string | null>(null)
+  /** 로그인은 됐는데 주소가 아직 확인되지 않은 경우. 다시 보내기를 붙인다. */
+  const [needsVerify, setNeedsVerify] = useState(false)
 
   const canSubmit = email.trim().length > 0 && password.length > 0 && !busy
 
@@ -23,14 +30,57 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
     setBusy(true)
     setError(null)
 
+    setNeedsVerify(false)
+
     const r =
       tab === 'login'
         ? await loginWithEmail(email.trim(), password)
         : await registerWithEmail(email.trim(), password, name.trim())
 
-    if (r.ok) applyResult({ ok: true, account: r.account })
-    else setError(r.message)
+    if (r.ok) {
+      // 가입은 계정 대신 "보냈다" 만 온다. 링크를 눌러야 로그인된다.
+      if ('sent' in r) setSentTo(email.trim())
+      else applyResult({ ok: true, account: r.account })
+    } else {
+      setError(r.message)
+      setNeedsVerify(r.code === 'email-unverified')
+    }
     setBusy(false)
+  }
+
+  async function resend() {
+    setBusy(true)
+    await resendVerification(email.trim())
+    setBusy(false)
+    setSentTo(email.trim())
+    setNeedsVerify(false)
+    setError(null)
+  }
+
+  /*
+   * 메일을 보낸 뒤. 여기서 더 받을 입력이 없다.
+   *
+   * 주소를 그대로 보여준다 — 오타를 냈으면 여기서 알아채야 하고,
+   * 그때 돌아가서 고칠 수 있어야 한다.
+   */
+  if (sentTo) {
+    return (
+      <div className="emailauth emailauth--sent">
+        <h3 className="emailauth__senttitle">{t.emailAuth.sentTitle}</h3>
+        <p className="emailauth__sentto num">{sentTo}</p>
+        <p className="emailauth__senthint">{t.emailAuth.sentHint}</p>
+        <button
+          type="button"
+          className="emailauth__back"
+          onClick={() => {
+            setSentTo(null)
+            setPassword('')
+          }}
+        >
+          {t.emailAuth.sentBack}
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -92,6 +142,11 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
       {error && (
         <p className="emailauth__error" role="alert">
           {error}
+          {needsVerify && (
+            <button type="button" className="emailauth__resend" onClick={resend} disabled={busy}>
+              {t.emailAuth.resend}
+            </button>
+          )}
         </p>
       )}
 

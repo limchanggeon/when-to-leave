@@ -74,6 +74,10 @@ export const ja: I18nShape = {
     passwordHint: '8文字以上。短く複雑なものより長い文のほうが安全です',
     or: 'または',
     working: '処理中…',
+    sentTitle: '確認メールを送りました',
+    sentHint: '受信箱のリンクを押すと登録が完了し、そのままログインします。届かないときは迷惑メールもご確認ください。',
+    sentBack: 'アドレスを間違えましたか？',
+    resend: 'メールを再送する',
   },
   alarm: {
     add: 'カレンダーに追加',
@@ -214,6 +218,13 @@ export const ja: I18nShape = {
   units: { hour: '時間', minute: '分' },
   sections: { journey: '行程', map: '地図' },
   seat: { ok: '空席あり', soldOut: '満席' },
+  verifyNotice: {
+    ok: 'メールアドレスを確認しました。ログインしています。',
+    expired: 'リンクの有効期限が切れています。ログイン画面から再送してください。',
+    used: 'すでに確認済みのリンクです。そのままログインできます。',
+    stale: 'リンクの発行後にアドレスが変わりました。再送してください。',
+    invalid: '確認リンクが正しくありません。',
+  },
   tour: {
     open: '使い方',
     close: '閉じる',

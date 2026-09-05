@@ -21,9 +21,19 @@ import {
   purgeExpiredSessions,
   readSession,
 } from './session'
-import { authenticate, registerWithPassword, type User } from './users'
+import {
+  authenticate,
+  findByEmail,
+  findById,
+  markEmailVerified,
+  registerWithPassword,
+  type User,
+} from './users'
 import { checkPassword } from './password'
 import * as limiter from './rateLimit'
+import { VERIFY_TTL_MS, consume, issue } from './emailTokens'
+import { sendMail } from './mail'
+import { verifyMail, alreadyRegisteredMail } from './mailText'
 import { deletePlace, listPlaces, savePlace } from './places'
 import {
   accountMeta,
@@ -356,13 +366,85 @@ app.post('/api/auth/register', async (req, res) => {
   limiter.fail(ipKey, limiter.REGISTER_IP)
 
   const result = await registerWithPassword(email, password!, name ?? null)
-  if (!result.ok) {
-    res.status(409).json({ error: { code: result.code, message: result.message } })
+
+  /*
+   * 여기서 세션을 주지 않는다.
+   *
+   * 바로 로그인시키면 "이미 가입된 주소" 일 때와 응답이 달라질 수밖에 없고,
+   * 그 차이만으로 어떤 주소가 가입돼 있는지 훑을 수 있다. 두 경우 모두
+   * 똑같이 "메일을 보냈습니다" 로 답하고, 실제로 무엇을 보낼지만 다르게 한다.
+   * 링크를 누르면 그때 로그인된다 — 사용자가 겪는 걸음 수는 같다.
+   */
+  if (result.ok) {
+    const token = issue(result.user.id, result.user.email, 'verify', VERIFY_TTL_MS)
+    await sendMail(verifyMail(result.user.email, token))
+  } else {
+    // 이미 확인된 주소. 가입시키지 않고, 주인에게만 알린다.
+    await sendMail(alreadyRegisteredMail(result.user.email))
+  }
+  res.json({ sent: true })
+})
+
+/**
+ * 메일 속 링크. 확인하고 바로 로그인시킨 뒤 홈으로 보낸다.
+ *
+ * 메일 클라이언트가 링크를 미리 열어보는 경우가 있어 GET 으로 상태를 바꾸는
+ * 건 원칙적으로 좋지 않지만, 확인 링크는 그 방식 말고는 쓸 수가 없다.
+ * 대신 한 번만 통하고(consume), 이미 쓴 토큰은 "이미 확인됨" 으로 답한다.
+ */
+app.get('/api/auth/verify', (req, res) => {
+  const token = typeof req.query.token === 'string' ? req.query.token : ''
+  const home = serverEnv.publicOrigin
+  if (!token) {
+    res.redirect(`${home}/?verify=invalid`)
     return
   }
 
-  res.cookie(COOKIE_NAME, createSession(result.user.id), cookieOptions)
-  res.json({ account: result.user })
+  const r = consume(token, 'verify')
+  if (!r.ok) {
+    res.redirect(`${home}/?verify=${r.reason}`)
+    return
+  }
+
+  // 링크를 발급한 뒤 주소를 바꿨다면 그 링크로 새 주소를 확인해줄 수 없다
+  const user = findById(r.userId)
+  if (!user || user.email !== r.email) {
+    res.redirect(`${home}/?verify=stale`)
+    return
+  }
+
+  markEmailVerified(r.userId)
+  res.cookie(COOKIE_NAME, createSession(r.userId), cookieOptions)
+  res.redirect(`${home}/?verify=ok`)
+})
+
+/**
+ * 인증 메일 다시 보내기.
+ *
+ * 여기도 주소가 있는지 알려주지 않는다 — 늘 같은 답을 준다.
+ * 실제로 보내는 건 미인증 계정이 있을 때뿐이다.
+ */
+app.post('/api/auth/verify/resend', async (req, res) => {
+  const { email } = req.body as { email?: string }
+  if (!email || !EMAIL_RE.test(email.trim())) {
+    res.status(400).json({ error: { code: 'bad-email', message: '이메일 형식이 올바르지 않습니다' } })
+    return
+  }
+
+  const ipKey = `resend:${ipOf(req)}`
+  const blocked = limiter.check(ipKey, limiter.RESEND_IP)
+  if (blocked) {
+    tooMany(res, blocked)
+    return
+  }
+  limiter.fail(ipKey, limiter.RESEND_IP)
+
+  const row = findByEmail(email)
+  if (row && row.email_verified_at === null) {
+    const token = issue(row.id, row.email, 'verify', VERIFY_TTL_MS)
+    await sendMail(verifyMail(row.email, token))
+  }
+  res.json({ sent: true })
 })
 
 /** 이메일·비밀번호 로그인. */
@@ -390,6 +472,25 @@ app.post('/api/auth/login', async (req, res) => {
   }
 
   const user = await authenticate(email, password)
+
+  /*
+   * 비밀번호는 맞았지만 주소를 아직 확인하지 않은 계정.
+   *
+   * 여기서만 사유를 구분해 알려준다. 비밀번호를 맞힌 사람에게는 그 계정이
+   * 있다는 사실이 이미 알려진 것이라 새어나가는 정보가 없고, 아니면 그냥
+   * "확인해주세요" 라는 안내를 못 봐서 영영 못 들어온다.
+   *
+   * 막는 이유: 확인 없이 들어올 수 있으면, 남의 주소로 가입해 그 자리를
+   * 차지하고 쓰는 일이 가능해진다.
+   */
+  if (user && !user.emailVerified) {
+    limiter.succeed(accountKey)
+    res.status(403).json({
+      error: { code: 'email-unverified', message: '메일로 보낸 링크를 눌러 주소를 확인해 주세요' },
+    })
+    return
+  }
+
   if (!user) {
     limiter.fail(ipKey, limiter.LOGIN_IP)
     limiter.fail(accountKey, limiter.LOGIN_ACCOUNT)
