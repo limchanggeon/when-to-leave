@@ -124,6 +124,26 @@ const airports = once(async () => {
   return l
 })
 
+/**
+ * TAGO 가 이 이름의 터미널을 아는지.
+ *
+ * 허브 후보를 고를 때 쓴다. 카카오는 노선 중간의 작은 정류소까지 알려주는데
+ * TAGO 는 **터미널 단위 시간표만** 준다. 그래서 대전청사(둔산) 정류소처럼
+ * 실제로 공항버스가 서는 곳도 TAGO 로는 조회할 방법이 없다.
+ *
+ * 그런 정류소가 허브 자리를 차지하면 조회 한 번 못 해보고 후보가 끝난다.
+ * 실제로 둔산동에서 인천공항을 물으면 시외 허브 세 자리를 대전청사 정류소
+ * 셋이 가져가, 정작 조회 가능한 대전복합터미널이 밀려났다.
+ *
+ * 목록을 못 받아왔으면 **전부 안다고 답한다.** 여기서 걸러버리면 TAGO 가
+ * 잠깐 죽었을 때 시외 경로가 통째로 사라진다 — 모르면 넘기는 편이 낫다.
+ */
+export async function terminalKnown(kind: 'expressBus' | 'suburbsBus', name: string): Promise<boolean> {
+  const t = await (kind === 'expressBus' ? expTerminals() : suburbsTerminals())
+  if (t.byExact.size === 0) return true
+  return find(t, name) !== null
+}
+
 /* ---------------- 시각표 ---------------- */
 
 interface BusRow {

@@ -9,6 +9,7 @@ import {
   flightsBetween,
   suburbsBusesBetween,
   type Run,
+  terminalKnown,
 } from './tagoSchedules'
 
 /**
@@ -157,30 +158,29 @@ async function hubsNear(point: GeoPoint, kind: HubKind, limit = 3): Promise<Hub[
       lat: Number(d.y),
       lng: Number(d.x),
       distanceM: Number(d.distance ?? 0),
-      /* 터미널인지 정류소인지. 카카오 분류가 그대로 알려준다. */
-      isTerminal: /터미널/.test(d.category_name ?? ''),
     }))
     .filter((h) => h.name && Number.isFinite(h.lat) && Number.isFinite(h.lng))
 
   /*
-   * 터미널을 정류소보다 앞세운다.
+   * TAGO 로 조회할 수 있는 곳만 남긴다.
    *
-   * 거리만으로 고르면 큰 터미널이 코앞의 작은 정류소들에 밀려난다. 실제로
-   * 둔산동에서 인천공항을 물으면 시외 허브 세 자리를 대전청사 정류소 셋이
-   * 차지해, 정작 공항버스가 다니는 대전복합터미널이 후보에 못 들었다.
-   * 그래서 환승 세 번짜리 시내 경로가 답이 됐다.
+   * 카카오는 노선 중간의 작은 정류소까지 알려주지만 TAGO 는 터미널 단위
+   * 시간표만 준다. 조회조차 못 하는 정류소가 허브 자리를 차지하면, 한 번도
+   * 물어보지 못한 채 후보가 끝난다. 실제로 둔산동에서 인천공항을 물으면
+   * 시외 허브 세 자리를 대전청사 정류소 셋(0.8·1.2·1.3km)이 가져가,
+   * 정작 공항버스가 뜨는 대전복합터미널(4.7km)이 밀려났다.
+   * 그래서 환승 세 번에 도보 27분짜리 시내 경로가 답이 됐다.
    *
-   * 정류소를 버리지는 않는다 — 인천공항의 공항버스 승차장이 바로 정류소라,
-   * 빼면 도착 쪽 허브가 사라진다. 순서만 뒤에 둔다.
+   * 정류소라서 빼는 게 아니라 **모르는 이름이라서** 뺀다 — 인천공항의
+   * 공항버스 승차장은 분류가 정류장이지만 TAGO 에 있으므로 남는다.
    */
+  const known =
+    kind === 'train'
+      ? found.map(() => true) // 기차역은 목록이 아니라 도시별 조회라 여기서 못 거른다
+      : await Promise.all(found.map((h) => terminalKnown(kind, h.name)))
   const hubs = found
-    .slice()
-    .sort((a, b) => Number(b.isTerminal) - Number(a.isTerminal) || a.distanceM - b.distanceM)
-    /*
-     * 같은 터미널의 동관·서관처럼 한 곳이 여러 줄로 오는 걸 접는다.
-     * 안 접으면 세 자리를 한 터미널이 다 먹어 다른 후보가 사라진다.
-     */
-    .filter((h, i, all) => !all.slice(0, i).some((prev) => h.name.startsWith(prev.name)))
+    .filter((_, i) => known[i])
+    .sort((a, b) => a.distanceM - b.distanceM)
 
   hubCache.set(key, hubs)
   return hubs.slice(0, limit)
