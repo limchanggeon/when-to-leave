@@ -6,13 +6,6 @@ export const ko = {
   app: {
     title: '언제나가',
     eyebrow: '출발 시각 역산',
-    tagline: '목적지를 말하면, 몇 시에 나가야 하는지 계산합니다',
-    coverage: null as string | null,
-    heroLines: [
-      '도착해야 할 시각만 알려주세요.',
-      '열차 시간표와 환승, 걸어가는 시간까지 거꾸로 계산해서',
-      '몇 시에 집을 나서야 하는지 알려드립니다.',
-    ],
   },
   /** 판에 늘 걸려 있는 것 — 검색 전에는 빈 칸이, 검색 후에는 답이 들어간다. */
   board: {
@@ -179,13 +172,6 @@ export const ko = {
     othersSub: '표가 없거나 다른 역에서 타고 싶을 때',
     unnamed: '경로',
   },
-  nav2: {
-    home: '홈',
-    saved: '저장한 장소',
-    how: '어떻게 동작하나',
-    calendar: '캘린더',
-    account: '내 계정',
-  },
   contact: {
     open: '문의하기',
     title: '문의하기',
@@ -299,9 +285,6 @@ export const ko = {
     ],
   },
   footer: {
-    tagline: '도착 시각에서 출발 시각을 역산하는 이동 비서',
-    madeWith: '카카오맵과 공공데이터포털의 시각표로 계산합니다',
-    repo: '소스 보기',
     /* 아래는 안내판 옆에 붙은 고지문이다. 없는 사업자 정보를 지어내지 않는다. */
     operator: '만든 사람',
     operatorName: '임창건',
@@ -314,8 +297,6 @@ export const ko = {
   },
   result: {
     departAt: (t: string) => `${t}에 나가세요`,
-    /** 시각만 크게 보여주려고 꼬리말을 따로 둔다 — 안내판의 숫자가 주인공이다. */
-    departSuffix: '에 나가세요',
     arriveAt: (t: string) => `${t} 도착`,
     leaveIn: (m: string) => `${m} 후 출발`,
     leaveNow: '지금 나가세요',

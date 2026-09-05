@@ -5,13 +5,6 @@ export const ja: I18nShape = {
   app: {
     title: 'いつ出る',
     eyebrow: '出発時刻の逆算',
-    tagline: '目的地を伝えると、出発時刻を計算します',
-    coverage: '現在は韓国国内の経路のみ対応しています。日本国内の経路は準備中です。',
-    heroLines: [
-      '到着したい時刻を教えてください。',
-      '列車の時刻表・乗り換え・徒歩の時間まで逆算して',
-      '何時に家を出ればいいかをお知らせします。',
-    ],
   },
   board: {
     slotLabel: '出発時刻',
@@ -177,13 +170,6 @@ export const ja: I18nShape = {
     othersSub: 'チケットがない・別の駅から乗りたいとき',
     unnamed: '経路',
   },
-  nav2: {
-    home: 'ホーム',
-    saved: '保存した場所',
-    how: '仕組み',
-    calendar: 'カレンダー',
-    account: 'アカウント',
-  },
   contact: {
     open: 'お問い合わせ',
     title: 'お問い合わせ',
@@ -289,9 +275,6 @@ export const ja: I18nShape = {
     ],
   },
   footer: {
-    tagline: '到着時刻から出発時刻を逆算する移動アシスタント',
-    madeWith: 'カカオマップと韓国公共データの時刻表で計算しています',
-    repo: 'ソースを見る',
     operator: '制作',
     operatorName: 'イム・チャンゴン',
     contactLabel: 'お問い合わせ',
@@ -303,8 +286,6 @@ export const ja: I18nShape = {
   },
   result: {
     departAt: (t) => `${t} に出発してください`,
-    /** 시각만 크게 보여주려고 꼬리말을 따로 둔다 — 안내판의 숫자가 주인공이다. */
-    departSuffix: 'に出てください',
     arriveAt: (t) => `${t} 到着`,
     leaveIn: (m) => `${m} 後に出発`,
     leaveNow: '今すぐ出発',
