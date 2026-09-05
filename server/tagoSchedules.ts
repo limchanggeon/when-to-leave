@@ -390,9 +390,20 @@ export async function subwayDeparturesBetween(
         break
       }
     }
-    // 그날 데이터가 없으면 그날만 건너뛴다. 토요일 시각표가 비어 있는
-    // 노선이 있어서, 여기서 통째로 포기하면 평일 것까지 날아간다.
-    if (!matched) continue
+    /*
+     * 그날 데이터가 없으면 그날만 건너뛴다. 토요일 시각표가 비어 있는
+     * 노선이 있어서, 여기서 통째로 포기하면 평일 것까지 날아간다.
+     *
+     * 다만 **기준일(i=0, 대개 오늘)이 통째로 비면 시각표 자체를 주지 않는다.**
+     * 남는 건 내일 것뿐인데, 그걸 넘기면 엔진이 "오늘 탈 수 있는 편이 없다" 로
+     * 읽고 출발을 내일 새벽으로 밀어버린다 — 토요일 오후에 검색했는데
+     * "내일 05:06 에 나가세요" 가 나오는 식이다. 시각표가 없으면 없다고 하고
+     * 소요시간만으로 추정하는 편이 정직하고 쓸모도 있다.
+     */
+    if (!matched) {
+      if (i === 0) return null
+      continue
+    }
 
     for (const row of matched.rows) {
       const departAt = hhmmss(row.depTime, day)
