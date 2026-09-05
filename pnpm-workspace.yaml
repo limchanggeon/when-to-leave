@@ -8,7 +8,12 @@ overrides:
   tinyspy: 4.0.4
 
 # esbuild 는 설치할 때 자기 바이너리를 내려받는 스크립트를 돌린다.
-# pnpm 11 부터는 그런 스크립트를 조용히 건너뛰지 않고 에러로 멈추므로,
-# 여기서 명시적으로 허용해야 배포가 진행된다(vite 와 vitest 가 각자 물고 있다).
+# 허용하지 않으면 pnpm 11 이 ERR_PNPM_IGNORED_BUILDS 로 멈춰 배포가 안 된다.
+#
+# 두 이름을 다 적는다 — 로컬(pnpm 10)은 onlyBuiltDependencies 를,
+# 배포 서버(pnpm 11)는 allowBuilds 를 본다. 한쪽만 적으면 다른 쪽에서 막힌다.
 onlyBuiltDependencies:
   - esbuild
+
+allowBuilds:
+  esbuild: true
