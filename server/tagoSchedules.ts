@@ -326,12 +326,12 @@ function samePair(
 }
 
 /** 평일 01 / 토요일 02 / 일요일·공휴일 03. 값을 확인해 둔 것이다. */
-function dailyTypeCode(d: Date): string {
+export function dailyTypeCode(d: Date): string {
   const day = d.getDay()
   return day === 0 ? '03' : day === 6 ? '02' : '01'
 }
 
-const hhmmss = (v: string | undefined, base: Date): Date | null => {
+export const hhmmss = (v: string | undefined, base: Date): Date | null => {
   const s = String(v ?? '')
   if (s.length < 4) return null
   const h = Number(s.slice(0, 2))

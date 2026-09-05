@@ -1,3 +1,5 @@
+// 반드시 첫 import. 다른 모듈이 Date 를 만지기 전에 시간대를 못 박는다.
+import './timezone'
 import express from 'express'
 import { serverEnv, missingServerEnv } from './env'
 import { exchangeKakaoCode } from './kakao'
