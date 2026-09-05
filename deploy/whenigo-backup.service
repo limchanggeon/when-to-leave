@@ -1,0 +1,39 @@
+# /etc/systemd/system/whenigo-backup.service
+#
+#   sudo cp deploy/whenigo-backup.{service,timer} /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now whenigo-backup.timer
+#
+# 한 번 지금 돌려보기: sudo systemctl start whenigo-backup
+# 로그:               journalctl -u whenigo-backup
+
+[Unit]
+Description=언제나가 DB 백업 (VACUUM INTO → gzip → 보관)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=whenigo
+Group=whenigo
+WorkingDirectory=/srv/whenigo
+
+# 본 서버와 같은 파일을 읽는다 — S3 로 올릴 때 AWS 자격증명이 여기 있다.
+EnvironmentFile=/etc/whenigo.env
+Environment=NODE_ENV=production
+Environment=DB_PATH=/var/lib/whenigo/app.db
+Environment=BACKUP_DIR=/var/backups/whenigo
+# 하루 한 번이면 2주치
+Environment=BACKUP_KEEP=14
+
+ExecStart=/srv/whenigo/node_modules/.bin/tsx server/backup.ts
+
+# 본 서버와 같은 잠금. 다만 백업은 DB 를 읽고 보관 디렉터리에 써야 한다.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+# ProtectSystem=strict 는 /var 를 읽기 전용으로 만든다. 쓸 곳만 열어준다.
+ReadWritePaths=/var/backups/whenigo
+# DB 는 읽기만 한다(VACUUM INTO 는 원본을 건드리지 않는다).
+ReadOnlyPaths=/var/lib/whenigo

@@ -15,7 +15,8 @@
     "server": "tsx watch --env-file=.env server/index.ts",
     "dev:all": "concurrently -n web,api -c cyan,magenta \"vite\" \"tsx watch --env-file=.env server/index.ts\"",
     "typecheck": "tsc -b && tsc --noEmit -p tsconfig.server.json",
-    "start": "tsx server/index.ts"
+    "start": "tsx server/index.ts",
+    "backup": "tsx server/backup.ts"
   },
   "dependencies": {
     "express": "^5.2.1",

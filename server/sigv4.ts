@@ -20,7 +20,11 @@ export interface SignInput {
   /** 정렬된 질의 문자열. 없으면 빈 문자열. */
   query?: string
   headers: Record<string, string>
-  body: string
+  /**
+   * 요청 본문. 이진 데이터는 **Buffer 그대로** 넘겨야 한다 —
+   * 문자열로 바꾸면 인코딩을 거치며 바이트가 달라져 서명이 어긋난다.
+   */
+  body: string | Buffer
   region: string
   service: string
   accessKeyId: string

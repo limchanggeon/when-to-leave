@@ -1,0 +1,21 @@
+# /etc/systemd/system/whenigo-backup.timer
+#
+# 매일 새벽 4시(한국 시각). 사람이 제일 안 쓰는 시간이다.
+#
+# 시간대를 반드시 적는다. 이 서버는 Etc/UTC 라, 안 적으면 04:00 UTC =
+# 한국시간 오후 1시에 돈다 — 제일 붐빌 때다.
+# (systemd 252 부터 OnCalendar 에 시간대를 쓸 수 있다. 여기는 259.)
+
+[Unit]
+Description=언제나가 DB 백업을 매일 돌린다
+
+[Timer]
+OnCalendar=*-*-* 04:00:00 Asia/Seoul
+# 서버가 꺼져 있어 건너뛴 회차는 켜지자마자 한 번 돌린다 —
+# 이게 없으면 재시작이 잦은 서버에서 백업이 조용히 빠진다.
+Persistent=true
+# 여러 서버가 같은 시각에 몰리지 않게 흩는다(지금은 한 대지만 습관).
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target
