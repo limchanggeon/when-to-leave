@@ -25,6 +25,11 @@ export type PlanOutcome =
       /** 나머지 후보. 이미 순위대로 정렬돼 있다. */
       others: RouteOption[]
       renegotiated: boolean
+      /**
+       * 시각표를 떼고 소요시간만으로 푼 결과인지.
+       * 화면은 이걸 보고 "추정" 이라고 밝힌다.
+       */
+      estimated: boolean
       target: Date
     }
 
@@ -49,6 +54,23 @@ export async function planTrip(
 
   const tidy = (legs: Leg[]) => compact(legs)
 
+  /**
+   * 시각표를 떼고 소요시간만 남긴다.
+   *
+   * 시각표가 있는데 그날 편이 하나도 없는 경우가 있다 — TAGO 의 지하철
+   * 토요일 시각표가 비어 있는 노선이 대표적이다. 그때 엔진은 "탈 수 있는 편이
+   * 없다" 고 판단해 포기하는데, 정작 경로도 찾았고 각 구간의 소요시간도 있다.
+   * 없는 건 시각표뿐이다.
+   *
+   * 소요시간은 경로 제공자가 준 실제 값이라 지어내는 게 아니다. 다만 몇 시
+   * 열차를 타는지 모르는 채 계산한 것이므로 confidence 를 estimated 로 낮춰
+   * 화면이 그 사실을 그대로 보이게 한다.
+   */
+  const withoutTimetables = (specs: LegSpec[]): LegSpec[] =>
+    specs.map((s) =>
+      s.departures?.length ? { ...s, departures: undefined, confidence: 'estimated' as const } : s,
+    )
+
   const solveBack = (specs: LegSpec[]): Solved => {
     const r = solveBackward(specs, target, DEFAULT_POLICY, now)
     return r.ok
@@ -70,6 +92,7 @@ export async function planTrip(
   }
 
   let renegotiated = false
+  let estimated = false
   let solve: (specs: LegSpec[]) => Solved
 
   if (mode === 'departNow') {
@@ -84,7 +107,25 @@ export async function planTrip(
       renegotiated = true
       solve = solveFwd
     } else {
-      return { kind: 'no-route' }
+      /*
+       * 시각표에 그날 편이 아예 없다(no-departure).
+       *
+       * 여기서 포기하면 "경로를 찾지 못했습니다" 가 뜨는데, 그건 사실이
+       * 아니다 — 경로는 찾았고 소요시간도 있다. 없는 건 시각표뿐이다.
+       * 시각표를 떼고 다시 풀어 답을 내되, 추정이라고 밝힌다.
+       */
+      const loose = withoutTimetables(routed.data)
+      const back = solveBack(loose)
+      if (back.ok) {
+        estimated = true
+        solve = (specs) => solveBack(withoutTimetables(specs))
+      } else if (back.tooLate) {
+        estimated = true
+        renegotiated = true
+        solve = (specs) => solveFwd(withoutTimetables(specs))
+      } else {
+        return { kind: 'no-route' }
+      }
     }
   }
 
@@ -118,5 +159,5 @@ export async function planTrip(
   options.sort((a, b) => compareRoutes(a, b, mode))
   const [chosen, ...others] = options
 
-  return { kind: 'trip', chosen, reason: reasonFor(mode), others, renegotiated, target }
+  return { kind: 'trip', chosen, reason: reasonFor(mode), others, renegotiated, estimated, target }
 }

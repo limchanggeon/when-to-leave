@@ -297,6 +297,7 @@ export const ko = {
     totalDuration: (m: string) => `총 ${m}`,
     alreadyLate: '이미 늦었어요 — 다음 편으로 다시 계산했어요',
     renegotiated: (t: string) => `${t}까지는 이미 늦었어요. 지금 나가면 이게 가장 빠릅니다.`,
+    estimated: '이 구간은 시각표가 없어 소요시간으로 계산했습니다 — 실제 출발 시각은 다를 수 있어요',
     buffer: (m: number) => `여유 ${m}분 포함`,
   },
   clock: {

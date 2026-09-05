@@ -288,6 +288,7 @@ export const ja: I18nShape = {
     totalDuration: (m) => `合計 ${m}`,
     alreadyLate: '間に合いません — 次の便で再計算しました',
     renegotiated: (t) => `${t} には間に合いません。今すぐ出発すると これが最速です。`,
+    estimated: 'この区間は時刻表がないため所要時間で計算しました — 実際の出発時刻とは異なる場合があります',
     buffer: (m) => `余裕時間 ${m}分 込み`,
   },
   clock: {

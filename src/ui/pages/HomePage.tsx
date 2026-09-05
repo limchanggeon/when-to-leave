@@ -299,6 +299,13 @@ export function HomePage() {
 
             <AddToCalendar legs={shown.legs} now={now} t={t} />
 
+            {outcome.estimated && (
+              <div className="notice notice--warn" role="status">
+                <span aria-hidden="true">≈</span>
+                <span>{t.result.estimated}</span>
+              </div>
+            )}
+
             {outcome.renegotiated && (
               <div className="notice notice--warn" role="status">
                 <span aria-hidden="true">↻</span>
