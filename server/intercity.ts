@@ -42,6 +42,9 @@ interface Hub {
  * 카테고리만 보면 안 된다 — "흑석리화물역" 은 카테고리가 그냥 "기차역" 이라
  * 통과해 버린다. 사람이 못 타는 곳은 이름에서만 드러나는 경우가 있다.
  */
+/** `고속,시외버스터미널` 과 `고속,시외버스정류장` 을 함께 받는다. */
+export const INTERCITY_STOP = /(고속|시외)[^>]*버스(터미널|정류장|정류소)/
+
 const HUB_QUERY: Record<
   HubKind,
   { query: string; ok: (category: string, name: string) => boolean }
@@ -50,9 +53,20 @@ const HUB_QUERY: Record<
     query: '기차역',
     ok: (c, n) => c.includes('기차역') && !/폐역|화물|신호장|기지/.test(`${c}${n}`),
   },
-  // 카카오는 고속과 시외를 한 카테고리로 묶어둔다. 주차장·카셰어링이 섞여 나온다.
-  expressBus: { query: '고속버스터미널', ok: (c) => c.includes('버스터미널') },
-  suburbsBus: { query: '시외버스터미널', ok: (c) => c.includes('버스터미널') },
+  /*
+   * 카카오는 고속과 시외를 한 카테고리로 묶어둔다. 주차장·카셰어링이 섞여 나온다.
+   *
+   * **정류장도 받는다.** 예전에는 "버스터미널" 만 봤는데, 인천공항의 공항버스
+   * 승차장은 카카오 분류가 `고속,시외버스정류장` 이라 통째로 걸러졌다.
+   * 그래서 대전 → 인천공항을 물으면 공항버스가 후보에도 못 오르고, 카카오가
+   * 엮어준 환승 3회짜리 시내 경로가 답이 됐다. TAGO 에는 그 터미널이
+   * 멀쩡히 있다(시외 `인천공항2터미널`, 고속 `인천공항T1`).
+   *
+   * 앞에 고속·시외가 붙은 것만 받아 시내버스 정류장은 걸러낸다.
+   * `[^>]*` 로 분류 경로의 다른 마디로 넘어가지 않게 막는다.
+   */
+  expressBus: { query: '고속버스터미널', ok: (c) => INTERCITY_STOP.test(c) },
+  suburbsBus: { query: '시외버스터미널', ok: (c) => INTERCITY_STOP.test(c) },
   flight: { query: '공항', ok: (c, n) => c.includes('공항') && !/주차|화물/.test(`${c}${n}`) },
 }
 
