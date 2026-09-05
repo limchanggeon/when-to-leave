@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  tinyspy: 4.0.4
+
 importers:
 
   .:
@@ -1216,8 +1219,8 @@ packages:
     resolution: {integrity: sha512-op4nsTR47R6p0vMUUoYl/a+ljLFVtlfaXkLQmqfLR1qHma1h/ysYk4hEXZ880bf2CYgTskvTa/e196Vd5dDQXw==}
     engines: {node: '>=14.0.0'}
 
-  tinyspy@4.0.6:
-    resolution: {integrity: sha512-u8KszXvGfU68hVcZpRHKG28T0krMuv2G5nDhiHaMLen/gIuFEgIJhaJuO69qjnXg5paSrbPMFfx3brNuN8eVSg==}
+  tinyspy@4.0.4:
+    resolution: {integrity: sha512-azl+t0z7pw/z958Gy9svOTuzqIk6xq+NSheJzn5MMWtWTFywIacg2wUlzKFGtt3cthx0r2SxMK0yzJOR0IES7Q==}
     engines: {node: '>=14.0.0'}
 
   toidentifier@1.0.1:
@@ -1856,7 +1859,7 @@ snapshots:
 
   '@vitest/spy@3.2.7':
     dependencies:
-      tinyspy: 4.0.6
+      tinyspy: 4.0.4
 
   '@vitest/utils@3.2.7':
     dependencies:
@@ -2427,7 +2430,7 @@ snapshots:
 
   tinyrainbow@2.0.0: {}
 
-  tinyspy@4.0.6: {}
+  tinyspy@4.0.4: {}
 
   toidentifier@1.0.1: {}
 
