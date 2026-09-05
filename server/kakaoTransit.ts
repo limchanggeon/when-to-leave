@@ -2,6 +2,7 @@ import { serverEnv } from './env'
 import { fetchJson } from './http'
 import type { GeoPoint } from './geocode'
 import type { LatLng, RouteResult, WireLeg, WireRoute } from './routeTypes'
+import { encodePolyline } from './polyline'
 
 /**
  * 카카오 대중교통 길찾기.
@@ -113,7 +114,7 @@ async function walkLeg(from: GeoPoint, to: GeoPoint): Promise<WireLeg | null> {
     to: { name: to.name, lat: to.lat, lng: to.lng },
     durationMin: minutes,
     confidence: 'estimated',
-    shape: shape.length > 1 ? shape : undefined,
+    shape: shape.length > 1 ? encodePolyline(shape) : undefined,
   }
 }
 
@@ -151,7 +152,7 @@ function toLegs(route: KakaoRoute): WireLeg[] {
       // 카카오도 시각표가 아니라 평시 소요시간을 준다
       confidence: 'estimated',
       fare: legFare,
-      shape: shape.length > 1 ? shape : undefined,
+      shape: shape.length > 1 ? encodePolyline(shape) : undefined,
       // 지하철은 TAGO 시각표를 붙일 수 있다. 시내버스는 해당 서비스가 없다.
       tagoKind: kind === 'subway' ? 'subway' : undefined,
     }

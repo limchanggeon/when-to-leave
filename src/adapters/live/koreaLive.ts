@@ -1,6 +1,7 @@
-import type { LatLng, LegSpec, Place } from '../../engine/types'
+import type { LegSpec, Place } from '../../engine/types'
 import type { AdapterResult, LabeledRoute, RouteAdapter, RouteRequest } from '../types'
 import { fail } from '../types'
+import { decodePolyline } from '../../map/polyline'
 
 const SOURCE = 'kakao+tago:korea'
 
@@ -16,8 +17,8 @@ interface WireLeg {
   fare?: number
   /** 실제 운행 시각(TAGO). 있으면 이 구간은 이산 구간이 된다. */
   runs?: { departAt: string; arriveAt: string; carrier: string; fare?: number }[]
-  /** 실제 좌표. 카카오는 경로 응답에 함께 오므로 이쪽이 채워진다. */
-  shape?: LatLng[]
+  /** 실제 좌표. 접혀서 온다(인코딩 폴리라인) — 여기서 편다. */
+  shape?: string
   /** 시외 수단 구분. 순위가 쓴다. */
   tagoKind?: LegSpec['tagoKind']
 }
@@ -74,7 +75,7 @@ const toSpecs = (legs: WireLeg[]): LegSpec[] =>
       departures: departures?.length ? departures : undefined,
       source: SOURCE,
       origin: 'live' as const,
-      shape: leg.shape,
+      shape: leg.shape ? decodePolyline(leg.shape) : undefined,
     }
   })
 

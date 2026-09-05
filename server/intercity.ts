@@ -241,19 +241,30 @@ export async function searchIntercity(from: GeoPoint, to: GeoPoint): Promise<Rou
     })),
   )
 
-  // 시각표가 실제로 있는 조합만 남긴다
-  const found: { kind: HubKind; dep: Hub; arr: Hub; runs: Run[] }[] = []
-  for (const { kind, dep, arr } of ends) {
-    outer: for (const a of dep) {
-      for (const b of arr) {
-        const runs = await LOOKUP[kind](a.name, b.name, now)
-        if (runs?.length) {
-          found.push({ kind, dep: a, arr: b, runs })
-          break outer // 수단마다 하나면 충분하다
+  /*
+   * 시각표가 실제로 있는 조합만 남긴다.
+   *
+   * **수단끼리는 나란히 돌린다.** 기차가 있든 없든 시외버스 조회 결과는
+   * 달라지지 않으므로 순서를 지킬 이유가 없었는데, 예전에는 넷을 줄 세워
+   * 기다렸다. 조합이 수단마다 최대 아홉이라 최악이면 서른여섯 번을 차례로
+   * 기다린 셈이다(첫 조회가 2.9초 걸린 이유).
+   *
+   * 한 수단 **안에서는** 여전히 차례로 묻고 맞으면 멈춘다. 가까운 허브부터
+   * 보므로 대개 첫 번에 걸리고, 나란히 돌리면 그 절약이 사라진다 —
+   * TAGO 호출을 아끼는 쪽이 몇 백 밀리초보다 중요하다.
+   */
+  const perKind = await Promise.all(
+    ends.map(async ({ kind, dep, arr }) => {
+      for (const a of dep) {
+        for (const b of arr) {
+          const runs = await LOOKUP[kind](a.name, b.name, now)
+          if (runs?.length) return { kind, dep: a, arr: b, runs } // 수단마다 하나면 충분하다
         }
       }
-    }
-  }
+      return null
+    }),
+  )
+  const found = perKind.filter((x) => x !== null)
 
   if (found.length === 0) {
     return {

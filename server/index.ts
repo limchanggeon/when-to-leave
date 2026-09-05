@@ -233,7 +233,14 @@ app.post('/api/route', async (req, res) => {
   }
 
   try {
-    const start = await resolve(from)
+    /*
+     * 두 지점을 나란히 푼다. 서로를 몰라도 되는 조회인데 예전에는 줄 세워
+     * 기다려서 매 요청에 100ms 를 그냥 버렸다.
+     *
+     * 실패를 알리는 **순서는 그대로** 둔다 — 둘 다 틀렸으면 출발지부터
+     * 말해주는 편이 고치기 쉽다. 위에서부터 고쳐 내려가면 되니까.
+     */
+    const [start, end] = await Promise.all([resolve(from), resolve(to)])
     if ('error' in start) {
       res.status(400).json({
         error: {
@@ -246,7 +253,6 @@ app.post('/api/route', async (req, res) => {
       })
       return
     }
-    const end = await resolve(to)
     if ('error' in end) {
       res.status(400).json({
         error: { code: end.error.code, message: `도착지를 정하지 못했습니다 — ${end.error.message}` },
