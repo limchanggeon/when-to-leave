@@ -1,13 +1,8 @@
-# pnpm 설정. pnpm 10.16 부터 package.json 의 "pnpm" 필드 대신 여기를 읽는다.
+# pnpm 설정. pnpm 10 부터 overrides 등이 package.json 에서 여기로 옮겨왔다.
 #
-# pnpm 은 의존성의 빌드 스크립트를 기본으로 막는다(공급망 보호). esbuild 는
-# 그 단계에서 자기 실행 파일을 놓기 때문에, 막히면 vite build 가 실패한다.
-#
-# 키 이름이 버전 사이에 바뀌었다. 둘 다 적어 어느 쪽이든 통하게 한다.
-#   pnpm 11+  → allowBuilds
-#   pnpm 10.x → onlyBuiltDependencies
-allowBuilds:
-  esbuild: true
-
-onlyBuiltDependencies:
-  - esbuild
+# tinyspy 고정: vitest 3 으로 올리면서 딸려온 4.0.6 이 갓 발행된 버전이라
+# 배포 서버의 공급망 정책(최소 경과 시간)에 걸린다. 4.0.4 는 2025-09 발행이라
+# 취지에 어긋나지 않으면서 통과한다. 최신 버전이 시간이 지나 통과하게 되면
+# 이 줄은 지워도 된다.
+overrides:
+  tinyspy: 4.0.4
