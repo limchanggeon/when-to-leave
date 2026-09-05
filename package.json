@@ -16,7 +16,10 @@
     "dev:all": "concurrently -n web,api -c cyan,magenta \"vite\" \"tsx watch --env-file=.env server/index.ts\"",
     "typecheck": "tsc -b && tsc --noEmit -p tsconfig.server.json",
     "start": "tsx server/index.ts",
-    "backup": "tsx server/backup.ts"
+    "backup": "tsx server/backup.ts",
+    "admin:list": "tsx server/adminCli.ts list",
+    "admin:grant": "tsx server/adminCli.ts grant",
+    "admin:revoke": "tsx server/adminCli.ts revoke"
   },
   "dependencies": {
     "express": "^5.2.1",

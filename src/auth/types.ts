@@ -8,6 +8,8 @@ export interface Account {
   name: string | null
   email: string | null
   avatarUrl: string | null
+  /** 관리자인지. /admin 링크를 보일지 여기서 갈린다. */
+  isAdmin?: boolean
 }
 
 export type ProviderId = 'kakao' | 'google'

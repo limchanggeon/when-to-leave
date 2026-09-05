@@ -9,6 +9,8 @@ export interface User {
   avatarUrl: string | null
   /** 주소를 실제로 확인했는지. 소셜은 제공자가 확인해준 것만 인정한다. */
   emailVerified: boolean
+  /** 관리자인지. 화면에서 /admin 을 열 수 있는지도 이 값으로 갈린다. */
+  isAdmin: boolean
 }
 
 interface UserRow {
@@ -18,6 +20,7 @@ interface UserRow {
   name: string | null
   avatar_url: string | null
   email_verified_at: number | null
+  is_admin: number
 }
 
 const toUser = (r: UserRow): User => ({
@@ -26,6 +29,7 @@ const toUser = (r: UserRow): User => ({
   name: r.name,
   avatarUrl: r.avatar_url,
   emailVerified: r.email_verified_at !== null,
+  isAdmin: r.is_admin === 1,
 })
 
 /** 이메일은 대소문자를 구분하지 않는다. 저장도 조회도 소문자로 통일한다. */
@@ -92,6 +96,7 @@ export async function registerWithPassword(
     name: name?.trim() || null,
     avatar_url: null,
     email_verified_at: null,
+    is_admin: 0,
   }
   db()
     .prepare(
@@ -187,7 +192,14 @@ export function upsertSocialUser(input: {
         'INSERT INTO users (id, email, password_hash, name, avatar_url, created_at, email_verified_at) VALUES (?, ?, NULL, ?, ?, ?, ?)',
       )
       .run(id, email, input.name, input.avatarUrl, Date.now(), verifiedAt)
-    user = { id, email, name: input.name, avatarUrl: input.avatarUrl, emailVerified: verifiedAt !== null }
+    user = {
+      id,
+      email,
+      name: input.name,
+      avatarUrl: input.avatarUrl,
+      emailVerified: verifiedAt !== null,
+      isAdmin: false,
+    }
   } else if (verifiedAt && !user.emailVerified) {
     // 비밀번호로 먼저 가입해 미인증이던 계정에 소셜을 붙였다면, 제공자가
     // 확인해준 것이므로 이 시점에 확인 완료가 된다.

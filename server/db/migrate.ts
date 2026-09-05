@@ -135,6 +135,34 @@ const MIGRATIONS: Migration[] = [
       CREATE INDEX idx_email_tokens_expiry ON email_tokens(expires_at);
     `,
   },
+  {
+    id: 4,
+    name: 'is_admin, admin_log',
+    sql: `
+      ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0;
+
+      /*
+       * 관리자가 한 일. 사람 계정을 지우고 인증을 통과시키는 권한이라,
+       * "누가 언제 무엇을 했는지" 가 남지 않으면 사고가 나도 되짚을 수 없다.
+       *
+       * actor 는 지운 사람이고 target 은 지워진 사람이다. 대상이 지워져도
+       * 기록은 남아야 하므로 **외래키를 걸지 않는다** — 걸면 캐스케이드로
+       * 같이 사라져서, 정작 알아야 할 때 아무것도 안 남는다.
+       * 그래서 이메일도 그 시점 값으로 함께 적어 둔다.
+       */
+      CREATE TABLE admin_log (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        actor_user_id  TEXT NOT NULL,
+        actor_email    TEXT NOT NULL,
+        action         TEXT NOT NULL,
+        target_user_id TEXT,
+        target_email   TEXT,
+        detail         TEXT,
+        created_at     INTEGER NOT NULL
+      );
+      CREATE INDEX idx_admin_log_time ON admin_log(created_at DESC);
+    `,
+  },
 ]
 
 export function migrate(conn: DatabaseSync): void {

@@ -85,6 +85,11 @@ export function SiteHeader({
 
         {account ? (
           <div className="siteheader__account">
+            {account.isAdmin && (
+              <Link className="siteheader__btn siteheader__btn--ghost" to="/admin">
+                관리자
+              </Link>
+            )}
             <Link className="siteheader__me" to="/me">
               {account.avatarUrl && <img className="siteheader__avatar" src={account.avatarUrl} alt="" />}
               <span className="siteheader__who">{account.name ?? account.email ?? ''}</span>

@@ -33,6 +33,7 @@ import {
 } from './users'
 import { checkPassword } from './password'
 import * as limiter from './rateLimit'
+import * as admin from './admin'
 import { VERIFY_TTL_MS, consume, issue } from './emailTokens'
 import { sendMail } from './mail'
 import { verifyMail, alreadyRegisteredMail } from './mailText'
@@ -97,6 +98,25 @@ function countryOf(lat: number, lng: number): string | null {
   if (lat >= 33 && lat <= 38.7 && lng >= 124.5 && lng <= 131.9) return 'KR'
   if (lat >= 24 && lat <= 45.6 && lng >= 122.9 && lng <= 146) return 'JP'
   return null
+}
+
+/**
+ * 관리자만 통과. 관리자가 아니면 **404 로 답한다.**
+ *
+ * 403 을 주면 "여기 관리자 화면이 있다" 는 사실이 알려진다. 없는 것처럼
+ * 보이는 편이 낫다 — 로그인조차 안 한 사람에게는 401 이 맞다.
+ */
+function requireAdmin(req: express.Request, res: express.Response): User | null {
+  const user = readSession(cookie(req, COOKIE_NAME))
+  if (!user) {
+    res.status(401).json({ error: { code: 'unauthorized', message: '로그인이 필요합니다' } })
+    return null
+  }
+  if (!user.isAdmin) {
+    res.status(404).json({ error: { code: 'not-found', message: '없는 주소입니다' } })
+    return null
+  }
+  return user
 }
 
 function requireUser(req: express.Request, res: express.Response): User | null {
@@ -784,6 +804,87 @@ app.delete('/api/me', (req, res) => {
   destroySession(cookie(req, COOKIE_NAME))
   deleteAccount(user.id)
   res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: undefined })
+  res.json({ ok: true })
+})
+
+/* ---------------- 관리자 ----------------
+ *
+ * 첫 관리자는 화면에서 만들 수 없다. 그런 입구가 있으면 그게 곧 뒷문이다.
+ * 서버에서 `pnpm admin:grant <이메일>` 로 세운다.
+ */
+
+app.get('/api/admin/overview', (req, res) => {
+  const me = requireAdmin(req, res)
+  if (!me) return
+  res.json({ stats: admin.stats(), users: admin.listUsers(), log: admin.recentLog() })
+})
+
+app.post('/api/admin/users/:id/verify', (req, res) => {
+  const me = requireAdmin(req, res)
+  if (!me) return
+  const target = findById(req.params.id)
+  if (!target) {
+    res.status(404).json({ error: { code: 'not-found', message: '없는 계정입니다' } })
+    return
+  }
+  markEmailVerified(target.id)
+  admin.log(me, 'verify-email', target)
+  res.json({ ok: true })
+})
+
+app.post('/api/admin/users/:id/revoke-sessions', (req, res) => {
+  const me = requireAdmin(req, res)
+  if (!me) return
+  const target = findById(req.params.id)
+  if (!target) {
+    res.status(404).json({ error: { code: 'not-found', message: '없는 계정입니다' } })
+    return
+  }
+  const n = admin.revokeSessions(target.id)
+  admin.log(me, 'revoke-sessions', target, `${n}개`)
+  res.json({ ok: true, revoked: n })
+})
+
+app.post('/api/admin/users/:id/admin', (req, res) => {
+  const me = requireAdmin(req, res)
+  if (!me) return
+  const { on } = req.body as { on?: boolean }
+  const target = findById(req.params.id)
+  if (!target) {
+    res.status(404).json({ error: { code: 'not-found', message: '없는 계정입니다' } })
+    return
+  }
+  // 자기 권한을 스스로 내려놓지 못하게 한다. 관리자가 0명이 되면 되돌릴 길이 없다.
+  if (target.id === me.id && on === false) {
+    res.status(400).json({
+      error: { code: 'self-demote', message: '자기 권한은 회수할 수 없습니다. 서버에서 pnpm admin:revoke 를 쓰세요' },
+    })
+    return
+  }
+  admin.setAdmin(target.id, on === true)
+  admin.log(me, on === true ? 'grant-admin' : 'revoke-admin', target)
+  res.json({ ok: true })
+})
+
+app.delete('/api/admin/users/:id', (req, res) => {
+  const me = requireAdmin(req, res)
+  if (!me) return
+  const target = findById(req.params.id)
+  if (!target) {
+    res.status(404).json({ error: { code: 'not-found', message: '없는 계정입니다' } })
+    return
+  }
+  // 자기 계정은 여기서 못 지운다. 실수로 로그아웃되는 것보다 나쁜 건,
+  // 관리자가 0명이 되어 아무도 못 들어가는 상태다. 마이페이지에서 지울 수 있다.
+  if (target.id === me.id) {
+    res.status(400).json({
+      error: { code: 'self-delete', message: '자기 계정은 마이페이지에서 지우세요' },
+    })
+    return
+  }
+  // 지우면 대상 정보가 사라지므로 **지우기 전에** 기록한다.
+  admin.log(me, 'delete-user', target)
+  deleteAccount(target.id)
   res.json({ ok: true })
 })
 

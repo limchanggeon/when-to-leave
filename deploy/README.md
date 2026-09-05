@@ -251,3 +251,25 @@ BACKUP_S3_BUCKET=만든-버킷-이름
 
 버킷은 **비공개**로 두고 버전 관리를 켜둘 것. 백업 파일에는 계정 이메일과
 비밀번호 해시가 들어 있다.
+
+
+## 관리자
+
+첫 관리자는 **서버에서만** 세운다. 화면에 "첫 관리자 만들기" 를 두면
+그게 곧 뒷문이다.
+
+```bash
+cd /srv/whenigo
+sudo -u whenigo env DB_PATH=/var/lib/whenigo/app.db pnpm admin:list
+sudo -u whenigo env DB_PATH=/var/lib/whenigo/app.db pnpm admin:grant  you@example.com
+sudo -u whenigo env DB_PATH=/var/lib/whenigo/app.db pnpm admin:revoke you@example.com
+```
+
+세우고 나면 헤더에 `관리자` 링크가 생기고 `/admin` 이 열린다.
+관리자가 아닌 사람에게는 API 가 **404** 를 준다 — 거기 무엇이 있는지조차
+알리지 않는다.
+
+한 일은 전부 `admin_log` 에 남는다. 대상이 지워져도 기록은 남도록
+외래키를 걸지 않고 그 시점 이메일을 함께 적어 둔다.
+
+마지막 관리자는 CLI 에서도 못 내린다. 0명이 되면 되돌릴 길이 없다.
