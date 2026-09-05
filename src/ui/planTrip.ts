@@ -156,8 +156,29 @@ export async function planTrip(
 
   if (options.length === 0) return { kind: 'no-route' }
 
-  options.sort((a, b) => compareRoutes(a, b, mode))
+  /*
+   * 순위를 매길 때 쓰는 모드는 **실제로 어떻게 풀었는지**를 따른다.
+   *
+   * 목표 시각에 못 맞춰 "지금 나가면 언제 도착" 으로 바꿔 풀었으면
+   * (renegotiated), 답도 "가장 빨리 닿는 것" 이어야 한다. 그런데 순위는
+   * 여전히 arriveBy 규칙, 곧 "가장 늦게 나가는 것" 으로 매기고 있었다.
+   *
+   * 그래서 오후 4시 40분에 "21시까지 인천공항" 을 물으면 오늘 21:37 에 닿는
+   * 길을 두고 **내일 새벽 2시 40분에 나가라**는 답이 나왔다. 늦게 나가는 게
+   * 좋다는 규칙을 목표가 사라진 뒤에도 그대로 쓴 탓이다.
+   */
+  const ranking: Mode = renegotiated ? 'departNow' : mode
+
+  options.sort((a, b) => compareRoutes(a, b, ranking))
   const [chosen, ...others] = options
 
-  return { kind: 'trip', chosen, reason: reasonFor(mode), others, renegotiated, estimated, target }
+  return {
+    kind: 'trip',
+    chosen,
+    reason: reasonFor(ranking),
+    others,
+    renegotiated,
+    estimated,
+    target,
+  }
 }
