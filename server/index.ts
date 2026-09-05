@@ -612,6 +612,8 @@ async function withTimetables(routes: WireRoute[]): Promise<WireRoute[]> {
   for (const route of routes) {
     for (const leg of route.legs) {
       if (!leg.tagoKind) continue
+      // 시외 조합은 시각표를 이미 붙여 보낸다. 같은 걸 또 물을 이유가 없다.
+      if (leg.runs?.length) continue
 
       const key = `${leg.tagoKind}:${leg.from.name}>${leg.to.name}`
       if (!cache.has(key)) {

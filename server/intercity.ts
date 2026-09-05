@@ -263,6 +263,16 @@ export async function searchIntercity(from: GeoPoint, to: GeoPoint): Promise<Rou
       confidence: 'scheduled',
       fare: cand.runs[0]?.fare,
       runs: cand.runs,
+      /*
+       * 이 구간이 어느 시외 수단인지 남긴다.
+       *
+       * 여기서 안 남기면 kind 가 'bus' 라 시내버스와 구분이 사라진다.
+       * 순위가 "장거리는 시외 수단으로" 를 지키려면 이 표시가 있어야 하고,
+       * 실제로 이게 없어서 공항버스가 시내 환승 사슬에 계속 졌다.
+       * (시각표는 여기서 이미 붙여 보내므로 withTimetables 는 이 구간을
+       *  다시 조회하지 않는다 — runs 가 이미 차 있다.)
+       */
+      tagoKind: cand.kind,
     }
 
     const legs = [...access, middle, ...egress]
