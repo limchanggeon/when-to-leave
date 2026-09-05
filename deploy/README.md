@@ -190,3 +190,64 @@ sqlite3 /var/lib/whenigo/app.db ".backup /var/backups/whenigo-$(date +\%F).db"
 HMAC 로 서명돼 있어([server/session.ts](../server/session.ts)) 가짜 값은 DB 조회
 전에 걸러진다. 다만 같은 이름의 쿠키를 심어 우리 것을 가리면 사용자가 이유 없이
 로그아웃될 수 있다. 진짜 서비스로 갈 거면 직접 산 도메인으로 옮기는 게 맞다.
+
+
+## 백업과 복원
+
+매일 **한국시간 새벽 4시**에 `whenigo-backup.timer` 가 돈다.
+`/var/backups/whenigo/app-YYYYMMDD-HHmm.db.gz` 로 14개까지 남는다.
+
+```bash
+sudo systemctl start whenigo-backup      # 지금 한 번
+journalctl -u whenigo-backup -n 20       # 결과 보기
+systemctl list-timers whenigo-backup     # 다음 실행
+sudo ls -l /var/backups/whenigo/
+```
+
+**파일을 그냥 복사하지 않는다.** WAL 모드라 최신 내용이 `app.db` 가 아니라
+`app.db-wal` 에 있어서, 복사만 하면 반쪽을 뜬다. `VACUUM INTO` 로 SQLite 가
+스스로 정합성 있는 사본을 만들게 한다.
+
+### 복원
+
+```bash
+# 1. 서버를 멈춘다. 켜둔 채로 파일을 갈아끼우면 WAL 과 어긋난다.
+sudo systemctl stop whenigo
+
+# 2. 지금 것을 옆으로 치운다 — 복원이 잘못됐을 때 돌아올 자리
+sudo mv /var/lib/whenigo/app.db /var/lib/whenigo/app.db.before-restore
+
+# 3. 백업을 푼다. WAL·SHM 은 지운다(옛 DB 의 것이라 섞이면 깨진다)
+sudo rm -f /var/lib/whenigo/app.db-wal /var/lib/whenigo/app.db-shm
+sudo -u whenigo bash -c 'gunzip -c /var/backups/whenigo/app-20260905-0400.db.gz \
+  > /var/lib/whenigo/app.db'
+
+# 4. 확인하고 나서 켠다
+sudo -u whenigo node -e "
+  const { DatabaseSync } = require('node:sqlite')
+  const db = new DatabaseSync('/var/lib/whenigo/app.db', { readOnly: true })
+  console.log(db.prepare('PRAGMA integrity_check').get())
+  console.log('users', db.prepare('SELECT COUNT(*) c FROM users').get().c)"
+sudo systemctl start whenigo
+curl -fsS http://127.0.0.1:8787/api/health
+```
+
+### 원격 보관 (아직 안 켰다)
+
+지금은 **같은 디스크에만** 있다. 인스턴스가 통째로 날아가면 백업도 같이
+날아간다. S3 로 올리려면 버킷을 만들고 `/etc/whenigo.env` 에 한 줄 넣으면 된다.
+
+```
+BACKUP_S3_BUCKET=만든-버킷-이름
+```
+
+자격증명은 메일용(`AWS_ACCESS_KEY_ID`)을 같이 쓴다. 다만 그 IAM 사용자에게
+`s3:PutObject` 권한을 그 버킷에만 더해줘야 한다.
+
+```json
+{ "Effect": "Allow", "Action": ["s3:PutObject"],
+  "Resource": "arn:aws:s3:::만든-버킷-이름/whenigo/*" }
+```
+
+버킷은 **비공개**로 두고 버전 관리를 켜둘 것. 백업 파일에는 계정 이메일과
+비밀번호 해시가 들어 있다.
