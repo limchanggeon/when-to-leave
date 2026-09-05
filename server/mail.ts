@@ -1,4 +1,5 @@
 import { serverEnv } from './env'
+import { sendViaSes } from './ses'
 
 export interface Mail {
   to: string
@@ -37,7 +38,12 @@ export async function sendMail(mail: Mail): Promise<SendResult> {
     return { ok: true }
   }
 
-  // 여기에 SES(또는 SMTP) 전송기가 들어온다. 자격증명 없이 짜두면 검증할 수
-  // 없는 코드가 운영에 나가므로, 붙일 때 실제로 보내보며 짠다.
+  if (serverEnv.mailTransport === 'ses') {
+    const r = await sendViaSes(mail)
+    // 못 보냈으면 로그에 남긴다 — 조용히 사라지는 게 제일 나쁘다.
+    if (!r.ok) console.error(`[mail] 발송 실패 (${mail.to}): ${r.reason}`)
+    return r
+  }
+
   return { ok: false, reason: `알 수 없는 전송기: ${serverEnv.mailTransport}` }
 }

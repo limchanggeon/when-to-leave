@@ -63,6 +63,12 @@ export const serverEnv = {
    * 그래서 missingServerEnv 가 잡는다.
    */
   mailTransport: req('MAIL_TRANSPORT') ?? 'console',
+  /** SES 리전. EC2 와 같은 서울로 둔다. */
+  awsRegion: req('AWS_REGION') ?? 'ap-northeast-2',
+  awsAccessKeyId: req('AWS_ACCESS_KEY_ID'),
+  awsSecretAccessKey: req('AWS_SECRET_ACCESS_KEY'),
+  /** 보내는 사람. SES 에서 확인된 도메인의 주소여야 한다. */
+  mailFrom: req('MAIL_FROM'),
   /** 메일 속 링크가 가리킬 주소. 운영에서는 https://whenigo.p-e.kr 이다. */
   publicOrigin: (req('PUBLIC_ORIGIN') ?? 'http://localhost:5173').replace(/\/$/, ''),
   isProd: process.env.NODE_ENV === 'production',
@@ -81,6 +87,13 @@ export function missingServerEnv(): { name: string; breaks: string }[] {
       breaks: '구글 로그인 — 서버가 ID 토큰의 aud 를 확인하지 못해 로그인이 거부됩니다',
     })
   // 개발에서는 콘솔로 보는 게 맞다. 운영에서 그러면 메일이 조용히 사라진다.
+  if (serverEnv.mailTransport === 'ses' && !serverEnv.awsAccessKeyId)
+    out.push({
+      name: 'AWS_ACCESS_KEY_ID',
+      breaks: '이메일 인증 — SES 전송기를 골라놓고 자격증명이 없어 메일이 나가지 않습니다',
+    })
+  if (serverEnv.mailTransport === 'ses' && !serverEnv.mailFrom)
+    out.push({ name: 'MAIL_FROM', breaks: '이메일 인증 — 보내는 사람 주소가 없습니다' })
   if (serverEnv.isProd && serverEnv.mailTransport === 'console')
     out.push({
       name: 'MAIL_TRANSPORT',
