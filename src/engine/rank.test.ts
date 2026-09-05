@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { compareRoutes, type Rankable } from './rank'
 import type { Leg } from './types'
 
-const at = (hhmm: string) => new Date(`2026-09-05T${hhmm}:00+09:00`)
+/** 25시 이후는 다음날로 넘긴다 — 막차 끊긴 뒤를 그리려면 필요하다. */
+const at = (hhmm: string) => {
+  const [h, m] = hhmm.split(':').map(Number)
+  const d = new Date('2026-09-05T00:00:00+09:00')
+  d.setHours(h, m, 0, 0)
+  return d
+}
 
 /** 구간을 간단히 짓는다. walk 는 도보, 나머지는 탑승. */
 const leg = (kind: Leg['kind'], from: string, to: string, tagoKind?: Leg['tagoKind']): Leg =>
@@ -74,7 +80,7 @@ describe('경로 순위', () => {
     expect(first([조금고단하고늦게, 편하고일찍], 'arriveBy')).toBe(조금고단하고늦게)
   })
 
-  it('지금 출발 모드는 도착이 빠른 쪽 — 규칙이 바뀌지 않았다', () => {
+  it('지금 출발 모드는 도착이 빠른 쪽', () => {
     expect(first([환승많은길, 공항버스], 'departNow')).toBe(공항버스)
   })
 
@@ -84,12 +90,59 @@ describe('경로 순위', () => {
     expect(a).toBe(b)
   })
 
-  it('아무리 늦게 나가도 시내 사슬이 시외 수단을 이기지 못한다', () => {
-    // 분 단위 저울만으로는 조금 더 늦게 나가는 사슬이 나오면 또 진다.
-    // "기차로 갈 길을 시내버스로 갈아타며 가라" 는 답은 틀린 답이라 순서로 못 박았다.
-    const 아주늦게나가는사슬 = { ...환승많은길, departAt: at('18:30'), arriveAt: at('20:59') }
-    expect(first([아주늦게나가는사슬, 공항버스], 'arriveBy')).toBe(공항버스)
-    expect(first([아주늦게나가는사슬, 공항버스], 'departNow')).toBe(공항버스)
+  it('시외 수단이 조금 손해여도 이긴다', () => {
+    // 46분 일찍 나가야 하지만 환승이 적고 훨씬 빨리 닿는다
+    expect(first([환승많은길, 공항버스], 'arriveBy')).toBe(공항버스)
+  })
+
+  it('반나절을 잃으면서까지 시외 수단을 택하지는 않는다', () => {
+    /*
+     * 2026-09-05 에 실제로 물린 경우. 오후 4시 40분에 물었더니 "내일 새벽
+     * 2시 40분에 나가세요" 가 나왔다 — 공항버스 막차가 16:05 에 끊겨 다음 편이
+     * 다음날 첫차였는데, 오늘 21:37 에 닿는 길을 두고 9시간 늦게 도착하는 쪽을
+     * 골랐다. 시외 우선을 **순서**로 못 박았던 탓이다. 순서는 크기를 못 본다.
+     */
+    const 내일첫차리무진: Rankable = {
+      departAt: at('26:40'), // 내일 02:40
+      arriveAt: at('30:40'), // 내일 06:40
+      legs: [leg('bus', '26:40', '30:40', 'suburbsBus')],
+    }
+    const 오늘도착하는시내길: Rankable = {
+      departAt: at('16:49'),
+      arriveAt: at('21:37'),
+      legs: [
+        leg('bus', '16:49', '18:20'),
+        leg('walk', '18:20', '18:30'),
+        leg('bus', '18:30', '21:37'),
+      ],
+    }
+    expect(first([내일첫차리무진, 오늘도착하는시내길], 'departNow')).toBe(오늘도착하는시내길)
+
+    /*
+     * arriveBy 는 여기서 확인하지 않는다. 그 모드에서는 후보가 전부 목표 시각
+     * 안에 도착하도록 이미 걸러져 있어서(solveBackward), 9시간 늦게 닿는
+     * 경로가 후보에 들어올 수 없다. 목표가 내일 아침이라면 내일 새벽에
+     * 나가라는 답이 오히려 맞다 — "가장 늦게 나가도 되는 시각" 이니까.
+     */
+  })
+
+  it('지금 출발 모드도 환승·도보를 센다', () => {
+    // 예전에는 도착 시각만 봐서 1분 빨리 닿는 환승 3회짜리가 직행을 이겼다
+    const 직행 = {
+      departAt: at('16:00'),
+      arriveAt: at('18:01'),
+      legs: [leg('bus', '16:00', '18:01')],
+    }
+    const 환승세번 = {
+      departAt: at('16:00'),
+      arriveAt: at('18:00'),
+      legs: [
+        leg('bus', '16:00', '16:40'), leg('walk', '16:40', '16:50'),
+        leg('bus', '16:50', '17:20'), leg('walk', '17:20', '17:30'),
+        leg('bus', '17:30', '18:00'),
+      ],
+    }
+    expect(first([환승세번, 직행], 'departNow')).toBe(직행)
   })
 
   it('시외 수단끼리는 기존 규칙대로 겨룬다', () => {

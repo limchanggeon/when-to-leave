@@ -64,6 +64,22 @@ const TRANSFER_COST_MIN = 15
 const WALK_COST_PER_MIN = 0.5
 
 /**
+ * 시외 수단에 주는 가산점(분).
+ *
+ * 기차로 갈 길을 시내버스로 갈아타며 가라는 답은 틀린 답이다. 그래서 시외
+ * 수단을 앞세우되, **무조건은 아니다.**
+ *
+ * 처음에는 순서로 못 박았다가 크게 물렸다. 대전 → 인천공항을 오후 4시 40분에
+ * 물었더니 "내일 새벽 2시 40분에 나가세요" 가 나왔다 — 공항버스 막차가
+ * 16:05 에 끊겨 다음 편이 다음날 첫차였는데, 오늘 21:37 에 닿는 길을 두고
+ * 9시간 늦게 도착하는 쪽을 고른 것이다. 순서는 크기를 못 본다.
+ *
+ * 그래서 값으로 준다. 한 시간쯤 손해를 감수하고 시외 수단을 택하지만,
+ * 반나절을 잃으면서까지 택하지는 않는다.
+ */
+const INTERCITY_BONUS_MIN = 60
+
+/**
  * 이 여정이 요구하는 수고. 분으로 환산한다.
  *
  * 이게 없으면 순위가 환승과 도보를 **0원으로 친다.** 실제로 그래서
@@ -80,14 +96,20 @@ function effortMin(legs: Leg[]): number {
 }
 
 /**
- * 수고를 반영한 출발 시각.
+ * 이 경로를 고르는 값. 낮을수록 좋다. 분 단위.
  *
- * 수고가 큰 경로는 그만큼 **일찍 나가는 셈으로** 친다. 그래야 "조금 늦게
- * 나가도 된다" 는 이유로 훨씬 고단한 길을 고르지 않는다.
- * 값(분)을 그대로 빼므로 비교가 여전히 하나의 수직선 위에서 이뤄진다 —
- * 정렬 비교자는 반드시 전순서여야 해서, 조건부 우열 규칙을 쓸 수 없다.
+ * 수고에서 시외 가산점을 뺀다. 값 하나로 합치므로 비교가 여전히 하나의
+ * 수직선 위에서 이뤄진다 — 정렬 비교자는 반드시 전순서여야 해서
+ * "다른 게 다 나으면 봐준다" 같은 조건부 규칙을 쓸 수 없다.
  */
-const effectiveDeparture = (r: Rankable) => r.departAt.getTime() - effortMin(r.legs) * 60_000
+const costMin = (legs: Leg[]) =>
+  effortMin(legs) - (usesIntercity(legs) ? INTERCITY_BONUS_MIN : 0)
+
+/** 수고를 반영한 출발 시각. 늦을수록 좋다. */
+const effectiveDeparture = (r: Rankable) => r.departAt.getTime() - costMin(r.legs) * 60_000
+
+/** 수고를 반영한 도착 시각. 이를수록 좋다. */
+const effectiveArrival = (r: Rankable) => r.arriveAt.getTime() + costMin(r.legs) * 60_000
 
 /**
  * 경로 비교. 낮을수록 먼저 온다.
@@ -103,23 +125,6 @@ export function compareRoutes(a: Rankable, b: Rankable, mode: Mode): number {
   const soldB = isSoldOut(b)
   if (soldA !== soldB) return soldA ? 1 : -1
 
-  /*
-   * 장거리는 시외 수단이 먼저다.
-   *
-   * 분 단위 저울로는 이걸 못 지킨다. 실제로 대전 → 인천공항에서 "46분 늦게
-   * 나가도 된다" 는 이유로, 환승 3회에 도보 33분짜리 시내 사슬이 공항버스를
-   * 이겼다. 저울을 아무리 기울여도 조금 더 늦게 나가는 사슬이 나오면 또 진다.
-   *
-   * 기차로 갈 수 있는 길을 시내버스로 갈아타며 가라는 답은 틀린 답이다.
-   * 그래서 값이 아니라 **순서**로 못 박는다. 시외 수단을 쓰는 경로끼리,
-   * 안 쓰는 경로끼리 먼저 나누고 그 안에서 기존 규칙을 적용한다.
-   *
-   * 시내 구간만 있는 짧은 여정에서는 양쪽 다 false 라 아무것도 달라지지 않는다.
-   */
-  const farA = usesIntercity(a.legs)
-  const farB = usesIntercity(b.legs)
-  if (farA !== farB) return farA ? -1 : 1
-
   if (mode === 'arriveBy') {
     // 늦게 나가도 되는 쪽이 좋다. 다만 환승·도보의 수고를 값으로 쳐서 뺀다.
     const byDeparture = effectiveDeparture(b) - effectiveDeparture(a)
@@ -127,7 +132,9 @@ export function compareRoutes(a: Rankable, b: Rankable, mode: Mode): number {
     const byArrival = a.arriveAt.getTime() - b.arriveAt.getTime()
     if (byArrival !== 0) return byArrival
   } else {
-    const byArrival = a.arriveAt.getTime() - b.arriveAt.getTime()
+    // 빨리 닿는 쪽이 좋다. 여기서도 환승·도보의 수고를 값으로 쳐서 더한다 —
+    // 예전에는 도착 시각만 봐서, 1분 빨리 닿는 환승 3회짜리가 직행을 이겼다.
+    const byArrival = effectiveArrival(a) - effectiveArrival(b)
     if (byArrival !== 0) return byArrival
     const byDeparture = b.departAt.getTime() - a.departAt.getTime()
     if (byDeparture !== 0) return byDeparture
