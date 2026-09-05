@@ -1,0 +1,57 @@
+<!doctype html>
+<!--
+  링크 미리보기 이미지(1200×630)의 원본.
+
+  logo/gemini-svg-2.svg 를 그대로 쓰지 않는 이유는 폰트다. 그 파일은 글자를
+  <text> 로 넣고 Pretendard 를 지정하는데, 그 폰트가 없는 곳에서 열면 다른
+  글꼴로 떨어진다. 여기서는 앱이 실제로 쓰는 폰트를 불러와 같은 얼굴로 그린다.
+
+  다시 만들 때 (프로젝트 뿌리에서):
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless \
+      --screenshot=public/og-image.png --window-size=1200,630 --hide-scrollbars \
+      --virtual-time-budget=4000 "file://$PWD/logo/og-image.html"
+-->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@800&family=Noto+Sans+KR:wght@500;800&display=swap">
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body {
+    width: 1200px; height: 630px; display: flex; flex-direction: column; justify-content: center;
+    gap: 28px; padding: 0 96px;
+    background: #0C1A2B; color: #fff;
+    font-family: 'Noto Sans KR', sans-serif; word-break: keep-all;
+    background-image: repeating-linear-gradient(0deg, rgba(255,255,255,.028) 0 1px, transparent 1px 3px);
+  }
+  .head { display: flex; align-items: center; gap: 28px; }
+  .head svg { width: 96px; height: 96px; color: #FFB01F; flex: none; }
+  .name { font-size: 76px; font-weight: 800; letter-spacing: -.04em; }
+  .rule { height: 1px; background: rgba(255,255,255,.14); }
+  .slot { display: flex; align-items: baseline; gap: 28px; }
+  .time { font-family: Archivo, sans-serif; font-weight: 800; font-size: 132px;
+          line-height: .85; letter-spacing: -.05em; color: #FFB01F; font-variant-numeric: tabular-nums; }
+  .say { font-size: 34px; font-weight: 500; color: #8FA6C0; }
+  .foot { font-size: 26px; font-weight: 500; color: #8FA6C0; letter-spacing: .01em; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <svg viewBox="10 8 44 48" fill="none">
+      <circle cx="32" cy="35" r="18" stroke="currentColor" stroke-width="4" stroke-dasharray="80 25" stroke-linecap="round"/>
+      <path d="M27 13h10" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M21 46 39 28" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+      <path d="M29 28h10v10" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="name">언제나가</div>
+  </div>
+  <div class="rule"></div>
+  <div class="slot">
+    <div class="time">19:15</div>
+    <div class="say">에 나가면 됩니다</div>
+  </div>
+  <div class="foot">도착 시각에서 출발 시각을 거꾸로 계산합니다 · whenigo.p-e.kr</div>
+</body>
+</html>
