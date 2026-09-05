@@ -23,7 +23,7 @@ export interface Run {
  * ODsay 는 "유성복합터미널", TAGO 는 "유성복합" 처럼 표기가 어긋난다.
  * 흔한 꼬리말을 떼고 공백·괄호를 지워야 겨우 만난다.
  */
-function normalize(name: string): string {
+export function normalize(name: string): string {
   return name
     .replace(/\(.*?\)/g, '')
     // "김포국제공항" 과 "김포공항" 을 같은 것으로 본다
@@ -34,6 +34,14 @@ function normalize(name: string): string {
     // "복합" 은 이름의 일부라 남기고 "종합버스" 는 꼬리말이라 뗀다.
     .replace(/(종합|고속|시외|공용|여객)?(버스)?터미널$/, '')
     .replace(/[\s·．.]/g, '')
+    /*
+     * 공항 여객터미널 번호 표기를 맞춘다.
+     *   TAGO   "인천공항T1"        → 인천공항1
+     *   카카오 "인천공항1버스터미널" → 인천공항1  (위에서 꼬리말이 떨어진다)
+     * 이게 없으면 둘이 만나지 못해, 인천공항으로 가는 공항버스가 후보에서
+     * 통째로 빠지고 환승 세 번짜리 시내 경로가 답이 된다.
+     */
+    .replace(/T(\d)$/i, '$1')
     .trim()
 }
 

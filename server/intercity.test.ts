@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { INTERCITY_STOP } from './intercity'
+import { normalize } from './tagoSchedules'
 
 /*
  * 인천공항의 공항버스 승차장이 후보에서 통째로 빠지던 것을 잡아둔다
@@ -24,5 +25,24 @@ describe('시외 허브 분류 필터', () => {
   it('주차장·카셰어링처럼 섞여 나오는 것도 거른다', () => {
     expect(INTERCITY_STOP.test('교통,수송 > 주차장')).toBe(false)
     expect(INTERCITY_STOP.test('서비스,산업 > 자동차 > 렌터카 > 쏘카존')).toBe(false)
+  })
+})
+
+describe('터미널 이름 대조', () => {
+  it('공항 여객터미널 번호 표기를 맞춘다 — TAGO 는 T1, 카카오는 1터미널', () => {
+    // 이게 안 맞으면 인천공항행 공항버스가 후보에서 통째로 빠진다
+    expect(normalize('인천공항T1')).toBe(normalize('인천공항1버스터미널'))
+    expect(normalize('인천공항T2')).toBe(normalize('인천공항2버스터미널'))
+    expect(normalize('인천공항2터미널')).toBe(normalize('인천공항2버스터미널'))
+  })
+
+  it('T1 과 T2 를 섞지 않는다', () => {
+    expect(normalize('인천공항T1')).not.toBe(normalize('인천공항T2'))
+  })
+
+  it('기존 대조는 그대로다', () => {
+    expect(normalize('유성복합터미널')).toBe(normalize('유성복합'))
+    expect(normalize('대전복합터미널')).toBe(normalize('대전복합'))
+    expect(normalize('김포국제공항')).toBe(normalize('김포공항'))
   })
 })
