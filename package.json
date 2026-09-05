@@ -19,7 +19,8 @@
     "backup": "tsx server/backup.ts",
     "admin:list": "tsx server/adminCli.ts list",
     "admin:grant": "tsx server/adminCli.ts grant",
-    "admin:revoke": "tsx server/adminCli.ts revoke"
+    "admin:revoke": "tsx server/adminCli.ts revoke",
+    "terminals:build": "tsx --env-file=.env server/buildTerminalCoords.ts"
   },
   "dependencies": {
     "express": "^5.2.1",

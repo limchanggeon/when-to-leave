@@ -10,7 +10,9 @@ import {
   suburbsBusesBetween,
   type Run,
   terminalKnown,
+  normalize as normalizeName,
 } from './tagoSchedules'
+import { terminalsNear } from './terminalIndex'
 
 /**
  * 시외 경로를 직접 엮는다.
@@ -31,7 +33,16 @@ const KEYWORD_URL = 'https://dapi.kakao.com/v2/local/search/keyword.json'
 type HubKind = 'train' | 'expressBus' | 'suburbsBus' | 'flight'
 
 interface Hub {
+  /** TAGO 가 부르는 이름. 시각표를 조회할 때 쓴다. */
   name: string
+  /**
+   * 사람이 읽을 이름. 화면에 이걸 보여준다.
+   *
+   * TAGO 이름은 "대전복합" 처럼 짧아서 안내판에 그대로 걸면 어색하다.
+   * 좌표표가 카카오에서 찾은 실제 장소 이름("대전복합터미널")을 같이
+   * 들고 있으므로 그걸 쓴다. 없으면 그냥 name 이다.
+   */
+  label?: string
   lat: number
   lng: number
   distanceM: number
@@ -178,8 +189,32 @@ async function hubsNear(point: GeoPoint, kind: HubKind, limit = 3): Promise<Hub[
     kind === 'train'
       ? found.map(() => true) // 기차역은 목록이 아니라 도시별 조회라 여기서 못 거른다
       : await Promise.all(found.map((h) => terminalKnown(kind, h.name)))
-  const hubs = found
-    .filter((_, i) => known[i])
+  const byName = found.filter((_, i) => known[i])
+
+  /*
+   * 좌표표에서 가까운 터미널을 **더한다**(`server/terminalIndex.ts`).
+   *
+   * 이름 맞추기는 카카오와 TAGO 가 같은 곳을 다르게 불러서 자꾸 놓쳤다.
+   * 좌표를 미리 알아두면 이름을 볼 일이 없다 — 가까운 것을 고르면 된다.
+   * 대전청사(샘머리) 처럼 이름으로는 영영 못 만나던 정류소가 이렇게 잡힌다.
+   *
+   * 대체가 아니라 합집합이다. 표에 없는 터미널은 예전대로 이름으로 맞추므로
+   * 표가 비어도 오늘 되는 것은 그대로 된다.
+   */
+  const fromTable =
+    kind === 'train'
+      ? [] // 기차역은 좌표표를 만들지 않았다 — findStation 이 도시별로 찾는다
+      : terminalsNear(kind, point, limit).map((t) => ({
+          name: t.name, // TAGO 가 부르는 이름 그대로 — 조회가 바로 걸린다
+          label: t.label, // 화면에는 카카오가 아는 이름을 보여준다
+          lat: t.lat,
+          lng: t.lng,
+          distanceM: t.distanceM,
+        }))
+
+  const hubs = [...fromTable, ...byName]
+    // 같은 곳이 양쪽에서 오면 하나로 — 먼저 온 표 쪽(TAGO 이름)을 남긴다
+    .filter((h, i, all) => all.findIndex((x) => normalizeName(x.name) === normalizeName(h.name)) === i)
     .sort((a, b) => a.distanceM - b.distanceM)
 
   hubCache.set(key, hubs)
@@ -279,8 +314,8 @@ export async function searchIntercity(from: GeoPoint, to: GeoPoint): Promise<Rou
 
   const routes: WireRoute[] = []
   for (const [i, cand] of found.entries()) {
-    const depPoint: GeoPoint = { name: cand.dep.name, lat: cand.dep.lat, lng: cand.dep.lng }
-    const arrPoint: GeoPoint = { name: cand.arr.name, lat: cand.arr.lat, lng: cand.arr.lng }
+    const depPoint: GeoPoint = { name: cand.dep.label ?? cand.dep.name, lat: cand.dep.lat, lng: cand.dep.lng }
+    const arrPoint: GeoPoint = { name: cand.arr.label ?? cand.arr.name, lat: cand.arr.lat, lng: cand.arr.lng }
 
     const [access, egress] =
       i < 2
@@ -289,8 +324,8 @@ export async function searchIntercity(from: GeoPoint, to: GeoPoint): Promise<Rou
 
     const middle: WireLeg = {
       kind: LEG_KIND[cand.kind],
-      from: { name: cand.dep.name, lat: cand.dep.lat, lng: cand.dep.lng },
-      to: { name: cand.arr.name, lat: cand.arr.lat, lng: cand.arr.lng },
+      from: { name: cand.dep.label ?? cand.dep.name, lat: cand.dep.lat, lng: cand.dep.lng },
+      to: { name: cand.arr.label ?? cand.arr.name, lat: cand.arr.lat, lng: cand.arr.lng },
       durationMin: medianMinutes(cand.runs),
       carrier: cand.runs[0]?.carrier,
       confidence: 'scheduled',
