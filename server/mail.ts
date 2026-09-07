@@ -11,6 +11,21 @@ export interface Mail {
 export type SendResult = { ok: true } | { ok: false; reason: string }
 
 /**
+ * 마지막으로 실패한 발송. `/api/health` 가 이걸 보여준다.
+ *
+ * 메일이 조용히 안 나가는 것이 이 저장소가 제일 싫어하는 모양인데,
+ * 설정이 다 맞아도(전송기 ses, 키 있음, 보내는 주소 있음) 실패할 수 있다 —
+ * SES 샌드박스, 한도 초과, 잠깐의 장애. 그건 환경변수 점검으로는 못 잡는다.
+ * 그래서 실제로 실패한 사실을 들고 있다가 상태 화면에서 말한다.
+ */
+export let lastMailFailure: { at: number; reason: string } | null = null
+
+/** 시험에서 상태를 비운다. */
+export function clearMailFailure(): void {
+  lastMailFailure = null
+}
+
+/**
  * 메일 발송.
  *
  * 실제 전송기는 아직 붙지 않았다(SES 도메인 인증과 샌드박스 해제가 먼저다).
@@ -40,8 +55,11 @@ export async function sendMail(mail: Mail): Promise<SendResult> {
 
   if (serverEnv.mailTransport === 'ses') {
     const r = await sendViaSes(mail)
-    // 못 보냈으면 로그에 남긴다 — 조용히 사라지는 게 제일 나쁘다.
-    if (!r.ok) console.error(`[mail] 발송 실패 (${mail.to}): ${r.reason}`)
+    // 못 보냈으면 로그에 남기고 상태에도 새긴다 — 조용히 사라지는 게 제일 나쁘다.
+    if (!r.ok) {
+      console.error(`[mail] 발송 실패 (${mail.to}): ${r.reason}`)
+      lastMailFailure = { at: Date.now(), reason: r.reason }
+    }
     return r
   }
 

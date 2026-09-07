@@ -36,7 +36,7 @@ import * as limiter from './rateLimit'
 import * as admin from './admin'
 import * as metrics from './metrics'
 import { VERIFY_TTL_MS, consume, issue } from './emailTokens'
-import { sendMail } from './mail'
+import { lastMailFailure, sendMail } from './mail'
 import {
   checkContact,
   listContact,
@@ -143,7 +143,15 @@ function requireUser(req: express.Request, res: express.Response): User | null {
 }
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, missingEnv: missingServerEnv() })
+  /*
+   * 설정이 빠진 것(missingEnv)과 **실제로 실패한 것**(mail)을 둘 다 본다.
+   * 전송기도 키도 다 있는데 SES 샌드박스라 안 나가는 상태는 설정 점검으로는
+   * 안 잡힌다 — 그건 보내 봐야 안다.
+   */
+  const mail = lastMailFailure
+    ? { lastFailureAt: new Date(lastMailFailure.at).toISOString(), reason: lastMailFailure.reason }
+    : null
+  res.json({ ok: true, missingEnv: missingServerEnv(), mail })
 })
 
 /** 현재 로그인 상태. 클라이언트가 새로고침 후 호출한다. */
@@ -468,13 +476,36 @@ app.post('/api/auth/register', async (req, res) => {
    * 똑같이 "메일을 보냈습니다" 로 답하고, 실제로 무엇을 보낼지만 다르게 한다.
    * 링크를 누르면 그때 로그인된다 — 사용자가 겪는 걸음 수는 같다.
    */
+  let sent
   if (result.ok) {
     metrics.bump('signup')
     const token = issue(result.user.id, result.user.email, 'verify', VERIFY_TTL_MS)
-    await sendMail(verifyMail(result.user.email, token))
+    sent = await sendMail(verifyMail(result.user.email, token))
   } else {
     // 이미 확인된 주소. 가입시키지 않고, 주인에게만 알린다.
-    await sendMail(alreadyRegisteredMail(result.user.email))
+    sent = await sendMail(alreadyRegisteredMail(result.user.email))
+  }
+
+  /*
+   * 메일이 안 나갔으면 그렇다고 말한다.
+   *
+   * "보냈습니다" 라고 해놓고 안 보내면, 기다리는 사람은 받은편지함만 새로고침
+   * 하다 만다. 실제로 그랬다 — SES 가 샌드박스라 인증되지 않은 주소로는
+   * 못 보내는데도 화면은 보냈다고 했다(2026-09-08).
+   *
+   * 이걸 알려도 **어떤 주소가 가입돼 있는지는 새지 않는다.** 위 두 갈래가
+   * 모두 메일을 보내므로, 실패는 주소와 무관하게 똑같이 일어난다.
+   * (다시 보내기 쪽은 사정이 다르다 — 거기는 계정이 있을 때만 보내므로
+   *  실패를 알리면 그게 곧 "그 주소는 가입돼 있다" 는 답이 된다.)
+   */
+  if (!sent.ok) {
+    res.status(503).json({
+      error: {
+        code: 'mail-unavailable',
+        message: '지금은 인증 메일을 보내지 못했습니다. 잠시 뒤 다시 시도해 주세요',
+      },
+    })
+    return
   }
   res.json({ sent: true })
 })
