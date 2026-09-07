@@ -450,10 +450,12 @@
 .alt__delta--bad { color: var(--ink-faint); }
 /* 왜 보여주는 대안인지. 시각보다 앞에 두어 먼저 읽히게 한다 */
 .alts__none {
-  margin: 0; padding: var(--sp-4); font-size: 0.88rem; line-height: 1.6;
+  margin: var(--sp-3) 0 0; padding: var(--sp-3) var(--sp-4); font-size: 0.88rem; line-height: 1.6;
   color: var(--ink-soft); background: var(--sunk); border-radius: var(--radius-md);
 }
 .alt__why { color: var(--signal-deep); font-weight: 600; }
+/* 고른 경로 줄. 대안과 같은 자리에 왜 이게 답인지를 적는다 */
+.alt__why--chosen { color: var(--ink-soft); }
 
 .alt__seat { font-size: 0.76rem; color: var(--teal); }
 .alt__seat--no { color: var(--rust); }

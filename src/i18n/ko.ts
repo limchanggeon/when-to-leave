@@ -168,8 +168,8 @@ export const ko = {
       'latest-departure': '가장 늦게 나가도 되는 경로',
       'earliest-arrival': '가장 빨리 도착하는 경로',
     },
-    others: '다른 경로',
-    othersSub: '조건을 바꾸면 이런 길도 있습니다',
+    others: '경로 고르기',
+    othersSub: '눌러서 바꿔 볼 수 있습니다',
     unnamed: '경로',
   },
   contact: {

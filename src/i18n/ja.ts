@@ -166,8 +166,8 @@ export const ja: I18nShape = {
       'latest-departure': '最も遅く出発できる経路',
       'earliest-arrival': '最も早く到着する経路',
     },
-    others: 'ほかの経路',
-    othersSub: '条件を変えるとこんな道もあります',
+    others: '経路を選ぶ',
+    othersSub: 'タップで切り替えられます',
     unnamed: '経路',
   },
   contact: {

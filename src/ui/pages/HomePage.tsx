@@ -234,7 +234,7 @@ export function HomePage() {
                       UNIT,
                     ),
                   )}
-                  {shown.rung === outcome.chosen.rung ? (
+                  {shown.id === outcome.chosen.id ? (
                     <span className="verdict__tag">{t.route.chosen[outcome.reason]}</span>
                   ) : (
                     <span className="verdict__tag verdict__tag--alt">
@@ -334,13 +334,13 @@ export function HomePage() {
               {(
                 <aside className="col col--rail">
                 <Alternatives
-                  items={outcome.others}
-                  baseline={outcome.chosen}
-                  baselineArrival={outcome.chosen.arriveAt}
+                  chosen={outcome.chosen}
+                  others={outcome.others}
+                  reason={t.route.chosen[outcome.reason]}
                   now={now}
                   t={t}
                   onSelect={selectRoute}
-                  selectedRung={shown.rung}
+                  selectedId={shown.id}
                 />
               </aside>
               )}

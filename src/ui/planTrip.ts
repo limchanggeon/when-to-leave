@@ -6,6 +6,7 @@ import {
   dedupeRoutes,
   pickAlternatives,
   reasonFor,
+  routeKey,
   type AltAxis,
   type ChosenReason,
 } from '../engine/rank'
@@ -13,6 +14,14 @@ import { compact, solveBackward, solveForward } from '../engine/schedule'
 import type { Leg, LegSpec, Mode } from '../engine/types'
 
 export interface RouteOption {
+  /**
+   * 이 경로를 가리키는 이름. 지나는 정류장으로 짓는다.
+   *
+   * 예전에는 `rung`(폴백 사다리 단 번호)으로 골랐는데, 대안 여럿이 같은
+   * 단에서 나오면 번호가 겹쳐 엉뚱한 줄이 함께 켜졌다. 리스트 key 로도
+   * 쓰이므로 겹치면 안 된다.
+   */
+  id: string
   /** 폴백 사다리 단 번호. 기본 경로는 1. */
   rung: number
   legs: Leg[]
@@ -145,6 +154,7 @@ export async function planTrip(
     const solved = solve(specs)
     if (!solved.ok) return null
     return {
+      id: routeKey(solved.legs), // pool 에서 접힌 뒤 다시 매기지만, 그 전에도 있어야 타입이 맞는다
       rung,
       legs: solved.legs,
       departAt: solved.legs[0].departAt,
@@ -185,7 +195,7 @@ export async function planTrip(
    * 같은 길인 것을 먼저 접는다. 카카오는 한 구간을 611번으로도 622번으로도
    * 갈 수 있으면 두 경로로 주는데, 그건 두 선택지가 아니라 한 경로다.
    */
-  const pool = dedupeRoutes(options)
+  const pool = dedupeRoutes(options).map((o) => ({ ...o, id: routeKey(o.legs) }))
   pool.sort((a, b) => compareRoutes(a, b, ranking))
   const [chosen] = pool
 
