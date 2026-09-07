@@ -1,6 +1,9 @@
 import { config } from '../config'
 import { loadScript, type AuthProvider, type AuthResult } from './types'
 
+/** 이만큼 기다려도 안 옮겨졌으면 막힌 것으로 본다. */
+const REDIRECT_WAIT_MS = 8000
+
 const SDK = 'https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js'
 
 type KakaoGlobal = {
@@ -73,8 +76,25 @@ export const kakaoAuth: AuthProvider = {
         redirectUri: config.kakao.redirectUri,
         ...(scope ? { scope } : {}),
       })
-      // 여기 도달하면 리다이렉트가 시작된 것. 화면은 곧 사라진다.
-      return { ok: false, failure: { code: 'cancelled', provider: 'kakao' } }
+
+      /*
+       * 여기서 **끝내지 않는다.**
+       *
+       * 카카오 로그인은 팝업이 아니라 이 페이지를 통째로 옮긴다. 예전에는
+       * authorize() 를 부른 직후 'cancelled' 를 돌려주고 "화면이 곧 사라지니
+       * 괜찮다" 고 적어뒀는데, 그건 이동이 빠른 브라우저에서만 안 보였을 뿐
+       * 처음부터 거짓말이었다. 모바일 사파리는 이동이 늦어서 그 사이에 화면이
+       * 다시 그려지고, 누른 사람은 "로그인을 취소했습니다" 를 본다.
+       *
+       * 그래서 답을 미룬다. 이동이 되면 이 약속은 영영 안 끝나고 화면은
+       * 그대로 사라진다. 한참 기다려도 여기 있으면 그때는 진짜 막힌 것이다.
+       */
+      return await new Promise<AuthResult>((resolve) => {
+        setTimeout(
+          () => resolve({ ok: false, failure: { code: 'redirect-blocked', provider: 'kakao' } }),
+          REDIRECT_WAIT_MS,
+        )
+      })
     } catch (e) {
       return { ok: false, failure: { code: 'failed', provider: 'kakao', detail: String(e) } }
     }

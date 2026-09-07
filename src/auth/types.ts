@@ -19,6 +19,14 @@ export type AuthFailure =
   | { code: 'not-configured'; provider: ProviderId; envVar: string }
   /** 사용자가 팝업을 닫았다. */
   | { code: 'cancelled'; provider: ProviderId }
+  /**
+   * 카카오로 넘어가는 이동이 시작되지 않았다.
+   *
+   * 카카오 로그인은 팝업이 아니라 **이 페이지를 통째로 옮긴다.** 옮겨가면
+   * 이 코드가 쓰일 일이 없고, 한참 기다려도 안 옮겨졌다면 무언가가 막은 것이다
+   * (사파리의 이동 차단, 확장 프로그램 등).
+   */
+  | { code: 'redirect-blocked'; provider: ProviderId }
   /** SDK 스크립트를 못 불러왔다. */
   | { code: 'sdk-unavailable'; provider: ProviderId }
   | { code: 'failed'; provider: ProviderId; detail?: string }

@@ -16,6 +16,8 @@ function failureText(f: AuthFailure, t: I18nShape): string {
       return t.login.err.notConfigured(f.envVar)
     case 'cancelled':
       return t.login.err.cancelled
+    case 'redirect-blocked':
+      return t.login.err.redirectBlocked
     case 'sdk-unavailable':
       return t.login.err.sdk
     case 'failed':

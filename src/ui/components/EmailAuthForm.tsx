@@ -21,6 +21,8 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
    * 가입 직후 할 일은 이 화면에 더 입력하는 게 아니라 메일을 여는 것이다.
    */
   const [sentTo, setSentTo] = useState<string | null>(null)
+  /** 확인 메일이 실제로 나갔는지. 못 나갔으면 그 사실도 말해준다. */
+  const [mailed, setMailed] = useState(true)
   /** 로그인은 됐는데 주소가 아직 확인되지 않은 경우. 다시 보내기를 붙인다. */
   const [needsVerify, setNeedsVerify] = useState(false)
 
@@ -52,7 +54,10 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
 
     if (r.ok) {
       // 가입은 계정 대신 "보냈다" 만 온다. 링크를 눌러야 로그인된다.
-      if ('sent' in r) setSentTo(email.trim())
+      if ('sent' in r) {
+        setSentTo(email.trim())
+        setMailed(r.mailed !== false)
+      }
       else applyResult({ ok: true, account: r.account })
     } else {
       setError(r.message)
@@ -87,6 +92,8 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
         <h3 className="emailauth__senttitle">{t.emailAuth.sentTitle}</h3>
         <p className="emailauth__sentto num">{sentTo}</p>
         <p className="emailauth__senthint">{t.emailAuth.sentHint}</p>
+        {/* 메일이 못 나갔어도 신청은 접수됐다 — 그 둘을 헷갈리지 않게 적는다 */}
+        {!mailed && <p className="emailauth__senthint">{t.emailAuth.sentMailNote}</p>}
         <button
           type="button"
           className="emailauth__back"
