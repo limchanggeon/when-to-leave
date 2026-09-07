@@ -1,6 +1,21 @@
+<p align="center">
+  <a href="https://whenigo.p-e.kr">
+    <img src="public/og-image.png" alt="언제나가 — 도착 시각에서 출발 시각을 거꾸로 계산합니다" width="640">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://whenigo.p-e.kr"><img alt="사이트" src="https://img.shields.io/badge/whenigo.p--e.kr-0C1A2B?style=flat-square&logo=googlechrome&logoColor=FFB01F"></a>
+  <a href="https://github.com/sponsors/limchanggeon"><img alt="후원" src="https://img.shields.io/github/sponsors/limchanggeon?style=flat-square&logo=githubsponsors&logoColor=white&label=Sponsors&color=EA4AAA"></a>
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white">
+  <img alt="React" src="https://img.shields.io/badge/React_19-000000?style=flat-square&logo=react&logoColor=61DAFB">
+</p>
+
 # 언제나가
 
-대화로 목적지를 말하면 도착 시각을 예측하고, 목표 도착 시각에서 출발 시각을 역산해 알람을 걸어주는 이동 비서.
+"11시까지 부산" 처럼 **목적지와 도착 시각**만 말하면, 열차·시외버스 시각표와
+환승·도보 시간을 뒤에서부터 짚어 **몇 시에 집을 나서야 하는지** 알려줍니다.
+
 설계 배경은 [docs/PLATFORM.md](docs/PLATFORM.md)와 `docs/*.docx` 참조.
 
 ## 실행
@@ -488,9 +503,11 @@ iOS 는 오랫동안 막혀 있었지만 AlarmKit(2025 WWDC)으로 열렸습니�
 
 ## 후원
 
-혼자 만들어 운영합니다. [GitHub Sponsors](https://github.com/sponsors/limchanggeon)
+혼자 만들어 운영합니다.
 
-[![Sponsor](https://img.shields.io/badge/GitHub-Sponsors-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/limchanggeon)
+<a href="https://github.com/sponsors/limchanggeon">
+  <img alt="GitHub Sponsors 로 후원하기" src="https://img.shields.io/badge/%E2%9D%A4-Sponsor-EA4AAA?style=for-the-badge&logo=githubsponsors&logoColor=white">
+</a>
 
 ### 돈이 어디에 쓰이나
 
