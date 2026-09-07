@@ -488,6 +488,22 @@ iOS 는 오랫동안 막혀 있었지만 AlarmKit(2025 WWDC)으로 열렸습니�
 
 ## 후원
 
-혼자 만들어 운영합니다. 서버와 API 비용에 보탬이 됩니다.
+혼자 만들어 운영합니다. [GitHub Sponsors](https://github.com/sponsors/limchanggeon)
 
 [![Sponsor](https://img.shields.io/badge/GitHub-Sponsors-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/limchanggeon)
+
+### 돈이 어디에 쓰이나
+
+지금은 **AWS 프리 티어라 서버비가 0원**입니다(2026-09-04 시작, 12개월).
+그래서 후원금은 당장 서버를 살리는 데가 아니라 이런 데로 갑니다.
+
+| 항목 | 지금 | 프리 티어가 끝나면 |
+|---|---|---|
+| EC2 t3.micro (서울) | 0원 | 월 1만 5천원쯤 |
+| 도메인 | 미구입 | 연 1만 5천원 |
+| S3 백업 · SES | 사실상 0원 | 사실상 0원 |
+| 카카오 · 국토교통부 API | 무료 한도 안 | 한도를 넘기면 유료 |
+
+프리 티어가 끝나는 날부터는 매달 나가는 돈이 생깁니다. 그전까지 받은 것은
+그날을 위해 모아둡니다. 쓰는 사람이 늘어 무료 한도를 넘기면 그때도 씁니다.
+
