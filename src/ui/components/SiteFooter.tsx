@@ -4,6 +4,7 @@ import { useAuthContext } from '../../auth/AuthContext'
 import type { I18nShape } from '../../i18n'
 import { Logo } from './Logo'
 import { ContactDialog } from './ContactDialog'
+import { GitHubMark, SponsorHeart } from './BrandMarks'
 
 const REPO = 'https://github.com/limchanggeon/when-to-leave'
 /**
@@ -64,10 +65,13 @@ export function SiteFooter({ t, onHowTo }: { t: I18nShape; onHowTo?: () => void 
 
         <section className="sitefooter__col">
           <h2 className="sitefooter__head">{t.footerNav.project}</h2>
-          <a href={REPO} target="_blank" rel="noreferrer">
+          {/* 마크는 원형 그대로 두고 여백만 준다 — 깃허브 브랜드 지침 */}
+          <a className="sitefooter__brandlink" href={REPO} target="_blank" rel="noreferrer">
+            <GitHubMark className="sitefooter__mark--gh" />
             {l.source}
           </a>
-          <a href={SPONSOR} target="_blank" rel="noreferrer">
+          <a className="sitefooter__brandlink" href={SPONSOR} target="_blank" rel="noreferrer">
+            <SponsorHeart className="sitefooter__mark--gh" />
             {l.sponsor}
           </a>
           <Link to="/privacy">{l.privacy}</Link>
