@@ -174,6 +174,42 @@ app.post('/api/auth/kakao', async (req, res) => {
  * 실제 대중교통 경로. 좌표가 있으면 그대로 쓰고, 이름만 있으면 지오코딩한다.
  * ODsay·카카오 키는 서버에만 있으므로 브라우저는 이 엔드포인트만 안다.
  */
+
+/**
+ * 화면에 넘길 경로를 고른다. **빠른 순으로만 자르지 않는다.**
+ *
+ * 예전에는 총 소요시간으로 정렬해 넷만 남겼다. 그러면 "조금 느리지만 훨씬
+ * 덜 걷는" 길이 늘 먼저 잘린다 — 그런 길이야말로 사람이 고르고 싶어 하는
+ * 것인데도. 실제로 브라더냉동 → 목원대학교에서 카카오는 목원대학교
+ * 정류장까지 들어가는 길을 줬는데(38분), 32~36분짜리 넷에 밀려 사라졌다.
+ * 남은 것은 전부 900m 밖에 내려 20분씩 걷는 길이었다.
+ *
+ * 그래서 축마다 하나씩 먼저 확보하고, 남는 자리를 빠른 순으로 채운다.
+ * 화면이 "도보 6분 적음" 같은 대안을 내놓으려면 그 재료가 여기서 살아남아야
+ * 한다.
+ */
+function pickDiverse(routes: WireRoute[], cap: number): WireRoute[] {
+  const walkMin = (r: WireRoute) =>
+    r.legs.filter((l) => l.kind === 'walk').reduce((sum, l) => sum + l.durationMin, 0)
+  const transfers = (r: WireRoute) => Math.max(0, r.legs.filter((l) => l.kind !== 'walk').length - 1)
+
+  const byTime = [...routes].sort((a, b) => a.totalMin - b.totalMin)
+  const best = [
+    byTime[0], // 가장 빠른 것
+    [...routes].sort((a, b) => walkMin(a) - walkMin(b) || a.totalMin - b.totalMin)[0],
+    [...routes].sort((a, b) => transfers(a) - transfers(b) || a.totalMin - b.totalMin)[0],
+  ]
+
+  const out: WireRoute[] = []
+  for (const r of [...best, ...byTime]) {
+    if (!r || out.includes(r)) continue
+    out.push(r)
+    if (out.length >= cap) break
+  }
+  // 화면은 빠른 순으로 받는 편이 자연스럽다 — 고르는 것은 그쪽 일이다
+  return out.sort((a, b) => a.totalMin - b.totalMin)
+}
+
 app.post('/api/route', async (req, res) => {
   // 이 앱에서 사람이 실제로 하는 일. 방문 수보다 이게 진짜 사용량이다.
   metrics.bump('search')
@@ -643,8 +679,7 @@ async function searchKorea(start: GeoPoint, end: GeoPoint) {
 
   const routes = [...(intercity?.ok ? intercity.routes : []), ...(kakao.ok ? kakao.routes : [])]
   if (routes.length > 0) {
-    routes.sort((a, b) => a.totalMin - b.totalMin)
-    return { ok: true as const, routes: routes.slice(0, 4) }
+    return { ok: true as const, routes: pickDiverse(routes, 6) }
   }
 
   if (!kakao.ok && kakao.code === 'no-credentials') return kakao

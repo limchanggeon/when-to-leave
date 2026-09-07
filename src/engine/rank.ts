@@ -150,17 +150,32 @@ export function compareRoutes(a: Rankable, b: Rankable, mode: Mode): number {
  * 모든 구간이 연속 구간이라 이름이 하나도 안 잡힌다.
  * 가장 오래 타는 비(非)도보 구간을 대표로 쓴다.
  */
+/**
+ * 이 경로를 한 줄로 부르는 이름.
+ *
+ * 예전에는 **가장 오래 타는 구간 하나**만 보여줬다. 그래서 같은 버스로
+ * 시작하는 서로 다른 길이 화면에 똑같이 나왔다 — 브라더냉동 → 목원대학교의
+ * 두 경로가 둘 다 "603 · 목운주택입구" 로 보여, 무엇이 다른지 알 수 없었다.
+ *
+ * 이제 타는 것을 순서대로 다 적는다. "603 → 601" 과 "603" 은 한눈에 다르다.
+ * 한 구간에 노선이 여럿이면(같은 길을 여러 번호가 다닌다) 첫 번호만 적고
+ * 나머지는 접는다 — 줄이 길어지면 오히려 안 읽힌다.
+ */
 export function describeRoute(legs: Leg[]): { carrier: string | null; origin: string | null } {
   const rides = legs.filter((l) => l.kind !== 'walk')
-  const main = rides.reduce<Leg | null>(
-    (best, leg) =>
-      !best || leg.arriveAt.getTime() - leg.departAt.getTime() >
-      best.arriveAt.getTime() - best.departAt.getTime()
-        ? leg
-        : best,
-    null,
-  )
-  return { carrier: main?.carrier ?? null, origin: main?.from.name ?? null }
+  if (rides.length === 0) return { carrier: null, origin: null }
+
+  const short = (c: string | undefined) => {
+    if (!c) return null
+    const [first, ...rest] = c.split(',').map((x) => x.trim()).filter(Boolean)
+    return rest.length ? `${first} 외 ${rest.length}` : first
+  }
+  const names = rides.map((l) => short(l.carrier)).filter(Boolean)
+  return {
+    carrier: names.length ? names.join(' → ') : null,
+    // 어디서 타는지는 첫 구간이 답이다 — 사람이 지금 가야 할 곳이다
+    origin: rides[0].from.name ?? null,
+  }
 }
 
 /* ---------------- 대안 고르기 ---------------- */

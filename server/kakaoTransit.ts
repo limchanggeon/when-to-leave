@@ -3,6 +3,8 @@ import { fetchJson } from './http'
 import type { GeoPoint } from './geocode'
 import type { LatLng, RouteResult, WireLeg, WireRoute } from './routeTypes'
 import { encodePolyline } from './polyline'
+import { betterAlightStop, cityCodeNear } from './busRoutes'
+import { distanceM } from './terminalIndex'
 
 /**
  * 카카오 대중교통 길찾기.
@@ -159,6 +161,85 @@ function toLegs(route: KakaoRoute): WireLeg[] {
   })
 }
 
+
+/** 걸어서 이 거리를 가는 데 걸리는 시간(분). 사람 걸음 4.5km/h 로 본다. */
+const walkMinFor = (meters: number) => Math.max(1, Math.round(meters / 75))
+
+/**
+ * 종점 앞에서 내리라는 안내를 바로잡는다.
+ *
+ * 카카오는 목적지에서 가까운 정류소가 아니라 **자기가 고른 정류소**에서
+ * 내리라고 한다. 브라더냉동 → 목원대학교에서 603 번은 목원대학교가
+ * 종점(순번 100)인데 한 정거장 앞(순번 99, 어울림하트 12단지)에서 내려
+ * 22분을 걸으라고 했다. 종점까지 타면 목적지 420m 앞이다.
+ *
+ * 마지막 탈것 구간만 본다. 중간 구간을 늘리면 환승이 어긋난다.
+ * 그리고 **걸어야 할 거리가 충분히 멀 때만** 본다 — 이미 코앞에 내려주는데
+ * 노선 정보를 조회하는 건 낭비다.
+ *
+ * 더 타는 시간은 **어림한다.** TAGO 노선정보는 정류소 사이 소요 시간을 주지
+ * 않는다. 그래서 방금 탄 구간의 평균 속도를 그대로 적용한다 — 같은 노선의
+ * 바로 이어지는 구간이므로 근거 없는 값은 아니다. 구간은 원래도
+ * `confidence: 'estimated'` 라 표시가 달라지지 않는다.
+ */
+async function rideFurtherIfCloser(
+  legs: WireLeg[],
+  origin: GeoPoint,
+  dest: GeoPoint,
+): Promise<WireLeg[]> {
+  /*
+   * 먼 길에서는 보지 않는다.
+   *
+   * 세 시간짜리 여정에서 마지막 도보 5분을 줄이는 건 거의 뜻이 없는데,
+   * 카카오가 엮어주는 시내버스 사슬에는 노선 번호가 잔뜩 붙어 있어 조회만
+   * 잔뜩 하게 된다 — 서울 → 부산 검색이 25초까지 늘어졌던 이유다.
+   * 그런 구간은 어차피 시외 조합이 답을 낸다.
+   */
+  if (distanceM(origin, dest) > 30000) return legs
+
+  const i = legs.map((l) => l.kind).lastIndexOf('bus')
+  if (i < 0) return legs
+  const leg = legs[i]
+  if (typeof leg.to.lat !== 'number' || typeof leg.to.lng !== 'number' || !leg.carrier) return legs
+
+  const gapM = distanceM(dest, { lat: leg.to.lat, lng: leg.to.lng })
+  if (gapM < 500) return legs // 이미 가깝다 — 조회할 값이 없다
+
+  const cityCode = await cityCodeNear(dest)
+  if (cityCode === null) return legs
+
+  /*
+   * 노선 번호를 두 개까지만 본다.
+   *
+   * 한 구간에 "115, 213, 601" 처럼 여러 번호가 붙는 건 셋이 같은 구간을
+   * 함께 달린다는 뜻이라, 어느 하나만 봐도 대개 답이 같다. 전부 보면
+   * 경로 여덟 개 × 번호 셋 × 조회 두 번이 되어 한 번 검색에 스무 번 넘게
+   * TAGO 를 부른다 — 실제로 서울 → 부산이 25초까지 늘어졌다.
+   */
+  const nos = leg.carrier.split(',').map((x) => x.trim()).filter(Boolean).slice(0, 2)
+  const better = await betterAlightStop(nos, leg.to.name, dest, cityCode)
+  if (!better) return legs
+
+  // 방금 탄 구간의 속도로 다음 정류장까지를 어림한다
+  const ridden = distanceM({ lat: leg.from.lat!, lng: leg.from.lng! }, { lat: leg.to.lat, lng: leg.to.lng })
+  const extraM = distanceM({ lat: leg.to.lat, lng: leg.to.lng }, better)
+  const extraMin =
+    ridden > 0 ? Math.max(1, Math.round((leg.durationMin * extraM) / ridden)) : better.extraStops * 2
+
+  // 더 타는 시간보다 아끼는 걷기가 커야 뜻이 있다
+  if (extraMin >= walkMinFor(better.savedM)) return legs
+
+  const out = [...legs]
+  out[i] = {
+    ...leg,
+    to: { name: better.name, lat: better.lat, lng: better.lng },
+    durationMin: leg.durationMin + extraMin,
+    // 늘린 구간의 실제 길은 모른다. 원래 길만 그리면 선이 끊겨 보이므로 지운다.
+    shape: undefined,
+  }
+  return out
+}
+
 /**
  * 시내 대중교통 경로. 시외 구간은 NO_RESULTS 로 돌아오므로
  * 호출한 쪽이 그때 시외 조합으로 넘어가면 된다.
@@ -192,8 +273,27 @@ export async function searchTransitKakao(from: GeoPoint, to: GeoPoint): Promise<
   }
 
   const routes: WireRoute[] = []
-  for (const r of (res.data.routes ?? []).slice(0, 3)) {
-    const legs = toLegs(r)
+  /*
+   * 카카오가 주는 것을 넉넉히 받는다.
+   *
+   * 셋만 받고 있었는데, 카카오의 정렬은 우리 기준(도보·환승)과 다르다.
+   * 실제로 브라더냉동 → 목원대학교에서 카카오는 열한 개를 줬고 그중
+   * 목원대학교 정류장까지 들어가는 706번 경로가 있었는데, 앞의 셋에 안
+   * 들어서 통째로 사라졌다. 남은 셋은 전부 900m 밖에 내려 20분씩 걷는 길이라
+   * "도보를 줄이려면 이 길" 이라고 내놓을 것이 없었다.
+   *
+   * 여덟인 이유: 같은 길이 접히고 나면 실제로 다른 길은 서너 개로 줄어드는데,
+   * 그 서너 개를 확보하려면 이만큼은 봐야 한다. 응답이 커지는 값은
+   * 좌표를 접어 보내면서 이미 치렀다(332KB → 95KB).
+   */
+  /*
+   * 경로마다 종점 확인이 붙으므로 나란히 돌린다. 서로를 모르는 일이라
+   * 줄 세울 이유가 없는데, 순서대로 하면 한 번 검색이 몇 초씩 늘어난다.
+   */
+  const extended = await Promise.all(
+    (res.data.routes ?? []).slice(0, 8).map((r) => rideFurtherIfCloser(toLegs(r), from, to)),
+  )
+  for (const legs of extended) {
     if (legs.length === 0) continue
 
     const first = legs[0]
