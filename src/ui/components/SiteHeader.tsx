@@ -4,6 +4,7 @@ import type { I18nShape, Lang } from '../../i18n'
 import { usePrefs, type Theme } from '../PrefsContext'
 import { Logo } from './Logo'
 import { useQuota } from '../quota'
+import { useEffect, useRef, useState } from 'react'
 
 const LANGS: { id: Lang; short: string }[] = [
   { id: 'ko', short: '한국어' },
@@ -42,6 +43,34 @@ export function SiteHeader({
 
   const nextTheme = THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length]
 
+  /*
+   * 좁은 화면에서는 항목을 서랍에 넣는다.
+   *
+   * 로그인하고 관리자이기까지 하면 머리말에 여덟 가지가 들어간다 —
+   * 로고·이름·언어 둘·사용법·테마·남은 횟수·관리자·내 계정·로그아웃.
+   * 640px 아래에서는 그게 다 안 들어가서 로그아웃이 화면 밖으로 밀렸다.
+   * 하나씩 숨기는 것으로는 안 된다. 다 숨기면 쓸 수 없고, 덜 숨기면 넘친다.
+   */
+  const [menu, setMenu] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  /* 밖을 누르거나 Esc 를 누르면 닫는다. 서랍은 닫을 수 있어야 서랍이다. */
+  useEffect(() => {
+    if (!menu) return
+    const onDown = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenu(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenu(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [menu])
+
   return (
     <header className={`siteheader ${solid ? 'siteheader--solid' : ''}`}>
       <Link className="siteheader__brand" to="/" onClick={onHome}>
@@ -50,6 +79,7 @@ export function SiteHeader({
       </Link>
 
       <nav className="siteheader__nav">
+        <div className="siteheader__wide">
         <div className="langswitch" role="group" aria-label={t.nav.language}>
           {LANGS.map((l) => (
             <button
@@ -119,6 +149,110 @@ export function SiteHeader({
             {t.nav.login}
           </Link>
         )}
+        </div>
+
+        {/*
+          좁은 화면용 서랍. 위의 묶음을 통째로 숨기고 이것만 남긴다.
+          로그인하지 않았으면 서랍 대신 로그인 버튼 하나면 되므로 안 띄운다 —
+          누를 것이 하나뿐인데 서랍에 넣으면 한 번 더 누르게 만들 뿐이다.
+        */}
+        <div className="siteheader__narrow" ref={menuRef}>
+          {!account && (
+            <Link className="siteheader__btn siteheader__btn--solid" to="/login">
+              {t.nav.login}
+            </Link>
+          )}
+          <button
+            type="button"
+            className="siteheader__icon"
+            onClick={() => setMenu((v) => !v)}
+            aria-expanded={menu}
+            aria-label={t.nav.menu}
+          >
+            ☰
+          </button>
+
+          {/*
+            ARIA 의 menu 역할을 붙이지 않는다. 그건 화살표 키로 항목 사이를
+            옮겨 다니는 조작까지 구현해야 맞는 역할인데, 그러지 않을 거면
+            안 붙이는 편이 낫다 — 없는 조작을 스크린리더에 약속하는 셈이다.
+            그냥 누르는 것들이므로 링크와 버튼 그대로 둔다.
+          */}
+          {menu && (
+            <div className="hmenu">
+              {account && (
+                <div className="hmenu__who">
+                  {account.name ?? account.email}
+                  {quota?.left !== null && quota?.left !== undefined && (
+                    <span className={`hmenu__quota ${quota.left <= 1 ? 'is-low' : ''}`}>
+                      {t.quota.left(quota.left)}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <div className="hmenu__row" role="group" aria-label={t.nav.language}>
+                {LANGS.map((l) => (
+                  <button
+                    key={l.id}
+                    type="button"
+                    className={`hmenu__seg ${lang === l.id ? 'is-on' : ''}`}
+                    onClick={() => setLang(l.id)}
+                    aria-pressed={lang === l.id}
+                  >
+                    {l.short}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                className="hmenu__item"
+                onClick={() => {
+                  setTheme(nextTheme)
+                }}
+              >
+                {t.nav.theme} · {t.nav.themes[theme]}
+              </button>
+
+              {onHowTo && (
+                <button
+                  type="button"
+                  className="hmenu__item"
+                  onClick={() => {
+                    setMenu(false)
+                    onHowTo()
+                  }}
+                >
+                  {t.tour.open}
+                </button>
+              )}
+
+              {account && (
+                <>
+                  <Link className="hmenu__item" to="/me" onClick={() => setMenu(false)}>
+                    {t.nav.myPage}
+                  </Link>
+                  {account.isAdmin && (
+                    <Link className="hmenu__item" to="/admin" onClick={() => setMenu(false)}>
+                      {t.nav.admin}
+                    </Link>
+                  )}
+                  <button
+                    type="button"
+                    className="hmenu__item"
+                    onClick={() => {
+                      setMenu(false)
+                      void signOut()
+                    }}
+                  >
+                    {t.nav.logout}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </nav>
     </header>
   )

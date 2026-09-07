@@ -28,6 +28,51 @@
 .siteheader__logo { width: 28px; height: 28px; color: var(--signal); flex: 0 0 auto; }
 .siteheader__name { font-weight: 700; font-size: 1.02rem; letter-spacing: -0.01em; }
 .siteheader__nav { display: flex; align-items: center; gap: var(--sp-4); }
+.siteheader__wide { display: flex; align-items: center; gap: var(--sp-4); }
+/* 넓은 화면에서는 서랍이 없다 — 항목이 다 보이는데 서랍까지 두면 중복이다 */
+.siteheader__narrow { display: none; position: relative; align-items: center; gap: var(--sp-2); }
+
+/*
+ * 어디서 서랍으로 바꾸나.
+ *
+ * 넓은 묶음은 로그인한 관리자 기준 622px 를 요구한다(로고까지 치면 더).
+ * 항목을 하나씩 숨겨서는 못 맞춘다 — 다 숨기면 쓸 수 없고 덜 숨기면 넘친다.
+ * 그래서 묶음을 통째로 서랍에 넣고, 여유를 두어 720px 에서 바꾼다.
+ */
+@media (max-width: 720px) {
+  .siteheader__wide { display: none; }
+  .siteheader__narrow { display: flex; }
+}
+
+/* 서랍. 머리말 아래에 붙여 연다 */
+.hmenu {
+  position: absolute; top: calc(100% + var(--sp-2)); right: 0; z-index: 30;
+  min-width: 200px; padding: var(--sp-2);
+  background: var(--night-raised); border: 1px solid var(--night-rule);
+  border-radius: var(--radius-lg); box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.hmenu__who {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3) var(--sp-3);
+  font-size: 0.86rem; font-weight: 600; color: var(--night-ink);
+  border-bottom: 1px solid var(--night-rule); margin-bottom: var(--sp-2);
+}
+.hmenu__quota { font-size: 0.78rem; font-weight: 600; color: var(--night-soft); white-space: nowrap; }
+.hmenu__quota.is-low { color: var(--signal); }
+.hmenu__item {
+  display: block; width: 100%; text-align: left; text-decoration: none;
+  background: none; border: 0; font: inherit; font-size: 0.9rem;
+  color: var(--night-ink); padding: 10px var(--sp-3); border-radius: var(--radius-md); cursor: pointer;
+}
+.hmenu__item:hover { background: var(--night); }
+.hmenu__row { display: flex; gap: 2px; padding: 0 var(--sp-3) var(--sp-2); }
+.hmenu__seg {
+  flex: 1; font: inherit; font-size: 0.84rem; padding: 7px; cursor: pointer;
+  background: none; color: var(--night-soft);
+  border: 1px solid var(--night-rule); border-radius: var(--radius-md);
+}
+.hmenu__seg.is-on { background: var(--night); color: var(--night-ink); border-color: var(--night-edge); }
 .siteheader__account { display: flex; align-items: center; gap: var(--sp-3); }
 /*
  * 남은 조회 수. 평소에는 조용히 있다가 하나 남으면 색이 선다 —
