@@ -12,6 +12,7 @@ interface AdminUser {
   name: string | null
   isAdmin: boolean
   emailVerified: boolean
+  approved: boolean
   hasPassword: boolean
   createdAt: number
   providers: string[]
@@ -61,6 +62,8 @@ const ACTION_LABEL: Record<string, string> = {
   'revoke-sessions': '세션 끊기',
   'grant-admin': '관리자 세움',
   'revoke-admin': '관리자 내림',
+  approve: '가입 승인',
+  unapprove: '승인 거둠',
 }
 
 const when = (ms: number) => new Date(ms).toLocaleString('ko-KR')
@@ -134,9 +137,11 @@ export function AdminPage() {
     yesterdaySearch > 0 ? Math.round(((todaySearch - yesterdaySearch) / yesterdaySearch) * 100) : null
 
   const unread = inbox?.unread ?? 0
+  /* 사람이 손으로 열어줘야 하는 계정. 있으면 탭에 숫자를 달아 눈에 띄게 한다. */
+  const pending = (data?.users ?? []).filter((u) => !u.emailVerified && !u.approved).length
   const TABS = [
     { id: 'overview', label: '개요' },
-    { id: 'users', label: '계정' },
+    { id: 'users', label: pending > 0 ? `계정 ${pending}` : '계정' },
     /* 안 읽은 게 있으면 숫자를 달아둔다. 없으면 그냥 이름만 */
     { id: 'contact', label: unread > 0 ? `문의함 ${unread}` : '문의함' },
     { id: 'log', label: '기록' },
@@ -226,9 +231,18 @@ export function AdminPage() {
                       <span className="adminrow__email">{u.email}</span>
                       <span className="adminrow__tags">
                         {u.isAdmin && <span className="chip chip--good">관리자</span>}
-                        <span className={`chip ${u.emailVerified ? 'chip--good' : 'chip--bad'}`}>
-                          {u.emailVerified ? '확인됨' : '미확인'}
-                        </span>
+                        {/*
+                          로그인이 열렸는지를 한 조각으로 말한다. 메일 확인과
+                          관리자 승인 중 하나면 열리므로, 둘을 따로 보여주면
+                          "미확인인데 왜 들어와지지" 로 읽힌다.
+                        */}
+                        {u.emailVerified ? (
+                          <span className="chip chip--good">확인됨</span>
+                        ) : u.approved ? (
+                          <span className="chip chip--good">승인됨</span>
+                        ) : (
+                          <span className="chip chip--bad">승인 대기</span>
+                        )}
                         {u.hasPassword && <span className="chip chip--muted">비밀번호</span>}
                         {u.providers.map((p) => (
                           <span className="chip chip--muted" key={p}>{p}</span>
@@ -239,9 +253,13 @@ export function AdminPage() {
                       </span>
                     </div>
                     <div className="adminrow__acts">
-                      {!u.emailVerified && (
+                      {!u.emailVerified && !u.approved && (
+                        <button type="button" className="btn" disabled={busy === u.id}
+                          onClick={() => act(u, '/approve', { method: 'POST' })}>가입 승인</button>
+                      )}
+                      {u.approved && !u.emailVerified && (
                         <button type="button" className="btn btn--ghost" disabled={busy === u.id}
-                          onClick={() => act(u, '/verify', { method: 'POST' })}>확인 처리</button>
+                          onClick={() => act(u, '/unapprove', { method: 'POST' }, `${u.email} 의 승인을 거둘까요? 로그인도 끊깁니다.`)}>승인 거둠</button>
                       )}
                       {u.sessions > 0 && (
                         <button type="button" className="btn btn--ghost" disabled={busy === u.id}

@@ -144,7 +144,15 @@ export async function fakeVerify(password: string): Promise<void> {
 }
 
 export interface PasswordProblem {
-  code: 'too-short' | 'too-long' | 'too-common' | 'too-simple' | 'looks-like-email'
+  code:
+    | 'too-short'
+    | 'too-long'
+    | 'too-common'
+    | 'too-simple'
+    | 'looks-like-email'
+    | 'needs-upper'
+    | 'needs-digit'
+    | 'needs-symbol'
   message: string
 }
 
@@ -163,6 +171,33 @@ const COMMON = new Set([
   'dragon123', 'monkey123', 'superman', 'trustno1', 'letmein1', 'admin123', 'root1234',
   'samsung1', 'korea123', 'seoul123', 'daehan123', 'computer', 'internet', 'whatever',
 ])
+
+/**
+ * 껍데기를 벗겨 뼈대만 남긴다.
+ *
+ * 대문자·숫자·특수문자를 요구하면 사람들은 뻔한 단어에 그걸 덧붙인다 —
+ * `Password1!`, `P@ssw0rd`, `Qwerty123!`. 규칙은 다 지켰지만 유출 목록
+ * 맨 앞에 있는 것들이다. 그래서 꼬리의 숫자·기호를 떼고 흔한 글자 바꿔치기
+ * (@→a, 0→o, 1→l, 3→e, $→s)를 되돌린 뒤 흔한 목록과 견준다.
+ *
+ * 이게 없으면 구성 규칙이 오히려 해롭다. 사람을 뻔한 모양으로 몰아놓고
+ * 그 모양을 막지는 않기 때문이다.
+ */
+function skeleton(pw: string): string {
+  return pw
+    .toLowerCase()
+    .replace(/[^a-z]+$/, '') // 꼬리의 숫자와 기호
+    .replace(/@/g, 'a')
+    .replace(/0/g, 'o')
+    .replace(/[1|!]/g, 'l')
+    .replace(/3/g, 'e')
+    .replace(/[$5]/g, 's')
+    .replace(/7/g, 't')
+    .replace(/[^a-z]/g, '')
+}
+
+/** 흔한 목록도 같은 방식으로 벗겨 둔다 — 'password123' 과 'Password1!' 이 만난다. */
+const COMMON_SKELETONS = new Set([...COMMON].map(skeleton).filter((x) => x.length >= 4))
 
 /** 한 글자만 반복하거나(aaaaaaaa) 연속된 것(12345678, abcdefgh)인지. */
 function isSequenceOrRepeat(pw: string): boolean {
@@ -198,7 +233,7 @@ export function checkPassword(password: string, email?: string): PasswordProblem
   if (password.length > MAX_LENGTH) {
     return { code: 'too-long', message: `비밀번호는 ${MAX_LENGTH}자 이하여야 합니다` }
   }
-  if (COMMON.has(password.toLowerCase())) {
+  if (COMMON.has(password.toLowerCase()) || COMMON_SKELETONS.has(skeleton(password))) {
     return { code: 'too-common', message: '너무 흔한 비밀번호입니다' }
   }
   if (isSequenceOrRepeat(password)) {
@@ -207,6 +242,27 @@ export function checkPassword(password: string, email?: string): PasswordProblem
   const local = email?.split('@')[0]?.trim().toLowerCase()
   if (local && local.length >= 4 && password.toLowerCase().includes(local)) {
     return { code: 'looks-like-email', message: '이메일과 너무 비슷합니다' }
+  }
+
+  /*
+   * 대문자·숫자·특수문자를 요구한다.
+   *
+   * NIST 는 이런 구성 규칙을 권하지 않는다 — 사람들이 `Password1!` 같은
+   * 뻔한 모양으로 몰려서 실제 안전성은 거의 안 오르고 기억만 어려워진다는
+   * 것이 그쪽 결론이다. 그래도 두는 이유는 위의 흔한 비밀번호 목록과
+   * 모양 검사가 그 뻔한 것들을 따로 걸러주기 때문이다. 둘을 같이 두면
+   * "규칙은 지켰지만 뻔한 것" 이 빠져나가지 못한다.
+   */
+  if (!/[A-Z]/.test(password)) {
+    return { code: 'needs-upper', message: '영문 대문자를 하나 이상 넣어 주세요' }
+  }
+  if (!/[0-9]/.test(password)) {
+    return { code: 'needs-digit', message: '숫자를 하나 이상 넣어 주세요' }
+  }
+  // 영문·숫자·공백이 아닌 것은 모두 특수문자로 친다. 목록을 정해두면
+  // 키보드마다 없는 글자를 요구하게 된다.
+  if (!/[^A-Za-z0-9\s]/.test(password)) {
+    return { code: 'needs-symbol', message: '특수문자를 하나 이상 넣어 주세요' }
   }
   return null
 }

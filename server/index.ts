@@ -30,6 +30,9 @@ import {
   markEmailVerified,
   registerWithPassword,
   type User,
+  canSignIn,
+  approveUser,
+  unapproveUser,
 } from './users'
 import { checkPassword } from './password'
 import * as limiter from './rateLimit'
@@ -608,10 +611,15 @@ app.post('/api/auth/login', async (req, res) => {
    * 막는 이유: 확인 없이 들어올 수 있으면, 남의 주소로 가입해 그 자리를
    * 차지하고 쓰는 일이 가능해진다.
    */
-  if (user && !user.emailVerified) {
+  if (user && !canSignIn(user)) {
     limiter.succeed(accountKey)
     res.status(403).json({
-      error: { code: 'email-unverified', message: '메일로 보낸 링크를 눌러 주소를 확인해 주세요' },
+      error: {
+        code: 'email-unverified',
+        // SES 가 샌드박스라 메일이 안 나가는 동안에는 사람이 승인한다.
+        // 무엇을 기다려야 하는지 말해주지 않으면 계속 다시 보내기만 누른다.
+        message: '가입 승인을 기다리는 중입니다. 승인되면 바로 로그인할 수 있습니다',
+      },
     })
     return
   }
@@ -1012,6 +1020,43 @@ app.post('/api/admin/users/:id/verify', (req, res) => {
   }
   markEmailVerified(target.id)
   admin.log(me, 'verify-email', target)
+  res.json({ ok: true })
+})
+
+/*
+ * 가입 승인. SES 가 샌드박스라 메일 링크가 못 나가는 동안 사람이 대신 연다.
+ *
+ * 승인을 거두면 그 사람은 다시 못 들어온다. 이미 들어와 있는 쪽은 쿠키를
+ * 들고 있으므로 세션도 같이 끊는다 — 안 끊으면 거둔 뜻이 없다.
+ */
+app.post('/api/admin/users/:id/approve', (req, res) => {
+  const me = requireAdmin(req, res)
+  if (!me) return
+  const target = findById(req.params.id)
+  if (!target) {
+    res.status(404).json({ error: { code: 'not-found', message: '없는 계정입니다' } })
+    return
+  }
+  approveUser(target.id, me.email)
+  admin.log(me, 'approve', target)
+  res.json({ ok: true })
+})
+
+app.post('/api/admin/users/:id/unapprove', (req, res) => {
+  const me = requireAdmin(req, res)
+  if (!me) return
+  const target = findById(req.params.id)
+  if (!target) {
+    res.status(404).json({ error: { code: 'not-found', message: '없는 계정입니다' } })
+    return
+  }
+  if (target.id === me.id) {
+    res.status(400).json({ error: { code: 'self', message: '자기 승인은 거둘 수 없습니다' } })
+    return
+  }
+  unapproveUser(target.id)
+  destroyOtherSessions(target.id, undefined) // 들고 있던 쿠키도 끊는다
+  admin.log(me, 'unapprove', target)
   res.json({ ok: true })
 })
 

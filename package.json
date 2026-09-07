@@ -21,7 +21,8 @@
     "admin:grant": "tsx server/adminCli.ts grant",
     "admin:revoke": "tsx server/adminCli.ts revoke",
     "terminals:build": "tsx --env-file=.env server/buildTerminalCoords.ts",
-    "terminals:verify": "tsx --env-file=.env server/verifyTerminalCoords.ts"
+    "terminals:verify": "tsx --env-file=.env server/verifyTerminalCoords.ts",
+    "admin:create": "tsx server/createAdmin.ts"
   },
   "dependencies": {
     "express": "^5.2.1",

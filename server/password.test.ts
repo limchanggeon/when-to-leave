@@ -47,7 +47,7 @@ describe('해싱', () => {
 
 describe('비밀번호 규칙', () => {
   it('평범하고 긴 비밀번호는 통과한다', () => {
-    expect(checkPassword('바다거북수프12', 'someone@example.com')).toBeNull()
+    expect(checkPassword('바다거북수프12Z!', 'someone@example.com')).toBeNull()
     expect(checkPassword('tR0ubador&3xyz')).toBeNull()
   })
 
@@ -76,12 +76,59 @@ describe('비밀번호 규칙', () => {
   it('이메일에서 따온 것은 막는다', () => {
     expect(checkPassword('changgeon1234', 'changgeon@example.com')?.code).toBe('looks-like-email')
     // 이메일을 안 넘기면 이 검사는 하지 않는다
-    expect(checkPassword('changgeon1234')).toBeNull()
+    expect(checkPassword('Achanggeon12347!')).toBeNull()
   })
 
   it('특수문자·공백·한글을 막지 않는다 — 못 쓰게 하면 오히려 약해진다', () => {
-    expect(checkPassword("O'Brien's cat!")).toBeNull()
-    expect(checkPassword('비밀번호 두 단어')).toBeNull()
-    expect(checkPassword('"; DROP TABLE users; --')).toBeNull()
+    expect(checkPassword("O'Brien's 7 cats!")).toBeNull()
+    expect(checkPassword('비밀번호 두 Z단어9!')).toBeNull()
+    expect(checkPassword('"; DROP TABLE users9; --')).toBeNull()
+  })
+
+  /*
+   * 대문자를 요구하면 **한글만으로 된 비밀번호는 영영 통과하지 못한다** —
+   * 한글에는 대소문자가 없다. 규칙을 그렇게 정한 결과이므로 못 박아 둔다.
+   * 나중에 한글 사용자를 다시 받으려면 "영문이 섞여 있을 때만 대문자를
+   * 요구한다" 로 바꾸면 된다.
+   */
+  it('한글만으로는 통과할 수 없다 — 대문자를 요구하기 때문', () => {
+    expect(checkPassword('바다거북수프열두마리')?.code).toBe('needs-upper')
+  })
+})
+
+describe('구성 규칙 (대문자·숫자·특수문자)', () => {
+  it('셋 다 갖추면 통과한다', () => {
+    expect(checkPassword('Whenigo-2026!')).toBeNull()
+  })
+
+  it('대문자가 없으면 막는다', () => {
+    expect(checkPassword('whenigo-2026!')?.code).toBe('needs-upper')
+  })
+
+  it('숫자가 없으면 막는다', () => {
+    expect(checkPassword('Whenigo-abc!')?.code).toBe('needs-digit')
+  })
+
+  it('특수문자가 없으면 막는다', () => {
+    expect(checkPassword('Whenigo2026')?.code).toBe('needs-symbol')
+  })
+
+  /*
+   * 구성 규칙만 두면 "규칙은 지켰지만 뻔한 것" 이 그대로 통과한다.
+   * 흔한 목록과 모양 검사가 앞에서 걸러주는지 못 박아 둔다.
+   */
+  /*
+   * 구성 규칙만 두면 사람들은 뻔한 단어에 대문자·숫자·기호를 덧붙인다.
+   * 껍데기를 벗겨 흔한 목록과 견주므로 그것도 걸린다.
+   */
+  it('규칙을 지켜도 뻔하면 막는다', () => {
+    expect(checkPassword('Password1!')?.code).toBe('too-common')
+    expect(checkPassword('P@ssw0rd!')?.code).toBe('too-common')
+    expect(checkPassword('Qwerty123!')?.code).toBe('too-common')
+    expect(checkPassword('Iloveyou1!')?.code).toBe('too-common')
+  })
+
+  it('한글도 특수문자로 치지 않는다 — 영문·숫자가 아니면 통과시키되 나머지 규칙은 그대로', () => {
+    expect(checkPassword('비밀번호1234')?.code).toBe('needs-upper')
   })
 })

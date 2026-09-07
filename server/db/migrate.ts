@@ -212,6 +212,26 @@ const MIGRATIONS: Migration[] = [
       CREATE INDEX idx_contact_created ON contact_messages (created_at DESC);
     `,
   },
+  {
+    id: 7,
+    name: 'approved_at',
+    sql: `
+      /*
+       * 관리자 승인.
+       *
+       * 원래는 메일 링크를 눌러야 계정이 열렸는데, SES 가 아직 샌드박스라
+       * 인증되지 않은 주소로는 메일이 나가지 않는다. 그동안은 사람이
+       * 하나씩 승인한다.
+       *
+       * 메일 인증을 **대신하는** 것이지 더하는 게 아니다. 로그인은
+       * "주소가 확인됐거나 승인됐으면" 열린다 — 사람이 눈으로 본 것이
+       * 링크 한 번 누른 것보다 약할 이유가 없다. 그래서 샌드박스가
+       * 풀려도 이 열은 그대로 쓸 수 있다.
+       */
+      ALTER TABLE users ADD COLUMN approved_at INTEGER;
+      ALTER TABLE users ADD COLUMN approved_by TEXT;
+    `,
+  },
 ]
 
 export function migrate(conn: DatabaseSync): void {

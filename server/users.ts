@@ -11,6 +11,8 @@ export interface User {
   emailVerified: boolean
   /** 관리자인지. 화면에서 /admin 을 열 수 있는지도 이 값으로 갈린다. */
   isAdmin: boolean
+  /** 관리자가 승인했는지. 메일 인증을 대신한다. */
+  approved: boolean
 }
 
 interface UserRow {
@@ -21,6 +23,8 @@ interface UserRow {
   avatar_url: string | null
   email_verified_at: number | null
   is_admin: number
+  approved_at: number | null
+  approved_by: string | null
 }
 
 const toUser = (r: UserRow): User => ({
@@ -30,6 +34,7 @@ const toUser = (r: UserRow): User => ({
   avatarUrl: r.avatar_url,
   emailVerified: r.email_verified_at !== null,
   isAdmin: r.is_admin === 1,
+  approved: r.approved_at !== null,
 })
 
 /** 이메일은 대소문자를 구분하지 않는다. 저장도 조회도 소문자로 통일한다. */
@@ -97,6 +102,8 @@ export async function registerWithPassword(
     avatar_url: null,
     email_verified_at: null,
     is_admin: 0,
+    approved_at: null,
+    approved_by: null,
   }
   db()
     .prepare(
@@ -199,6 +206,7 @@ export function upsertSocialUser(input: {
       avatarUrl: input.avatarUrl,
       emailVerified: verifiedAt !== null,
       isAdmin: false,
+      approved: false,
     }
   } else if (verifiedAt && !user.emailVerified) {
     // 비밀번호로 먼저 가입해 미인증이던 계정에 소셜을 붙였다면, 제공자가
@@ -214,4 +222,24 @@ export function upsertSocialUser(input: {
     .run(input.provider, input.providerUserId, user.id, Date.now())
 
   return user
+}
+
+/**
+ * 이 계정으로 로그인할 수 있는가.
+ *
+ * 주소가 확인됐거나(메일 링크) 관리자가 승인했으면 연다. 둘 중 하나면
+ * 된다 — 사람이 눈으로 본 승인이 링크 한 번 누른 것보다 약할 이유가 없다.
+ */
+export const canSignIn = (u: User): boolean => u.emailVerified || u.approved
+
+/** 관리자가 가입을 승인한다. 이미 승인돼 있으면 시각을 덮어쓰지 않는다. */
+export function approveUser(userId: string, byEmail: string): void {
+  db()
+    .prepare('UPDATE users SET approved_at = ?, approved_by = ? WHERE id = ? AND approved_at IS NULL')
+    .run(Date.now(), byEmail, userId)
+}
+
+/** 승인을 거둔다. 다시 못 들어온다. */
+export function unapproveUser(userId: string): void {
+  db().prepare('UPDATE users SET approved_at = NULL, approved_by = NULL WHERE id = ?').run(userId)
 }

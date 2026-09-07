@@ -11,6 +11,8 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
   const [tab, setTab] = useState<Tab>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  /** 가입에서만 쓴다. 오타로 못 들어가는 계정이 생기는 걸 막는다. */
+  const [password2, setPassword2] = useState('')
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -22,7 +24,12 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
   /** 로그인은 됐는데 주소가 아직 확인되지 않은 경우. 다시 보내기를 붙인다. */
   const [needsVerify, setNeedsVerify] = useState(false)
 
-  const canSubmit = email.trim().length > 0 && password.length > 0 && !busy
+  const mismatch = tab === 'register' && password2.length > 0 && password !== password2
+  const canSubmit =
+    email.trim().length > 0 &&
+    password.length > 0 &&
+    !busy &&
+    (tab === 'login' || (password2.length > 0 && !mismatch))
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -31,6 +38,12 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
     setError(null)
 
     setNeedsVerify(false)
+
+    if (tab === 'register' && password !== password2) {
+      setError(t.emailAuth.mismatch)
+      setBusy(false)
+      return
+    }
 
     const r =
       tab === 'login'
@@ -104,12 +117,19 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
 
       <label className="emailauth__field">
         <span>{t.emailAuth.email}</span>
+        {/*
+          로그인 칸은 이메일 형식을 강제하지 않는다. 서버는 이 값을 그냥
+          문자열로 찾으므로 이메일이 아닌 아이디(관리자 계정 등)도 있을 수
+          있는데, type="email" 이면 브라우저가 아예 제출을 막는다.
+          가입은 진짜 주소를 받아야 하므로 그때만 email 로 둔다.
+        */}
         <input
-          type="email"
+          type={tab === 'register' ? 'email' : 'text'}
+          inputMode="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder={t.emailAuth.emailPlaceholder}
-          autoComplete="email"
+          autoComplete={tab === 'register' ? 'email' : 'username'}
           required
         />
       </label>
@@ -126,6 +146,26 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
         />
         {tab === 'register' && <em className="emailauth__hint">{t.emailAuth.passwordHint}</em>}
       </label>
+
+      {tab === 'register' && (
+        <label className="emailauth__field">
+          <span>{t.emailAuth.password2}</span>
+          <input
+            type="password"
+            value={password2}
+            onChange={(e) => setPassword2(e.target.value)}
+            autoComplete="new-password"
+            aria-invalid={mismatch || undefined}
+            required
+          />
+          {/* 다 치기 전부터 빨갛게 하지 않는다 — 아직 틀린 게 아니라 덜 친 것이다 */}
+          {mismatch && (
+            <em className="emailauth__hint emailauth__hint--bad" role="alert">
+              {t.emailAuth.mismatch}
+            </em>
+          )}
+        </label>
+      )}
 
       {tab === 'register' && (
         <label className="emailauth__field">

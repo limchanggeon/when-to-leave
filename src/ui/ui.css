@@ -449,6 +449,9 @@
 .alt__delta--good { color: var(--teal); }
 .alt__delta--bad { color: var(--ink-faint); }
 /* 왜 보여주는 대안인지. 시각보다 앞에 두어 먼저 읽히게 한다 */
+/* 비밀번호가 안 맞을 때. 힌트와 같은 자리에 색만 바꿔 놓는다 */
+.emailauth__hint--bad { color: var(--rust); }
+
 .alts__none {
   margin: var(--sp-3) 0 0; padding: var(--sp-3) var(--sp-4); font-size: 0.88rem; line-height: 1.6;
   color: var(--ink-soft); background: var(--sunk); border-radius: var(--radius-md);
