@@ -6,7 +6,7 @@ import {
   dedupeRoutes,
   pickAlternatives,
   reasonFor,
-  routeKey,
+  routeId,
   type AltAxis,
   type ChosenReason,
 } from '../engine/rank'
@@ -154,7 +154,7 @@ export async function planTrip(
     const solved = solve(specs)
     if (!solved.ok) return null
     return {
-      id: routeKey(solved.legs), // pool 에서 접힌 뒤 다시 매기지만, 그 전에도 있어야 타입이 맞는다
+      id: routeId(solved.legs), // pool 에서 접힌 뒤 다시 매기지만, 그 전에도 있어야 타입이 맞는다
       rung,
       legs: solved.legs,
       departAt: solved.legs[0].departAt,
@@ -195,7 +195,7 @@ export async function planTrip(
    * 같은 길인 것을 먼저 접는다. 카카오는 한 구간을 611번으로도 622번으로도
    * 갈 수 있으면 두 경로로 주는데, 그건 두 선택지가 아니라 한 경로다.
    */
-  const pool = dedupeRoutes(options).map((o) => ({ ...o, id: routeKey(o.legs) }))
+  const pool = dedupeRoutes(options).map((o) => ({ ...o, id: routeId(o.legs) }))
   pool.sort((a, b) => compareRoutes(a, b, ranking))
   const [chosen] = pool
 

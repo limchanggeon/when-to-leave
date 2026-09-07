@@ -21,7 +21,7 @@ export interface Stop {
 
 /* 노선 정보는 거의 바뀌지 않는다. 프로세스가 사는 동안 들고 있는다. */
 const cityCache = new Map<string, number | null>()
-const routeCache = new Map<string, Stop[] | null>()
+const routeCache = new Map<string, Stop[][]>()
 
 /** 이 좌표가 어느 지자체인가. 근처 정류소가 알려준다. */
 export async function cityCodeNear(point: { lat: number; lng: number }): Promise<number | null> {
@@ -48,7 +48,7 @@ export async function cityCodeNear(point: { lat: number; lng: number }): Promise
 export async function routeStops(cityCode: number, routeNo: string): Promise<Stop[][]> {
   const key = `${cityCode}:${routeNo}`
   const hit = routeCache.get(key)
-  if (hit !== undefined) return hit ? [hit] : []
+  if (hit) return hit
 
   const routes = await tagoCall<{ routeid?: string; routeno?: string }>(
     'BusRouteInfoInqireService',
@@ -82,7 +82,7 @@ export async function routeStops(cityCode: number, routeNo: string): Promise<Sto
       .sort((a, b) => a.ord - b.ord)
     if (stops.length) out.push(stops)
   }
-  routeCache.set(key, out[0] ?? null)
+  routeCache.set(key, out)
   return out
 }
 
@@ -99,8 +99,13 @@ export interface BetterStop {
 /**
  * 같은 노선을 조금 더 타면 목적지에 더 가까워지는가.
  *
- * 내린 정류소를 노선에서 찾아, **그 뒤쪽** 정류소들만 본다. 앞쪽을 보면
- * 왔던 길을 되돌아가라는 말이 된다.
+ * 내린 정류장을 노선에서 찾을 때 **좌표로 짚는다.** 이름으로 찾으면 안 된다 —
+ * 노선 목록은 갈 때와 올 때를 한 줄로 이어 붙여 주므로 같은 이름이 두 번
+ * 나온다. 603 번은 100곳 중 31곳이 그렇다(목원대학교가 순번 1과 100).
+ * 이름으로 첫 번째를 잡으면 반대 방향의 정류장을 짚어, 왔던 길을 되돌아가라는
+ * 답이 나온다.
+ *
+ * 짚은 자리 **뒤쪽**만 본다. 앞쪽을 보면 역시 되돌아가라는 말이 된다.
  *
  * 아끼는 거리가 얼마 안 되면 그냥 둔다. 몇십 미터 때문에 한 정거장을 더
  * 가라고 하면, 내려서 걷는 편이 나은 경우까지 바꿔버린다.
@@ -108,10 +113,12 @@ export interface BetterStop {
 const MIN_SAVED_M = 250
 /** 이보다 많이 더 타라고는 하지 않는다. 종점을 지나 되돌아오는 노선도 있다. */
 const MAX_EXTRA_STOPS = 4
+/** 내린 정류장을 노선에서 짚을 때, 이보다 멀면 같은 정류장이 아니다. */
+const SAME_STOP_M = 200
 
 export async function betterAlightStop(
   routeNos: string[],
-  alightName: string,
+  alight: { name: string; lat: number; lng: number },
   dest: { lat: number; lng: number },
   cityCode: number,
 ): Promise<BetterStop | null> {
@@ -126,10 +133,23 @@ export async function betterAlightStop(
     }
 
     for (const stops of variants) {
-      const here = stops.findIndex((s) => s.name === alightName)
+      /*
+       * 내린 자리를 좌표로 짚는다. 이름이 같은 후보가 여럿이면
+       * 실제로 내린 지점에 가장 가까운 것이 맞는 방향이다.
+       */
+      let here = -1
+      let bestGap = SAME_STOP_M
+      for (const [i, st] of stops.entries()) {
+        if (st.name !== alight.name) continue
+        const gap = distanceM(alight, st)
+        if (gap < bestGap) {
+          bestGap = gap
+          here = i
+        }
+      }
       if (here < 0) continue
-      const nowM = distanceM(dest, stops[here])
 
+      const nowM = distanceM(dest, stops[here])
       for (let i = here + 1; i < stops.length && i - here <= MAX_EXTRA_STOPS; i++) {
         const saved = nowM - distanceM(dest, stops[i])
         if (saved < MIN_SAVED_M) continue

@@ -223,25 +223,66 @@ function mergeCarriers(into: Leg[], from: Leg[]): Leg[] {
   })
 }
 
+/** 이 구간을 타고 가는 데 걸리는 시간(분). */
+const rideMin = (l: Leg) => (l.arriveAt.getTime() - l.departAt.getTime()) / 60_000
+
+/**
+ * 두 경로가 **정말** 같은 길인가.
+ *
+ * 정류장만 같으면 같다고 볼 수 없다. 타는 곳과 내리는 곳이 같아도 노선이
+ * 다르면 사이를 도는 길이 달라서 소요 시간이 달라진다 — 대전 603 번과 312 번이
+ * 그렇다. 그걸 하나로 접어 "603이나 312를 타세요" 라고 말하면, 먼저 오는 것을
+ * 탄 사람이 안내보다 늦게 도착한다. 시간을 맞추라고 만든 앱이 시간을 어긋나게
+ * 하는 셈이다.
+ *
+ * 그래서 타는 시간이 비슷할 때만 접는다. 카카오가 주는 값은 분 단위로
+ * 반올림돼 있어 1분쯤은 같은 것으로 본다.
+ */
+const SAME_RIDE_TOLERANCE_MIN = 1
+
+function sameRide(a: Leg[], b: Leg[]): boolean {
+  const ra = a.filter((l) => l.kind !== 'walk')
+  const rb = b.filter((l) => l.kind !== 'walk')
+  if (ra.length !== rb.length) return false
+  return ra.every((l, i) => Math.abs(rideMin(l) - rideMin(rb[i])) <= SAME_RIDE_TOLERANCE_MIN)
+}
+
+/**
+ * 이 경로를 가리키는 이름.
+ *
+ * `routeKey` 는 "어디를 지나는가" 만 본다. 그런데 정류장이 같아도 노선이
+ * 다르면 걸리는 시간이 다르므로(603 과 312), 그 둘은 서로 다른 선택지다.
+ * 그래서 타는 시간을 함께 넣어야 둘을 가릴 수 있다 — 화면의 리스트 key 와
+ * 지금 보는 경로를 가리키는 데 쓰인다.
+ */
+export const routeId = (legs: Leg[]): string => {
+  const min = legs.filter((l) => l.kind !== 'walk').reduce((sum, l) => sum + rideMin(l), 0)
+  return `${routeKey(legs)}@${Math.round(min)}`
+}
+
 /**
  * 같은 길인 경로를 하나로 접는다. 순서는 그대로 두고 먼저 온 것을 남긴다.
  * 남는 쪽에 다른 쪽의 노선 번호를 얹는다.
+ *
+ * 지나는 정류장이 같아도 **타는 시간이 다르면 접지 않고 둘 다 남긴다.**
+ * 그건 같은 길이 아니라 서로 다른 선택지다.
  */
 export function dedupeRoutes<T extends Rankable>(routes: T[]): T[] {
   const out: T[] = []
-  const at = new Map<string, number>()
+  const at = new Map<string, number[]>()
   for (const r of routes) {
     const key = routeKey(r.legs)
-    const i = at.get(key)
-    if (i === undefined) {
-      at.set(key, out.length)
-      out.push(r)
+    const seats = at.get(key) ?? []
+    // 같은 정류장을 지나면서 타는 시간까지 비슷한 것이 이미 있으면 번호만 얹는다
+    const twin = seats.find(
+      (i) => out[i].legs.length === r.legs.length && sameRide(out[i].legs, r.legs),
+    )
+    if (twin !== undefined) {
+      out[twin] = { ...out[twin], legs: mergeCarriers(out[twin].legs, r.legs) }
       continue
     }
-    // 걷는 구간 수까지 같을 때만 번호를 합친다 — 모양이 다르면 못 겹친다
-    if (out[i].legs.length === r.legs.length) {
-      out[i] = { ...out[i], legs: mergeCarriers(out[i].legs, r.legs) }
-    }
+    at.set(key, [...seats, out.length])
+    out.push(r)
   }
   return out
 }
@@ -272,14 +313,14 @@ export function pickAlternatives<T extends Rankable>(
   ]
 
   const picked: { axis: AltAxis; route: T }[] = []
-  const taken = new Set([routeKey(chosen.legs)])
+  const taken = new Set([routeId(chosen.legs)])
 
   for (const { axis, score } of axes) {
     const better = pool
-      .filter((r) => !taken.has(routeKey(r.legs)) && score(r) < score(chosen))
+      .filter((r) => !taken.has(routeId(r.legs)) && score(r) < score(chosen))
       .sort((a, b) => score(a) - score(b) || compareRoutes(a, b, mode))[0]
     if (!better) continue
-    taken.add(routeKey(better.legs))
+    taken.add(routeId(better.legs))
     picked.push({ axis, route: better })
   }
   return picked

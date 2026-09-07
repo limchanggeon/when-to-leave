@@ -243,19 +243,44 @@ describe('같은 길 접기', () => {
     expect(dedupeRoutes([a, b])[0].legs[0].carrier).toBe('611, 622')
   })
 
+  /*
+   * 타는 곳과 내리는 곳이 같아도 노선이 다르면 사이를 도는 길이 달라
+   * 소요 시간이 달라진다(대전 603 과 312). 하나로 접어 "603이나 312" 라고
+   * 말하면, 먼저 오는 것을 탄 사람이 안내보다 늦게 도착한다.
+   */
+  it('정류장이 같아도 걸리는 시간이 다르면 접지 않는다', () => {
+    const 빠른것 = route([seg('bus', '09:00', '09:11', '목원대', '변동서로', '603')])
+    const 느린것 = route([seg('bus', '09:00', '09:25', '목원대', '변동서로', '312')])
+    const out = dedupeRoutes([빠른것, 느린것])
+    expect(out).toHaveLength(2)
+    expect(out[0].legs[0].carrier).toBe('603')
+  })
+
+  it('1분 차이는 같은 것으로 본다 — 카카오 값이 분 단위로 반올림돼 온다', () => {
+    const a = route([seg('bus', '09:00', '09:11', '목원대', '변동서로', '603')])
+    const b = route([seg('bus', '09:00', '09:12', '목원대', '변동서로', '601')])
+    expect(dedupeRoutes([a, b])[0].legs[0].carrier).toBe('603, 601')
+  })
+
   it('지나는 정류장이 다르면 접지 않는다 — 진짜 다른 길이다', () => {
     const a = route([seg('bus', '09:00', '09:30', '대전역', '터미널', '611')])
     const b = route([seg('bus', '09:00', '09:30', '대전역', '유성', '104')])
     expect(dedupeRoutes([a, b])).toHaveLength(2)
   })
 
-  it('걷는 구간이 달라도 타는 구간이 같으면 같은 길이다', () => {
+  /*
+   * 타는 구간이 같아도 걷는 양이 다르면 총 소요가 다르다. 번호를 얹을 자리도
+   * 안 맞으므로 둘 다 남기고, 어느 쪽이 나은지는 축이 가린다.
+   */
+  it('걷는 구간이 다르면 둘 다 남긴다 — 번호를 억지로 합치지 않는다', () => {
     const a = route([
       seg('walk', '08:55', '09:00', '집', '대전역'),
       seg('bus', '09:00', '09:30', '대전역', '터미널', '611'),
     ])
     const b = route([seg('bus', '09:00', '09:30', '대전역', '터미널', '622')])
-    expect(dedupeRoutes([a, b])).toHaveLength(1)
+    const out = dedupeRoutes([a, b])
+    expect(out).toHaveLength(2)
+    expect(out.map((r) => r.legs[r.legs.length - 1].carrier)).toEqual(['611', '622'])
   })
 })
 

@@ -217,7 +217,12 @@ async function rideFurtherIfCloser(
    * TAGO 를 부른다 — 실제로 서울 → 부산이 25초까지 늘어졌다.
    */
   const nos = leg.carrier.split(',').map((x) => x.trim()).filter(Boolean).slice(0, 2)
-  const better = await betterAlightStop(nos, leg.to.name, dest, cityCode)
+  const better = await betterAlightStop(
+    nos,
+    { name: leg.to.name, lat: leg.to.lat, lng: leg.to.lng },
+    dest,
+    cityCode,
+  )
   if (!better) return legs
 
   // 방금 탄 구간의 속도로 다음 정류장까지를 어림한다
