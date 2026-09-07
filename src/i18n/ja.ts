@@ -167,7 +167,7 @@ export const ja: I18nShape = {
       'earliest-arrival': '最も早く到着する経路',
     },
     others: 'ほかの経路',
-    othersSub: 'チケットがない・別の駅から乗りたいとき',
+    othersSub: '条件を変えるとこんな道もあります',
     unnamed: '経路',
   },
   contact: {
@@ -311,6 +311,12 @@ export const ja: I18nShape = {
     earlier: (m) => `${m} 早い`,
     later: (m) => `${m} 遅い`,
     same: '同じ時刻',
+    none: '乗り換えも徒歩も所要時間も、この経路が最良です',
+    axis: {
+      'fewest-transfers': (n: number) => `乗り換え ${n} 回少ない`,
+      'least-walking': (m: string) => `徒歩 ${m} 少ない`,
+      fastest: (m: string) => `${m} 速い`,
+    },
   },
   leg: {
     walk: '徒歩',

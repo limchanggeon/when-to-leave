@@ -169,7 +169,7 @@ export const ko = {
       'earliest-arrival': '가장 빨리 도착하는 경로',
     },
     others: '다른 경로',
-    othersSub: '표가 없거나 다른 역에서 타고 싶을 때',
+    othersSub: '조건을 바꾸면 이런 길도 있습니다',
     unnamed: '경로',
   },
   contact: {
@@ -322,6 +322,17 @@ export const ko = {
     earlier: (m: string) => `${m} 일찍`,
     later: (m: string) => `${m} 늦게`,
     same: '같은 시각',
+    /*
+     * 왜 이 경로를 보여주는가. 축마다 하나씩만 고르므로 문구도 하나씩이다.
+     * "환승 적음" 같은 이름표가 아니라 무엇이 얼마나 나은지를 적는다 —
+     * 이름표는 눌러보게 만들지 않지만 "환승 두 번 적음" 은 만든다.
+     */
+    none: '환승도 도보도 시간도 이 경로가 가장 낫습니다',
+    axis: {
+      'fewest-transfers': (n: number) => `환승 ${n}번 적음`,
+      'least-walking': (m: string) => `도보 ${m} 적음`,
+      fastest: (m: string) => `${m} 빠름`,
+    },
   },
   leg: {
     walk: '도보',

@@ -162,3 +162,110 @@ export function describeRoute(legs: Leg[]): { carrier: string | null; origin: st
   )
   return { carrier: main?.carrier ?? null, origin: main?.from.name ?? null }
 }
+
+/* ---------------- 대안 고르기 ---------------- */
+
+/** 갈아탄 횟수. 타는 구간이 n개면 환승은 n-1번이다. */
+export const transferCount = (legs: Leg[]): number =>
+  Math.max(0, legs.filter((l) => l.kind !== 'walk').length - 1)
+
+/** 걷는 시간(분). */
+export const walkMin = (legs: Leg[]): number =>
+  legs
+    .filter((l) => l.kind === 'walk')
+    .reduce((sum, l) => sum + (l.arriveAt.getTime() - l.departAt.getTime()) / 60_000, 0)
+
+/**
+ * 이 경로가 실제로 어디를 지나는가. 두 경로가 같은 길인지 이걸로 가른다.
+ *
+ * **노선 번호는 넣지 않는다.** 같은 정류장 사이를 611번으로 가나 622번으로
+ * 가나 같은 길이다. 번호까지 넣으면 그 둘이 서로 다른 "대안" 이 되어,
+ * 고르라고 내놓은 목록이 사실은 한 경로의 변주로 가득 찬다.
+ * 실제로 대전 → 인천공항에서 대안 셋이 전부 8366 → 5000,5005 였다.
+ *
+ * 걷는 구간은 뺀다. 어느 골목으로 걷느냐는 경로의 정체성이 아니다.
+ */
+export const routeKey = (legs: Leg[]): string =>
+  legs
+    .filter((l) => l.kind !== 'walk')
+    .map((l) => `${l.kind}:${l.from.name}>${l.to.name}`)
+    .join('|')
+
+/**
+ * 같은 길을 가는 노선 번호를 한 줄로 합친다.
+ *
+ * 카카오는 한 구간을 611번으로도 622번으로도 갈 수 있으면 두 경로로 준다.
+ * 사람에게는 "611이나 622를 타세요" 가 맞는 말이지 서로 다른 선택지가 아니다.
+ * 먼저 온 경로에 번호만 얹고 나머지는 버린다.
+ */
+function mergeCarriers(into: Leg[], from: Leg[]): Leg[] {
+  return into.map((leg, i) => {
+    const other = from[i]
+    if (!other || leg.kind === 'walk' || !other.carrier || other.carrier === leg.carrier) return leg
+    const seen = new Set((leg.carrier ?? '').split(',').map((s) => s.trim()).filter(Boolean))
+    for (const c of other.carrier.split(',').map((s) => s.trim())) if (c) seen.add(c)
+    return { ...leg, carrier: [...seen].join(', ') }
+  })
+}
+
+/**
+ * 같은 길인 경로를 하나로 접는다. 순서는 그대로 두고 먼저 온 것을 남긴다.
+ * 남는 쪽에 다른 쪽의 노선 번호를 얹는다.
+ */
+export function dedupeRoutes<T extends Rankable>(routes: T[]): T[] {
+  const out: T[] = []
+  const at = new Map<string, number>()
+  for (const r of routes) {
+    const key = routeKey(r.legs)
+    const i = at.get(key)
+    if (i === undefined) {
+      at.set(key, out.length)
+      out.push(r)
+      continue
+    }
+    // 걷는 구간 수까지 같을 때만 번호를 합친다 — 모양이 다르면 못 겹친다
+    if (out[i].legs.length === r.legs.length) {
+      out[i] = { ...out[i], legs: mergeCarriers(out[i].legs, r.legs) }
+    }
+  }
+  return out
+}
+
+/** 대안을 왜 보여주는가. 화면이 이 이름을 그대로 띄운다. */
+export type AltAxis = 'fewest-transfers' | 'least-walking' | 'fastest'
+
+/**
+ * 축마다 가장 나은 것을 하나씩 고른다.
+ *
+ * 예전에는 같은 정렬에서 1등만 빼고 나머지를 그대로 보여줬다. 그러면
+ * 비슷비슷한 것이 줄줄이 남아서, 고르라고 내놓았지만 고를 것이 없었다.
+ * 대안은 **무엇이 다른지 말할 수 있을 때만** 대안이다.
+ *
+ * 고른 경로보다 그 축에서 실제로 나은 것만 남긴다. 환승이 똑같은데
+ * "최소 환승" 이라고 붙여 내놓으면 거짓말이 된다.
+ */
+export function pickAlternatives<T extends Rankable>(
+  chosen: T,
+  pool: T[],
+  mode: Mode,
+): { axis: AltAxis; route: T }[] {
+  const total = (r: T) => r.arriveAt.getTime() - r.departAt.getTime()
+  const axes: { axis: AltAxis; score: (r: T) => number }[] = [
+    { axis: 'fewest-transfers', score: (r) => transferCount(r.legs) },
+    { axis: 'least-walking', score: (r) => walkMin(r.legs) },
+    { axis: 'fastest', score: total },
+  ]
+
+  const picked: { axis: AltAxis; route: T }[] = []
+  const taken = new Set([routeKey(chosen.legs)])
+
+  for (const { axis, score } of axes) {
+    const better = pool
+      .filter((r) => !taken.has(routeKey(r.legs)) && score(r) < score(chosen))
+      .sort((a, b) => score(a) - score(b) || compareRoutes(a, b, mode))[0]
+    if (!better) continue
+    taken.add(routeKey(better.legs))
+    picked.push({ axis, route: better })
+  }
+  return picked
+}

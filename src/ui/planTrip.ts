@@ -1,7 +1,14 @@
 import { resolveRoute, registeredAdapters } from '../adapters/registry'
 import type { Failure, RouteRequest } from '../adapters/types'
 import { DEFAULT_POLICY } from '../engine/buffer'
-import { compareRoutes, reasonFor, type ChosenReason } from '../engine/rank'
+import {
+  compareRoutes,
+  dedupeRoutes,
+  pickAlternatives,
+  reasonFor,
+  type AltAxis,
+  type ChosenReason,
+} from '../engine/rank'
 import { compact, solveBackward, solveForward } from '../engine/schedule'
 import type { Leg, LegSpec, Mode } from '../engine/types'
 
@@ -11,6 +18,11 @@ export interface RouteOption {
   legs: Leg[]
   departAt: Date
   arriveAt: Date
+  /**
+   * 이 경로를 **왜** 대안으로 보여주는가. 고른 경로에는 없다.
+   * 화면이 "환승이 한 번 적습니다" 처럼 이 이름을 그대로 띄운다.
+   */
+  axis?: AltAxis
 }
 
 export type PlanOutcome =
@@ -169,8 +181,23 @@ export async function planTrip(
    */
   const ranking: Mode = renegotiated ? 'departNow' : mode
 
-  options.sort((a, b) => compareRoutes(a, b, ranking))
-  const [chosen, ...others] = options
+  /*
+   * 같은 길인 것을 먼저 접는다. 카카오는 한 구간을 611번으로도 622번으로도
+   * 갈 수 있으면 두 경로로 주는데, 그건 두 선택지가 아니라 한 경로다.
+   */
+  const pool = dedupeRoutes(options)
+  pool.sort((a, b) => compareRoutes(a, b, ranking))
+  const [chosen] = pool
+
+  /*
+   * 대안은 축마다 하나씩만 고른다 — 최소 환승, 최소 도보, 가장 빠름.
+   *
+   * 예전에는 1등만 빼고 나머지를 그대로 보여줬다. 그러면 비슷비슷한 것이
+   * 줄줄이 남아서, 고르라고 내놓았지만 고를 것이 없었다. 실제로 대전 →
+   * 인천공항의 대안 셋이 전부 8366 → 5000,5005 를 지나는 같은 길이었다.
+   */
+  const alts = pickAlternatives(chosen, pool, ranking)
+  const others = alts.map(({ axis, route }) => ({ ...route, axis }))
 
   return {
     kind: 'trip',

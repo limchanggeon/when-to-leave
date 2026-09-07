@@ -331,10 +331,11 @@ export function HomePage() {
                 <JourneyMap legs={shown.legs} country="KR" t={t} highlight={hovered} />
               </div>
 
-              {outcome.others.length > 0 && (
+              {(
                 <aside className="col col--rail">
                 <Alternatives
                   items={outcome.others}
+                  baseline={outcome.chosen}
                   baselineArrival={outcome.chosen.arriveAt}
                   now={now}
                   t={t}

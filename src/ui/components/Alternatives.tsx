@@ -1,10 +1,11 @@
 import { diffMin, formatClock, humanDuration } from '../../engine/time'
-import { describeRoute, seatStateOf } from '../../engine/rank'
+import { describeRoute, seatStateOf, transferCount, walkMin } from '../../engine/rank'
 import type { I18nShape } from '../../i18n'
 import type { RouteOption } from '../planTrip'
 
 export function Alternatives({
   items,
+  baseline,
   baselineArrival,
   now,
   t,
@@ -12,13 +13,29 @@ export function Alternatives({
   selectedRung,
 }: {
   items: RouteOption[]
+  /** 고른 경로. 대안이 무엇에서 얼마나 나은지 이것과 견준다. */
+  baseline: RouteOption
   baselineArrival: Date
   now: Date
   t: I18nShape
   onSelect: (r: RouteOption) => void
   selectedRung: number
 }) {
-  if (items.length === 0) return null
+  /*
+   * 대안이 없다는 건 고장이 아니라 결과다 — 고른 경로가 환승·도보·시간
+   * 어느 쪽으로도 지지 않았다는 뜻이다. 그냥 사라지면 그렇게 안 읽히므로
+   * 한 줄로 말해준다.
+   */
+  if (items.length === 0) {
+    return (
+      <section className="alts">
+        <header className="alts__head">
+          <h2 className="alts__title">{t.route.others}</h2>
+        </header>
+        <p className="alts__none">{t.alternatives.none}</p>
+      </section>
+    )
+  }
   const clock = (d: Date) => formatClock(d, now, t.clock)
   const unit = { h: t.units.hour, m: t.units.minute }
 
@@ -32,6 +49,32 @@ export function Alternatives({
         {items.map((option) => {
           const { carrier, origin } = describeRoute(option.legs)
           const seat = seatStateOf(option.legs)
+
+          /*
+           * 왜 보여주는지를 그 자리에 적는다. "환승 적음" 이 아니라
+           * "환승 2번 적음" 이라고 적어야 눌러볼 마음이 생긴다.
+           */
+          const a = t.alternatives.axis
+          const why =
+            option.axis === 'fewest-transfers'
+              ? a['fewest-transfers'](transferCount(baseline.legs) - transferCount(option.legs))
+              : option.axis === 'least-walking'
+                ? a['least-walking'](
+                    humanDuration(Math.round(walkMin(baseline.legs) - walkMin(option.legs)), unit),
+                  )
+                : option.axis === 'fastest'
+                  ? a.fastest(
+                      humanDuration(
+                        Math.round(
+                          (baseline.arriveAt.getTime() -
+                            baseline.departAt.getTime() -
+                            (option.arriveAt.getTime() - option.departAt.getTime())) /
+                            60_000,
+                        ),
+                        unit,
+                      ),
+                    )
+                  : null
           const delta = diffMin(option.arriveAt, baselineArrival)
           const deltaText =
             delta === 0
@@ -53,6 +96,7 @@ export function Alternatives({
                   {origin && <span className="alt__origin"> · {origin}</span>}
                 </span>
                 <span className="alt__meta">
+                  {why && <span className="alt__why">{why}</span>}
                   <span>{t.alternatives.departAt(clock(option.departAt))}</span>
                   <span>{t.alternatives.arriveAt(clock(option.arriveAt))}</span>
                 </span>

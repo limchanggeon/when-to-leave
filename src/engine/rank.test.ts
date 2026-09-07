@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { compareRoutes, type Rankable } from './rank'
+import {
+  compareRoutes,
+  dedupeRoutes,
+  pickAlternatives,
+  transferCount,
+  walkMin,
+  type Rankable,
+} from './rank'
 import type { Leg } from './types'
 
 /** 25시 이후는 다음날로 넘긴다 — 막차 끊긴 뒤를 그리려면 필요하다. */
@@ -187,5 +194,135 @@ describe('목표를 못 맞춰 다시 푼 경우', () => {
     expect(first([내일첫차, 오늘도착], 'departNow')).toBe(오늘도착)
     // 목표가 살아 있었다면 늦게 나가는 쪽이 맞다 — 규칙 자체는 그대로다
     expect(first([내일첫차, 오늘도착], 'arriveBy')).toBe(내일첫차)
+  })
+})
+
+/* ---------------- 대안 고르기 ---------------- */
+
+/** 정류장 이름까지 지정하는 구간. 같은 길인지 가리는 데 쓴다. */
+const seg = (
+  kind: Leg['kind'],
+  from: string,
+  to: string,
+  a: string,
+  b: string,
+  carrier?: string,
+): Leg =>
+  ({
+    kind,
+    from: { name: a },
+    to: { name: b },
+    departAt: at(from),
+    arriveAt: at(to),
+    confidence: 'estimated',
+    carrier,
+  }) as Leg
+
+const route = (legs: Leg[]): Rankable => ({
+  departAt: legs[0].departAt,
+  arriveAt: legs[legs.length - 1].arriveAt,
+  legs,
+})
+
+describe('같은 길 접기', () => {
+  /*
+   * 2026-09-05, 대전 → 인천공항에서 대안 셋이 전부 8366 → 5000,5005 였다.
+   * 노선 번호만 다른 것을 서로 다른 선택지로 내놓고 있었다.
+   */
+  it('번호만 다르고 같은 정류장을 지나면 하나로 접는다', () => {
+    const a = route([seg('bus', '09:00', '09:30', '대전역', '터미널', '611')])
+    const b = route([seg('bus', '09:00', '09:30', '대전역', '터미널', '622')])
+    const out = dedupeRoutes([a, b])
+    expect(out).toHaveLength(1)
+    expect(out[0].legs[0].carrier).toBe('611, 622')
+  })
+
+  it('이미 여러 번호가 적힌 것에 더 얹어도 중복되지 않는다', () => {
+    const a = route([seg('bus', '09:00', '09:30', '대전역', '터미널', '611, 622')])
+    const b = route([seg('bus', '09:00', '09:30', '대전역', '터미널', '622')])
+    expect(dedupeRoutes([a, b])[0].legs[0].carrier).toBe('611, 622')
+  })
+
+  it('지나는 정류장이 다르면 접지 않는다 — 진짜 다른 길이다', () => {
+    const a = route([seg('bus', '09:00', '09:30', '대전역', '터미널', '611')])
+    const b = route([seg('bus', '09:00', '09:30', '대전역', '유성', '104')])
+    expect(dedupeRoutes([a, b])).toHaveLength(2)
+  })
+
+  it('걷는 구간이 달라도 타는 구간이 같으면 같은 길이다', () => {
+    const a = route([
+      seg('walk', '08:55', '09:00', '집', '대전역'),
+      seg('bus', '09:00', '09:30', '대전역', '터미널', '611'),
+    ])
+    const b = route([seg('bus', '09:00', '09:30', '대전역', '터미널', '622')])
+    expect(dedupeRoutes([a, b])).toHaveLength(1)
+  })
+})
+
+describe('대안 고르기', () => {
+  const 고른것 = route([
+    seg('bus', '09:00', '09:20', 'A', 'B', '1'),
+    seg('walk', '09:20', '09:50', 'B', 'C'), // 도보 30분
+    seg('bus', '09:50', '10:30', 'C', 'D', '2'),
+    seg('bus', '10:30', '11:00', 'D', 'E', '3'), // 환승 2회
+  ])
+  const 환승적은길 = route([seg('train', '09:10', '11:00', 'A', 'E', 'KTX')])
+  const 도보적은길 = route([
+    seg('bus', '09:00', '09:20', 'A', 'X', '9'),
+    seg('walk', '09:20', '09:25', 'X', 'Y'), // 도보 5분
+    seg('bus', '09:25', '11:00', 'Y', 'E', '8'),
+  ])
+
+  it('축마다 하나씩만 고르고, 왜 고른지를 함께 준다', () => {
+    const got = pickAlternatives(고른것, [고른것, 환승적은길, 도보적은길], 'arriveBy')
+    expect(got.map((g) => g.axis)).toContain('fewest-transfers')
+    expect(got.map((g) => g.axis)).toContain('least-walking')
+  })
+
+  it('고른 경로 자신은 대안에 넣지 않는다', () => {
+    const got = pickAlternatives(고른것, [고른것], 'arriveBy')
+    expect(got).toHaveLength(0)
+  })
+
+  /* 환승이 똑같은데 "최소 환승" 이라고 붙여 내놓으면 거짓말이 된다. */
+  it('그 축에서 실제로 낫지 않으면 내놓지 않는다', () => {
+    const 같은수고 = route([
+      seg('bus', '09:00', '09:20', 'A', 'P', '7'),
+      seg('walk', '09:20', '09:50', 'P', 'Q'),
+      seg('bus', '09:50', '10:30', 'Q', 'R', '6'),
+      seg('bus', '10:30', '11:00', 'R', 'E', '5'),
+    ])
+    const got = pickAlternatives(고른것, [고른것, 같은수고], 'arriveBy')
+    expect(got.map((g) => g.axis)).not.toContain('fewest-transfers')
+    expect(got.map((g) => g.axis)).not.toContain('least-walking')
+  })
+
+  it('한 경로가 두 축에서 이겨도 한 번만 나온다', () => {
+    const 다좋은길 = route([seg('train', '09:10', '10:30', 'A', 'E', 'KTX')])
+    const got = pickAlternatives(고른것, [고른것, 다좋은길], 'arriveBy')
+    expect(got).toHaveLength(1)
+  })
+})
+
+describe('수고 재기', () => {
+  it('타는 구간이 n개면 환승은 n-1번', () => {
+    expect(transferCount([seg('bus', '09:00', '09:20', 'A', 'B')])).toBe(0)
+    expect(
+      transferCount([
+        seg('bus', '09:00', '09:20', 'A', 'B'),
+        seg('walk', '09:20', '09:30', 'B', 'C'),
+        seg('bus', '09:30', '10:00', 'C', 'D'),
+      ]),
+    ).toBe(1)
+  })
+
+  it('도보는 걷는 구간만 센다', () => {
+    expect(
+      walkMin([
+        seg('walk', '09:00', '09:10', 'A', 'B'),
+        seg('bus', '09:10', '10:00', 'B', 'C'),
+        seg('walk', '10:00', '10:05', 'C', 'D'),
+      ]),
+    ).toBe(15)
   })
 })
