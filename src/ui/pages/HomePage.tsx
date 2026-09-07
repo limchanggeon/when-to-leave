@@ -11,6 +11,10 @@ import { SearchPanel, type OriginState, type QueryInput } from '../components/Se
 import { SiteHeader } from '../components/SiteHeader'
 import { HowItWorks } from '../components/HowItWorks'
 import { SiteFooter } from '../components/SiteFooter'
+import { SignUpWall } from '../components/SignUpWall'
+import { markFreeSearchUsed, usedUpFreeSearch } from '../freeSearch'
+import { rememberSearch, takeSearch } from '../pendingSearch'
+import { useAuthContext } from '../../auth/AuthContext'
 import { DataGap } from '../components/DataGap'
 import { TripSpine } from '../components/TripSpine'
 import { Warnings } from '../components/Warnings'
@@ -72,6 +76,9 @@ export function HomePage() {
    */
   const [resetKey, setResetKey] = useState(0)
   const [tour, setTour] = useState(false)
+  /** 무료 조회를 다 쓴 사람에게 보이는 창. */
+  const [wall, setWall] = useState(false)
+  const { account } = useAuthContext()
   /**
    * 메일 링크를 누르고 돌아온 결과. 서버가 /?verify=... 로 보내준다.
    *
@@ -86,6 +93,21 @@ export function HomePage() {
     return v === 'unknown' ? 'invalid' : (v as keyof I18nShape['verifyNotice'])
   })
 
+  /*
+   * 로그인하고 돌아왔으면 하려던 조회를 대신 마쳐준다.
+   *
+   * 담에 막혀 로그인한 사람에게 "이제 처음부터 다시 입력하세요" 라고 하면
+   * 흐름을 끊은 값을 못 받는다. takeSearch 는 꺼내면서 지우므로 한 번만
+   * 이어준다 — 새로고침마다 다시 돌면 안 된다.
+   */
+  useEffect(() => {
+    if (!account) return
+    const pending = takeSearch()
+    if (pending) void run(pending)
+    // run 은 이 화면의 상태를 쓰므로 의존성에 넣지 않는다. 로그인 순간 한 번이면 된다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account])
+
   useEffect(() => {
     let cancelled = false
     fetchMe().then((r) => {
@@ -97,6 +119,19 @@ export function HomePage() {
   }, [])
 
   async function run(query: QueryInput) {
+    /*
+     * 무료 조회를 다 썼으면 **계산하기 전에** 멈춘다.
+     *
+     * 결과를 만들어 놓고 덮으면 볼 수 없는 답을 위해 카카오·TAGO 를 부르는
+     * 셈이고, 사람은 몇 초 기다린 끝에 담을 만난다. 누르는 즉시 권한다.
+     */
+    if (!account && usedUpFreeSearch()) {
+      // 로그인하고 돌아오면 이 조회를 대신 마쳐준다
+      rememberSearch(query)
+      setWall(true)
+      return
+    }
+
     setLastQuery(query)
     setPending(true)
     // 계산을 시켰으면 다음으로 볼 것은 여정이다. 폼은 접어서 자리를 내준다.
@@ -132,6 +167,12 @@ export function HomePage() {
     setOutcome(result)
     setShown(result.kind === 'trip' ? result.chosen : null)
     setPending(false)
+
+    /*
+     * 답이 나왔을 때만 센다. 경로를 못 찾았는데 무료 한 번을 썼다고 하면
+     * 받은 것 없이 담부터 만나는 셈이다.
+     */
+    if (!account && result.kind === 'trip') markFreeSearchUsed()
   }
 
   function selectRoute(option: RouteOption) {
@@ -351,6 +392,7 @@ export function HomePage() {
 
       <SiteFooter t={t} onHowTo={() => setTour(true)} />
       <Tour t={t} open={tour} onClose={() => setTour(false)} />
+      <SignUpWall t={t} open={wall} onClose={() => setWall(false)} />
     </div>
   )
 }

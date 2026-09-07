@@ -576,6 +576,41 @@
   .doc__table td:first-child { white-space: normal; }
 }
 
+/* ================= 가입 권유 창 ================= */
+.wall {
+  border: 1px solid var(--rule-strong); border-radius: var(--radius-lg);
+  padding: 0; max-width: 420px; width: min(420px, calc(100vw - 2 * var(--sp-4)));
+  background: var(--surface); color: var(--ink);
+  box-shadow: 0 24px 60px rgba(12, 26, 43, 0.24);
+}
+.wall[open] { display: block; }
+.wall::backdrop { background: rgba(12, 26, 43, 0.6); }
+.wall__body { padding: var(--sp-8) var(--sp-6) var(--sp-6); }
+.wall__title { margin: 0; font-size: 1.24rem; font-weight: 700; letter-spacing: -0.01em; }
+.wall__lead { margin: var(--sp-3) 0 var(--sp-5); font-size: 0.92rem; color: var(--ink-soft); line-height: 1.65; }
+/* 무엇이 좋아지는지. 담이 아니라 권유라는 게 여기서 드러난다 */
+.wall__perks { margin: 0 0 var(--sp-6); padding: 0; list-style: none; }
+.wall__perks li {
+  position: relative; padding-left: var(--sp-5); margin-bottom: var(--sp-2);
+  font-size: 0.9rem; line-height: 1.6;
+}
+.wall__perks li::before {
+  content: ''; position: absolute; left: 0; top: 0.55em;
+  width: 6px; height: 6px; border-radius: 50%; background: var(--signal-deep);
+}
+.wall__acts { display: flex; flex-direction: column; gap: var(--sp-2); }
+.wall__go {
+  display: block; text-align: center; text-decoration: none;
+  background: var(--brand); color: #FFFFFF; font-weight: 700; font-size: 0.96rem;
+  padding: 12px var(--sp-5); border-radius: var(--radius-md);
+}
+.wall__go:hover { background: var(--brand-strong); }
+.wall__later {
+  background: none; border: 0; font: inherit; font-size: 0.9rem;
+  color: var(--ink-faint); padding: var(--sp-2); cursor: pointer;
+}
+.wall__later:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+
 /* ================= 문의 팝업 ================= */
 /*
  * 닫혀 있을 때 UA 의 display:none 을 이기지 않도록 [open] 으로 묶는다.

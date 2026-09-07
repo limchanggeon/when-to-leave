@@ -268,6 +268,18 @@ export const ja: I18nShape = {
     updated: '2026년 9월 8일 기준',
     back: '← 홈으로',
   },
+  /* 무료 조회를 다 쓴 사람에게 보이는 창. 담이 아니라 권유다. */
+  wall: {
+    title: '結果を見るにはログインしてください',
+    lead: '無料の検索1回を使い切りました。ログインすると続けて使えます。',
+    perks: [
+      '検索回数の制限なし',
+      'よく行く場所の保存',
+      '出発アラームをカレンダーに登録',
+    ],
+    login: 'ログインして続ける',
+    later: 'あとで',
+  },
   footerNav: {
     trip: '経路',
     account: 'アカウント',
@@ -283,6 +295,7 @@ export const ja: I18nShape = {
       tago: '韓国国土交通部 TAGO — 時刻表',
       portal: '公共データポータル',
       source: 'ソースを見る',
+      sponsor: '支援する',
       privacy: 'プライバシーポリシー',
       contact: 'お問い合わせ',
     },

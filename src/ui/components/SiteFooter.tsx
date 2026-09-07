@@ -6,6 +6,11 @@ import { Logo } from './Logo'
 import { ContactDialog } from './ContactDialog'
 
 const REPO = 'https://github.com/limchanggeon/when-to-leave'
+/**
+ * 깃허브 스폰서. 등록하기 전에는 프로필로 넘어간다 —
+ * 링크를 미리 두면 등록하는 날 저절로 살아난다.
+ */
+const SPONSOR = 'https://github.com/sponsors/limchanggeon'
 
 /**
  * 승강장 옆에 붙은 안내문.
@@ -61,6 +66,9 @@ export function SiteFooter({ t, onHowTo }: { t: I18nShape; onHowTo?: () => void 
           <h2 className="sitefooter__head">{t.footerNav.project}</h2>
           <a href={REPO} target="_blank" rel="noreferrer">
             {l.source}
+          </a>
+          <a href={SPONSOR} target="_blank" rel="noreferrer">
+            {l.sponsor}
           </a>
           <Link to="/privacy">{l.privacy}</Link>
           <button type="button" className="sitefooter__linkbtn" onClick={() => setContact(true)}>

@@ -3,6 +3,7 @@ import { webStorage } from '../ui/storage'
 import { fetchMe, serverLogout } from './api'
 import { providers } from './providers'
 import type { Account, AuthFailure, AuthResult, ProviderId } from './types'
+import { clearFreeSearches } from '../ui/freeSearch'
 
 export { providers }
 
@@ -47,6 +48,8 @@ export function useAuth() {
       setAccount(result.account)
       setFailure(null)
       webStorage.set(KEY, JSON.stringify(result.account))
+      // 무료 조회 기록을 지운다 — 로그아웃한 뒤 곧바로 담을 만나지 않게
+      clearFreeSearches()
     } else {
       setFailure(result.failure)
     }
