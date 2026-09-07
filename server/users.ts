@@ -225,12 +225,16 @@ export function upsertSocialUser(input: {
 }
 
 /**
- * 이 계정으로 로그인할 수 있는가.
+ * 이 계정으로 로그인할 수 있는가. **승인 하나로 갈린다.**
  *
- * 주소가 확인됐거나(메일 링크) 관리자가 승인했으면 연다. 둘 중 하나면
- * 된다 — 사람이 눈으로 본 승인이 링크 한 번 누른 것보다 약할 이유가 없다.
+ * 메일 확인이나 소셜 로그인은 "이 주소가 진짜인가" 에 대한 답이지
+ * "이 사람을 받을 것인가" 에 대한 답이 아니다. 구글·카카오는 **연동 수단**
+ * 이지 입장 허가가 아니다 — 그쪽 계정은 누구나 몇 초면 만든다.
+ *
+ * 그래서 어떻게 들어오든 사람이 한 번 열어줘야 한다. 메일 확인은 그대로
+ * 남는다. 승인할지 정할 때 관리자가 보는 근거가 된다.
  */
-export const canSignIn = (u: User): boolean => u.emailVerified || u.approved
+export const canSignIn = (u: User): boolean => u.approved
 
 /** 관리자가 가입을 승인한다. 이미 승인돼 있으면 시각을 덮어쓰지 않는다. */
 export function approveUser(userId: string, byEmail: string): void {

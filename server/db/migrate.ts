@@ -232,6 +232,25 @@ const MIGRATIONS: Migration[] = [
       ALTER TABLE users ADD COLUMN approved_by TEXT;
     `,
   },
+  {
+    id: 8,
+    name: 'approve existing users',
+    sql: `
+      /*
+       * 승인은 **가입 방법과 무관하게** 필요하다.
+       *
+       * 처음에는 소셜로 들어온 사람을 그냥 통과시켰다 — 제공자가 확인해준
+       * 주소니 확인된 것으로 쳤다. 그런데 그건 "이 주소가 진짜인가" 에
+       * 대한 답이지 "이 사람을 받을 것인가" 에 대한 답이 아니다.
+       * 구글·카카오는 로그인 수단이지 입장 허가가 아니다.
+       *
+       * 이 마이그레이션이 도는 시점에 이미 있던 사람은 그대로 둔다.
+       * 안 그러면 관리자 자신이 먼저 잠겨서, 승인해 줄 사람이 사라진다.
+       */
+      UPDATE users SET approved_at = strftime('%s','now') * 1000, approved_by = 'migration:8'
+       WHERE approved_at IS NULL;
+    `,
+  },
 ]
 
 export function migrate(conn: DatabaseSync): void {

@@ -56,6 +56,11 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
       else applyResult({ ok: true, account: r.account })
     } else {
       setError(r.message)
+      /*
+       * 다시 보내기는 **주소 확인이 안 된 경우에만** 뜻이 있다.
+       * 승인 대기(not-approved)에 그 버튼을 붙이면, 사람이 열어줘야 하는
+       * 일을 메일 버튼만 계속 누르며 기다리게 된다.
+       */
       setNeedsVerify(r.code === 'email-unverified')
     }
     setBusy(false)

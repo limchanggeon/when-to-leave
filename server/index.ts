@@ -164,6 +164,29 @@ app.get('/api/auth/me', (req, res) => {
 })
 
 /** 카카오 인가 코드 → 세션. 클라이언트는 코드만 넘기고 토큰은 구경도 못 한다. */
+/**
+ * 승인 전이면 세션을 주지 않는다.
+ *
+ * 소셜로 들어오든 메일 링크를 누르든 마찬가지다. 구글·카카오는 **연동
+ * 수단**이지 입장 허가가 아니다 — 그쪽 계정은 누구나 몇 초면 만든다.
+ * 계정은 이미 만들어져 있으므로, 관리자가 승인하면 다시 눌러 들어온다.
+ *
+ * 참이면 호출부는 그대로 진행한다. 거짓이면 여기서 응답을 끝냈다.
+ */
+function grantSession(res: express.Response, user: User): boolean {
+  if (!canSignIn(user)) {
+    res.status(403).json({
+      error: {
+        code: 'not-approved',
+        message: '가입 승인을 기다리는 중입니다. 승인되면 바로 로그인할 수 있습니다',
+      },
+    })
+    return false
+  }
+  res.cookie(COOKIE_NAME, createSession(user.id), cookieOptions)
+  return true
+}
+
 app.post('/api/auth/kakao', async (req, res) => {
   const { code, redirectUri } = req.body as { code?: string; redirectUri?: string }
   if (!code || !redirectUri) {
@@ -179,8 +202,7 @@ app.post('/api/auth/kakao', async (req, res) => {
       })
       return
     }
-    const token = createSession(result.user.id)
-    res.cookie(COOKIE_NAME, token, cookieOptions)
+    if (!grantSession(res, result.user)) return
     res.json({ account: result.user })
   } catch (e) {
     res.status(502).json({ error: { code: 'upstream', message: String(e) } })
@@ -541,7 +563,17 @@ app.get('/api/auth/verify', (req, res) => {
     return
   }
 
+  /*
+   * 주소는 확인해 준다 — 링크를 누른 건 사실이고, 그 사실은 관리자가
+   * 승인을 정할 때 보는 근거가 된다. 다만 **들여보내지는 않는다.**
+   * 확인은 "이 주소가 진짜인가" 의 답이지 "이 사람을 받을 것인가" 가 아니다.
+   */
   markEmailVerified(r.userId)
+  const fresh = findById(r.userId)
+  if (!fresh || !canSignIn(fresh)) {
+    res.redirect(`${home}/?verify=pending`)
+    return
+  }
   res.cookie(COOKIE_NAME, createSession(r.userId), cookieOptions)
   res.redirect(`${home}/?verify=ok`)
 })
@@ -615,9 +647,9 @@ app.post('/api/auth/login', async (req, res) => {
     limiter.succeed(accountKey)
     res.status(403).json({
       error: {
-        code: 'email-unverified',
-        // SES 가 샌드박스라 메일이 안 나가는 동안에는 사람이 승인한다.
-        // 무엇을 기다려야 하는지 말해주지 않으면 계속 다시 보내기만 누른다.
+        // 'email-unverified' 가 아니다. 메일을 다시 받아도 안 열린다 —
+        // 열어주는 것은 사람이므로, 무엇을 기다리는지 이름으로도 말한다.
+        code: 'not-approved',
         message: '가입 승인을 기다리는 중입니다. 승인되면 바로 로그인할 수 있습니다',
       },
     })
@@ -662,7 +694,7 @@ app.post('/api/auth/google', async (req, res) => {
       })
       return
     }
-    res.cookie(COOKIE_NAME, createSession(r.user.id), cookieOptions)
+    if (!grantSession(res, r.user)) return
     res.json({ account: r.user })
   } catch (e) {
     console.error('[google] 검증 중 오류:', e)
