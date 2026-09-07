@@ -273,7 +273,8 @@ const WALKABLE_M = 2000
  * 길찾기를 거절하는데(정류장이 없다), 그때 걷는 구간 하나면 충분하다.
  */
 async function connect(from: GeoPoint, to: GeoPoint): Promise<WireLeg[] | null> {
-  const r = await searchTransitKakao(from, to)
+  // 첫 번째만 쓴다 — 여덟 개를 만들면 쓰지도 않을 도보 조회가 잔뜩 나간다
+  const r = await searchTransitKakao(from, to, 1)
   if (r.ok && r.routes[0]) return r.routes[0].legs
 
   const walk = await walkLeg(from, to)

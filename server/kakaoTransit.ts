@@ -98,19 +98,66 @@ const ACCESS_MIN_M = 120
  * 실제 도보 경로. 카카오 대중교통 응답에는 출발지→첫 정류장,
  * 마지막 정류장→목적지 구간이 빠져 있어 여기서 채운다.
  */
+/*
+ * 도보 구간은 같은 자리를 몇 번이고 다시 묻게 된다 — 경로 여덟 개가 같은
+ * 정류장에서 목적지까지 걷고, 시외 후보 넷도 같은 터미널로 걸어간다.
+ * 10m 눈금으로 접어 캐시한다.
+ */
+const walkCache = new Map<string, WireLeg | null>()
+const walkKey = (a: GeoPoint, b: GeoPoint) =>
+  `${a.lat.toFixed(4)},${a.lng.toFixed(4)}>${b.lat.toFixed(4)},${b.lng.toFixed(4)}`
+
+/**
+ * 곧은 거리로 어림한 도보. 길찾기가 실패했을 때 쓴다.
+ *
+ * 사람 걸음 4.5km/h 에, 길이 곧지 않은 만큼 20% 를 더한다. 실제보다 짧게
+ * 나올 수는 있어도 **구간을 통째로 빼는 것보다는 낫다** — 빼면 "총 7분" 처럼
+ * 걷는 시간이 아예 없는 답이 나가고, 그 시각에 나선 사람은 차를 놓친다.
+ */
+function guessWalk(from: GeoPoint, to: GeoPoint): WireLeg {
+  const straight = metres(from, to)
+  return {
+    kind: 'walk',
+    from: { name: from.name, lat: from.lat, lng: from.lng },
+    to: { name: to.name, lat: to.lat, lng: to.lng },
+    durationMin: Math.max(1, Math.round((straight * 1.2) / 75)),
+    confidence: 'estimated',
+  }
+}
+
 export async function walkLeg(from: GeoPoint, to: GeoPoint): Promise<WireLeg | null> {
   if (metres(from, to) < ACCESS_MIN_M) return null
+
+  const key = walkKey(from, to)
+  const hit = walkCache.get(key)
+  if (hit !== undefined) {
+    // 이름은 부르는 쪽마다 다르므로 좌표만 재사용하고 이름은 새로 붙인다
+    return hit && { ...hit, from: { ...hit.from, name: from.name }, to: { ...hit.to, name: to.name } }
+  }
 
   const url =
     `${WALK_URL}?start_x=${from.lng}&start_y=${from.lat}&end_x=${to.lng}&end_y=${to.lat}`
   const res = await fetchJson<WalkResponse>(url, { headers: auth() }, { label: '카카오 도보' })
-  if (!res.ok || res.data.status !== 'OK') return null
+
+  /*
+   * 길찾기가 실패하면 어림값으로 채운다.
+   *
+   * 카카오 도보 길찾기는 하루 한도가 따로 있어서, 붐비는 날에는 400
+   * ("API limit has been exceeded")이 온다. 예전에는 그때 null 을 돌려줘
+   * 걷는 구간이 통째로 빠졌다 — 청주 성안길 → 충북대가 "총 7분" 으로 나왔다.
+   * 걸어야 하는 것은 사실이므로, 못 물어봤다고 없던 일로 만들지 않는다.
+   */
+  if (!res.ok || res.data.status !== 'OK') {
+    const guess = guessWalk(from, to)
+    walkCache.set(key, guess)
+    return guess
+  }
 
   const leg = res.data.route?.legs?.[0]
   const minutes = Math.max(1, Math.round((leg?.properties?.time ?? 0) / 60))
   const shape = (leg?.steps ?? []).flatMap((s) => toLatLng(s.path?.points))
 
-  return {
+  const out: WireLeg = {
     kind: 'walk',
     from: { name: from.name, lat: from.lat, lng: from.lng },
     to: { name: to.name, lat: to.lat, lng: to.lng },
@@ -118,6 +165,8 @@ export async function walkLeg(from: GeoPoint, to: GeoPoint): Promise<WireLeg | n
     confidence: 'estimated',
     shape: shape.length > 1 ? encodePolyline(shape) : undefined,
   }
+  walkCache.set(key, out)
+  return out
 }
 
 function toLegs(route: KakaoRoute): WireLeg[] {
@@ -259,12 +308,23 @@ async function rideFurtherIfCloser(
  * 시내 대중교통 경로. 시외 구간은 NO_RESULTS 로 돌아오므로
  * 호출한 쪽이 그때 시외 조합으로 넘어가면 된다.
  */
-export async function searchTransitKakao(from: GeoPoint, to: GeoPoint): Promise<RouteResult> {
+export async function searchTransitKakao(
+  from: GeoPoint,
+  to: GeoPoint,
+  /**
+   * 몇 개까지 만들 것인가.
+   *
+   * 시외 조합의 접근 구간(`connect`)은 **첫 번째 하나만** 쓰는데도 여덟 개를
+   * 다 만들고 있었다. 경로마다 앞뒤로 도보를 물으므로 쓰지도 않을 조회가
+   * 열네 번씩 나갔고, 카카오 도보 길찾기의 하루 한도를 그렇게 태웠다.
+   */
+  limit = 8,
+): Promise<RouteResult> {
   if (!serverEnv.kakaoRestKey) {
     return { ok: false, code: 'no-credentials', message: 'KAKAO_REST_API_KEY 가 없습니다' }
   }
 
-  const key = cacheKey(from, to)
+  const key = `${cacheKey(from, to)}|${limit}`
   const hit = cache.get(key)
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) return { ok: true, routes: hit.routes }
 
@@ -306,7 +366,7 @@ export async function searchTransitKakao(from: GeoPoint, to: GeoPoint): Promise<
    * 줄 세울 이유가 없는데, 순서대로 하면 한 번 검색이 몇 초씩 늘어난다.
    */
   const extended = await Promise.all(
-    (res.data.routes ?? []).slice(0, 8).map((r) => rideFurtherIfCloser(toLegs(r), from, to)),
+    (res.data.routes ?? []).slice(0, limit).map((r) => rideFurtherIfCloser(toLegs(r), from, to)),
   )
   for (const legs of extended) {
     if (legs.length === 0) continue
