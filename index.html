@@ -36,6 +36,18 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;800&family=Noto+Sans+JP:wght@400;500;700;800&display=swap"
     />
+    <!--
+      구글 애드센스. 광고는 이 스크립트가 알아서 붙인다.
+
+      CSP 를 함께 열어야 한다(deploy/Caddyfile) — 광고는 스크립트를
+      더 불러오고 프레임을 띄우므로, 막힌 채로 두면 조용히 아무것도
+      안 나온다. 어떤 출처가 필요한지는 브라우저로 재서 넣었다.
+    -->
+    <script
+      async
+      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2327680830824048"
+      crossorigin="anonymous"
+    ></script>
   </head>
   <body>
     <div id="root"></div>

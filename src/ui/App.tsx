@@ -6,6 +6,7 @@ import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { KakaoCallbackPage } from './pages/KakaoCallbackPage'
 import { MyPage } from './pages/MyPage'
+import { PrivacyPage } from './pages/PrivacyPage'
 
 /**
  * 관리 화면은 따로 떼어 나중에 받는다.
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/auth/kakao/callback" element={<KakaoCallbackPage />} />
           <Route path="/me" element={<MyPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
           {/* 관리자가 아니면 서버가 404 를 준다 — 화면 자체는 누구나 열 수 있지만 아무것도 안 보인다 */}
           <Route
             path="/admin"

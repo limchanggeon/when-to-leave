@@ -62,6 +62,7 @@ export function SiteFooter({ t, onHowTo }: { t: I18nShape; onHowTo?: () => void 
           <a href={REPO} target="_blank" rel="noreferrer">
             {l.source}
           </a>
+          <Link to="/privacy">{l.privacy}</Link>
           <button type="button" className="sitefooter__linkbtn" onClick={() => setContact(true)}>
             {l.contact}
           </button>
