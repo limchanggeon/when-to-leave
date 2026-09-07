@@ -13,6 +13,22 @@
 
 whenigo.p-e.kr {
 	encode zstd gzip
+
+	header {
+		# HTTPS 로만 오게 못 박는다. 한 번 받은 브라우저는 http 로 붙지 않는다.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		# 브라우저가 Content-Type 을 제멋대로 추측하지 않게 한다.
+		X-Content-Type-Options "nosniff"
+		# 남의 페이지 안에 우리 화면을 끼워 넣지 못하게 한다(클릭재킹).
+		X-Frame-Options "DENY"
+		# 바깥으로 나갈 때 주소 전체를 넘기지 않는다 — 검색어가 새어나갈 수 있다.
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# 쓰지 않는 장치 권한은 닫는다. 위치는 "현재 위치" 버튼이 쓰므로 연다.
+		Permissions-Policy "geolocation=(self), camera=(), microphone=(), payment=()"
+		# 서버 종류를 굳이 알릴 이유가 없다.
+		-X-Powered-By
+	}
+
 	reverse_proxy 127.0.0.1:8787
 
 	log {
