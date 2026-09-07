@@ -29,6 +29,16 @@
 .siteheader__name { font-weight: 700; font-size: 1.02rem; letter-spacing: -0.01em; }
 .siteheader__nav { display: flex; align-items: center; gap: var(--sp-4); }
 .siteheader__account { display: flex; align-items: center; gap: var(--sp-3); }
+/*
+ * 남은 조회 수. 평소에는 조용히 있다가 하나 남으면 색이 선다 —
+ * 늘 눈에 띄면 아무 때도 눈에 안 띈다.
+ */
+.siteheader__quota {
+  font-size: 0.82rem; font-weight: 600; color: var(--night-soft);
+  padding: 4px var(--sp-2); border: 1px solid var(--night-rule);
+  border-radius: var(--radius-md); white-space: nowrap;
+}
+.siteheader__quota.is-low { color: var(--signal); border-color: var(--night-edge); }
 .siteheader__me { display: flex; align-items: center; gap: var(--sp-2); color: inherit; text-decoration: none; }
 .siteheader__avatar { width: 30px; height: 30px; border-radius: 50%; }
 .siteheader__who { font-size: 0.9rem; font-weight: 500; color: var(--night-soft); }
@@ -990,6 +1000,7 @@
   .siteheader__icon { width: 34px; height: 34px; }
   .langswitch__btn { padding: 5px 8px; font-size: 0.78rem; white-space: nowrap; }
   .siteheader__who { display: none; }
+  .siteheader__quota { display: none; }
 }
 
 /*

@@ -15,6 +15,7 @@ import { SignUpWall } from '../components/SignUpWall'
 import { QuotaWall } from '../components/QuotaWall'
 import { markFreeSearchUsed, usedUpFreeSearch } from '../freeSearch'
 import { rememberSearch, takeSearch } from '../pendingSearch'
+import { refreshQuota } from '../quota'
 import { useAuthContext } from '../../auth/AuthContext'
 import { DataGap } from '../components/DataGap'
 import { TripSpine } from '../components/TripSpine'
@@ -172,6 +173,9 @@ export function HomePage() {
      * 화면에서 미리 막지 않고 서버 답을 기다리는 이유는, 한도가 서버에만
      * 있기 때문이다 — 브라우저가 세면 저장소를 비워 넘길 수 있다.
      */
+    // 한 번 썼든 막혔든 남은 수가 달라졌을 수 있다 — 헤더를 다시 읽게 한다
+    if (account) void refreshQuota()
+
     if (result.kind === 'gap' && result.failure.code === 'quota-exceeded') {
       setQuotaWall(result.failure.limit ?? 3)
       setPending(false)

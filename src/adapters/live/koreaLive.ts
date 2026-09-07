@@ -79,8 +79,31 @@ const toSpecs = (legs: WireLeg[]): LegSpec[] =>
     }
   })
 
-/** /api/route 응답을 한 번만 받아 route()/alternatives() 가 나눠 쓴다. */
-async function fetchRoutes(
+/**
+ * `/api/route` 응답을 한 번만 받아 route()/alternatives() 가 나눠 쓴다.
+ *
+ * 주석에는 원래 그렇게 적혀 있었는데 **코드는 두 번 불렀다.** 한 번 검색할
+ * 때마다 서버 호출이 둘, 카카오·TAGO 호출도 둘이었고, 하루 한도가 생긴
+ * 뒤로는 조회 한 번에 두 칸이 깎였다(3회 등급이 사실상 1.5회였다).
+ *
+ * 같은 요청이 날아오는 중이면 그 약속을 그대로 돌려주고, 끝난 뒤에도
+ * 잠깐 들고 있는다. 요청 본문에는 시각이 없다 — 시각표 계산은 화면이
+ * 하므로, 같은 출발·도착이면 잠시 동안 같은 답이다.
+ */
+const SHARE_MS = 10_000
+let shared: { key: string; at: number; p: Promise<AdapterResult<WireRoute[]>> } | null = null
+
+const shareKey = (req: RouteRequest) => JSON.stringify({ from: req.from, to: req.to })
+
+function fetchRoutes(req: RouteRequest): Promise<AdapterResult<WireRoute[]>> {
+  const key = shareKey(req)
+  if (shared && shared.key === key && Date.now() - shared.at < SHARE_MS) return shared.p
+  const p = fetchRoutesOnce(req)
+  shared = { key, at: Date.now(), p }
+  return p
+}
+
+async function fetchRoutesOnce(
   req: RouteRequest,
 ): Promise<AdapterResult<WireRoute[]>> {
   try {

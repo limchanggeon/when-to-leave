@@ -3,6 +3,7 @@ import { useAuthContext } from '../../auth/AuthContext'
 import type { I18nShape, Lang } from '../../i18n'
 import { usePrefs, type Theme } from '../PrefsContext'
 import { Logo } from './Logo'
+import { useQuota } from '../quota'
 
 const LANGS: { id: Lang; short: string }[] = [
   { id: 'ko', short: '한국어' },
@@ -35,6 +36,8 @@ export function SiteHeader({
   onHowTo?: () => void
 }) {
   const { account, signOut } = useAuthContext()
+  /* 다 쓰고 나서야 알면 늦다. 남은 횟수를 미리 보여준다. */
+  const quota = useQuota(Boolean(account))
   const { lang, setLang, theme, setTheme } = usePrefs()
 
   const nextTheme = THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length]
@@ -89,6 +92,19 @@ export function SiteHeader({
               <Link className="siteheader__btn siteheader__btn--ghost" to="/admin">
                 관리자
               </Link>
+            )}
+            {/*
+              제한이 있는 등급에만 띄운다. 무제한인 사람에게 숫자를 보여주면
+              읽을 이유가 없는 글자만 늘어난다. 하나 남았을 때만 색이 선다 —
+              늘 눈에 띄면 아무 때도 눈에 안 띈다.
+            */}
+            {quota?.left !== null && quota?.left !== undefined && (
+              <span
+                className={`siteheader__quota ${quota.left <= 1 ? 'is-low' : ''}`}
+                title={`${quota.label} · 하루 ${quota.limit}회`}
+              >
+                {t.quota.left(quota.left)}
+              </span>
             )}
             <Link className="siteheader__me" to="/me">
               {account.avatarUrl && <img className="siteheader__avatar" src={account.avatarUrl} alt="" />}
