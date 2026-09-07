@@ -232,37 +232,44 @@ sudo systemctl start whenigo
 curl -fsS http://127.0.0.1:8787/api/health
 ```
 
-### 원격 보관 (아직 안 켰다)
+### 원격 보관 (켜져 있다)
 
-지금은 **같은 디스크에만** 있다. 인스턴스가 통째로 날아가면 백업도 같이
-날아간다. 코드는 준비돼 있고(`server/backup.ts` 의 `uploadToS3`), 막힌 것은
-권한 하나다 — 2026-09-07 에 지금 자격증명으로 S3 를 불러보니 403
-AccessDenied 였다. 세 가지만 하면 켜진다.
-
-**1. 버킷을 만든다** (서울 리전, 이름은 전 세계에서 유일해야 한다)
-
-- 퍼블릭 액세스 차단: **모두 켠 채로 둔다.** 계정 백업이 들어간다
-- 버전 관리: 켜두면 실수로 덮어써도 되돌릴 수 있다
-- 수명 주기 규칙: `whenigo/` 접두사에 90일 후 삭제를 걸면 요금이 안 샌다
-
-**2. IAM 사용자에게 그 버킷에만 쓰기 권한을 준다.** 메일용으로 쓰는 그
-사용자에 인라인 정책으로 아래를 더한다. 다른 버킷은 못 만지게 경로를 좁힌다.
-
-**3. `/etc/whenigo.env` 에 한 줄 넣고 서비스를 다시 띄운다.**
+2026-09-08 부터 매일 백업이 S3 로도 올라간다.
 
 ```
-BACKUP_S3_BUCKET=만든-버킷-이름
+BACKUP_S3_BUCKET=whenigo-backup      # /etc/whenigo.env
+s3://whenigo-backup/whenigo/app-YYYYMMDD-HHMM.db.gz
 ```
 
-자격증명은 메일용(`AWS_ACCESS_KEY_ID`)을 같이 쓴다. IAM 정책은 이것뿐이면 된다 —
-`ListBuckets` 같은 건 필요 없다. 넣고 나면 다음 백업(매일 04:03 KST)에서
-로그에 `[backup] 원격: s3://…` 이 찍힌다. 기다리지 않고 확인하려면
-`sudo systemctl start whenigo-backup.service` 로 한 번 돌려보면 된다.
+버킷은 서울(ap-northeast-2)에 있고 퍼블릭 액세스는 전부 막혀 있다 —
+바깥에서 받아보면 403 이다(확인했다). 자격증명은 메일용
+(`AWS_ACCESS_KEY_ID`)을 같이 쓰고, 권한은 IAM 사용자에 붙인 인라인 정책
+하나뿐이다. **버킷 정책은 비워 둔다** — 거기에 규칙을 넣으면 나중에 잘못
+손댔을 때 버킷이 열릴 수 있다.
 
 ```json
-{ "Effect": "Allow", "Action": ["s3:PutObject"],
-  "Resource": "arn:aws:s3:::만든-버킷-이름/whenigo/*" }
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "WhenigoBackupPut",
+      "Effect": "Allow",
+      "Action": "s3:PutObject",
+      "Resource": "arn:aws:s3:::whenigo-backup/whenigo/*"
+    }
+  ]
+}
 ```
+
+읽기도 목록도 주지 않았다. 서버는 올리기만 하고, 복구할 때는 사람이
+콘솔에서 내려받는다. 권한이 좁을수록 키가 새도 피해가 작다.
+
+**리전을 옮기면 안 된다.** 코드가 `AWS_REGION`(기본 ap-northeast-2)으로
+서명하는데, 버킷이 다른 리전이면 서명이 안 맞아 업로드가 실패한다.
+그 값은 SES 도 같이 보므로 바꾸면 메일이 깨진다.
+
+기다리지 않고 확인하려면 `sudo systemctl start whenigo-backup.service` 를
+돌리고 로그에 `[backup] 원격: s3://…` 이 찍히는지 보면 된다.
 
 버킷은 **비공개**로 두고 버전 관리를 켜둘 것. 백업 파일에는 계정 이메일과
 비밀번호 해시가 들어 있다.
