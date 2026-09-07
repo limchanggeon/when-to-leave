@@ -2,7 +2,7 @@ import { serverEnv } from './env'
 import { fetchJson } from './http'
 import { geocode, type GeoPoint } from './geocode'
 import type { RouteResult, WireLeg, WireRoute } from './routeTypes'
-import { searchTransitKakao } from './kakaoTransit'
+import { searchTransitKakao, walkLeg } from './kakaoTransit'
 import { TAGO, tagoCall, trainsBetween } from './tago'
 import {
   expressBusesBetween,
@@ -258,9 +258,28 @@ function medianMinutes(runs: Run[]): number {
  * 허브까지 가는 구간. 시내 대중교통으로 풀고, 안 되면 만들지 않는다.
  * 없는 도보를 지어내느니 구간을 비우는 편이 낫다.
  */
-async function connect(from: GeoPoint, to: GeoPoint): Promise<WireLeg[]> {
+/** 걸어서 갈 만한 거리. 이보다 멀면 못 가는 것으로 본다. */
+const WALKABLE_M = 2000
+
+/**
+ * 두 지점을 잇는 구간들. 못 이으면 null 이다 — **빈 배열이 아니다.**
+ *
+ * 예전에는 못 이었을 때 빈 배열을 돌려줬고, 부르는 쪽은 그걸 그대로 이어
+ * 붙였다. 그러면 목원대학교에서 물었는데 "유성복합터미널에서 09:30 에
+ * 출발하세요" 라는 답이 나온다 — 거기까지 어떻게 가는지는 없이, 도보 0분에
+ * 환승 없음이라고 적힌 채로. 갈 방법을 못 찾았으면 그건 경로가 아니다.
+ *
+ * 대중교통이 없으면 걸어서 갈 만한지 본다. 터미널 코앞에서 물으면 카카오가
+ * 길찾기를 거절하는데(정류장이 없다), 그때 걷는 구간 하나면 충분하다.
+ */
+async function connect(from: GeoPoint, to: GeoPoint): Promise<WireLeg[] | null> {
   const r = await searchTransitKakao(from, to)
-  return r.ok && r.routes[0] ? r.routes[0].legs : []
+  if (r.ok && r.routes[0]) return r.routes[0].legs
+
+  const walk = await walkLeg(from, to)
+  if (walk) return [walk]
+  // 걷는 구간조차 안 나오는 건 두 지점이 사실상 같은 자리라는 뜻이다
+  return metres(from, to) <= WALKABLE_M ? [] : null
 }
 
 export async function searchIntercity(from: GeoPoint, to: GeoPoint): Promise<RouteResult> {
@@ -312,15 +331,27 @@ export async function searchIntercity(from: GeoPoint, to: GeoPoint): Promise<Rou
   // 빠른 것부터. 접근 구간은 상위 두 개에만 붙인다(호출을 아낀다).
   found.sort((x, y) => medianMinutes(x.runs) - medianMinutes(y.runs))
 
+  /*
+   * 후보마다 접근·도착 구간을 붙인다. **전부 붙인다.**
+   *
+   * 예전에는 상위 두 개에만 붙이고 나머지는 맨몸으로 내보냈다(호출을 아끼려고).
+   * 그러면 세 번째 후보가 "유성복합터미널에서 출발" 로 시작하는 반쪽짜리
+   * 경로가 되어, 거기까지 가는 길도 없이 도보 0분이라고 적힌다.
+   * 후보는 많아야 수단 수(넷)라 나란히 돌리면 값도 얼마 안 든다.
+   */
   const routes: WireRoute[] = []
-  for (const [i, cand] of found.entries()) {
-    const depPoint: GeoPoint = { name: cand.dep.label ?? cand.dep.name, lat: cand.dep.lat, lng: cand.dep.lng }
-    const arrPoint: GeoPoint = { name: cand.arr.label ?? cand.arr.name, lat: cand.arr.lat, lng: cand.arr.lng }
+  const built = await Promise.all(
+    found.map(async (cand) => {
+      const depPoint: GeoPoint = { name: cand.dep.label ?? cand.dep.name, lat: cand.dep.lat, lng: cand.dep.lng }
+      const arrPoint: GeoPoint = { name: cand.arr.label ?? cand.arr.name, lat: cand.arr.lat, lng: cand.arr.lng }
+      const [access, egress] = await Promise.all([connect(from, depPoint), connect(arrPoint, to)])
+      return { cand, depPoint, arrPoint, access, egress }
+    }),
+  )
 
-    const [access, egress] =
-      i < 2
-        ? await Promise.all([connect(from, depPoint), connect(arrPoint, to)])
-        : [[], []]
+  for (const { cand, access, egress } of built) {
+    // 양 끝 중 하나라도 못 이었으면 경로가 아니다 — 내놓지 않는다
+    if (access === null || egress === null) continue
 
     const middle: WireLeg = {
       kind: LEG_KIND[cand.kind],

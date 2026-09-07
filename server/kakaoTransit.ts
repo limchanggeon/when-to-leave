@@ -98,7 +98,7 @@ const ACCESS_MIN_M = 120
  * 실제 도보 경로. 카카오 대중교통 응답에는 출발지→첫 정류장,
  * 마지막 정류장→목적지 구간이 빠져 있어 여기서 채운다.
  */
-async function walkLeg(from: GeoPoint, to: GeoPoint): Promise<WireLeg | null> {
+export async function walkLeg(from: GeoPoint, to: GeoPoint): Promise<WireLeg | null> {
   if (metres(from, to) < ACCESS_MIN_M) return null
 
   const url =
