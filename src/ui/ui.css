@@ -512,11 +512,16 @@
  */
 .emailauth__hint--bad { color: #FF9E90; }
 .emailauth__hint--ok { color: #7ED9B4; }
-/* 중복확인. 입력 아래에 조용히 놓는다 — 주된 행동은 가입이지 확인이 아니다 */
+/*
+ * 입력과 버튼을 한 줄에 둔다. 아래 선에 맞춰 세워야 밑줄이 이어져 보인다 —
+ * 이 판의 입력은 테두리가 아니라 밑줄 하나로 그려진다.
+ */
+.emailauth__row { display: flex; align-items: flex-end; gap: var(--sp-3); }
+.emailauth__row input { flex: 1 1 auto; min-width: 0; }
 .emailauth__check {
-  align-self: flex-start; margin-top: var(--sp-2);
+  flex: 0 0 auto;
   font: inherit; font-size: 0.84rem; font-weight: 600; cursor: pointer;
-  padding: 6px var(--sp-3); border-radius: var(--radius-md);
+  padding: 7px var(--sp-3); border-radius: var(--radius-md); white-space: nowrap;
   background: none; border: 1px solid var(--night-edge); color: var(--night-soft);
 }
 .emailauth__check:hover:not(:disabled) { border-color: var(--night-ink); color: var(--night-ink); }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { checkEmailAvailable, loginWithEmail, registerWithEmail, resendVerification } from '../../auth/api'
 import { useAuthContext } from '../../auth/AuthContext'
 import type { I18nShape } from '../../i18n'
@@ -28,6 +28,7 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
    * 버튼을 눌렀을 때만 묻는다 — 자동이면 주소 하나 적는 동안 다 써버린다.
    */
   const [avail, setAvail] = useState<null | 'checking' | 'free' | 'taken' | string>(null)
+  const emailId = useId()
   /** 로그인은 됐는데 주소가 아직 확인되지 않은 경우. 다시 보내기를 붙인다. */
   const [needsVerify, setNeedsVerify] = useState(false)
 
@@ -132,29 +133,39 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
         ))}
       </div>
 
-      <label className="emailauth__field">
-        <span>{t.emailAuth.email}</span>
-        {/*
-          로그인 칸은 이메일 형식을 강제하지 않는다. 서버는 이 값을 그냥
-          문자열로 찾으므로 이메일이 아닌 아이디(관리자 계정 등)도 있을 수
-          있는데, type="email" 이면 브라우저가 아예 제출을 막는다.
-          가입은 진짜 주소를 받아야 하므로 그때만 email 로 둔다.
-        */}
-        <input
-          type={tab === 'register' ? 'email' : 'text'}
-          inputMode="email"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value)
-            // 주소가 바뀌면 앞 결과를 지운다 — 남겨두면 다른 주소의 답이 된다
-            setAvail(null)
-          }}
-          placeholder={t.emailAuth.emailPlaceholder}
-          autoComplete={tab === 'register' ? 'email' : 'username'}
-          required
-        />
-        {tab === 'register' && (
-          <>
+      {/*
+        이메일 칸만 <label> 을 쓰지 않고 htmlFor 로 잇는다.
+
+        중복확인 버튼을 입력 옆에 두어야 하는데, <label> 안에 버튼이 들어가면
+        버튼을 눌러도 클릭이 입력창으로 넘어간다 — 이 저장소가 예전에 사파리에서
+        겪은 버그이고 README 에 적혀 있다. 라벨은 글자만 감싸고 버튼은 밖에 둔다.
+      */}
+      <div className="emailauth__field">
+        <label htmlFor={emailId}>
+          <span>{t.emailAuth.email}</span>
+        </label>
+        <div className="emailauth__row">
+          {/*
+            로그인 칸은 이메일 형식을 강제하지 않는다. 서버는 이 값을 그냥
+            문자열로 찾으므로 이메일이 아닌 아이디(관리자 계정 등)도 있을 수
+            있는데, type="email" 이면 브라우저가 아예 제출을 막는다.
+            가입은 진짜 주소를 받아야 하므로 그때만 email 로 둔다.
+          */}
+          <input
+            id={emailId}
+            type={tab === 'register' ? 'email' : 'text'}
+            inputMode="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              // 주소가 바뀌면 앞 결과를 지운다 — 남겨두면 다른 주소의 답이 된다
+              setAvail(null)
+            }}
+            placeholder={t.emailAuth.emailPlaceholder}
+            autoComplete={tab === 'register' ? 'email' : 'username'}
+            required
+          />
+          {tab === 'register' && (
             <button
               type="button"
               className="emailauth__check"
@@ -167,24 +178,25 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
             >
               {avail === 'checking' ? t.emailAuth.checking : t.emailAuth.check}
             </button>
-            {avail === 'free' && (
-              <em className="emailauth__hint emailauth__hint--ok">{t.emailAuth.checkFree}</em>
-            )}
-            {avail === 'taken' && (
-              <em className="emailauth__hint emailauth__hint--bad">
-                {t.emailAuth.checkTaken}{' '}
-                <button type="button" className="emailauth__inline" onClick={() => setTab('login')}>
-                  {t.emailAuth.checkGoLogin}
-                </button>
-              </em>
-            )}
-            {/* 형식 오류나 시도 초과 같은 것은 서버 문구를 그대로 보여준다 */}
-            {avail !== null && !['checking', 'free', 'taken'].includes(avail) && (
-              <em className="emailauth__hint emailauth__hint--bad">{avail}</em>
-            )}
-          </>
+          )}
+        </div>
+
+        {tab === 'register' && avail === 'free' && (
+          <em className="emailauth__hint emailauth__hint--ok">{t.emailAuth.checkFree}</em>
         )}
-      </label>
+        {tab === 'register' && avail === 'taken' && (
+          <em className="emailauth__hint emailauth__hint--bad">
+            {t.emailAuth.checkTaken}{' '}
+            <button type="button" className="emailauth__inline" onClick={() => setTab('login')}>
+              {t.emailAuth.checkGoLogin}
+            </button>
+          </em>
+        )}
+        {/* 형식 오류나 시도 초과 같은 것은 서버 문구를 그대로 보여준다 */}
+        {tab === 'register' && avail !== null && !['checking', 'free', 'taken'].includes(avail) && (
+          <em className="emailauth__hint emailauth__hint--bad">{avail}</em>
+        )}
+      </div>
 
       <label className="emailauth__field">
         <span>{t.emailAuth.password}</span>
