@@ -69,9 +69,13 @@
 ## 배포
 
 ```bash
-ssh -i ~/Downloads/whenigo.pem ubuntu@52.78.206.253
+ssh -i <키파일> ubuntu@<서버 IP>
 sudo /srv/whenigo/deploy/update.sh
 ```
+
+> 저장소가 공개라 서버 주소와 키 이름은 여기 적지 않는다. IP 를 알면 22번
+> 포트를 바로 두드릴 수 있고, 실제로 열려 있다. 값은 AWS 콘솔의 EC2
+> 인스턴스 목록에 있다.
 
 자세한 것은 [deploy/README.md](deploy/README.md). 서버 비밀값은
 `/etc/whenigo.env`(root 0600), 빌드용 `VITE_*`는 `/srv/whenigo/.env`.
@@ -142,7 +146,7 @@ sudo /srv/whenigo/deploy/update.sh
 `.kr` 이나 `.co.kr` 하나면 된다(둘 다 PSL 에 있다, 연 1~2만원).
 `whenigo.kr` 과 `whenigo.co.kr` 은 2026-09-08 기준 DNS 가 비어 있었다.
 
-1. DNS A 레코드 → `52.78.206.253`
+1. DNS A 레코드 → 지금 인스턴스의 탄력적 IP(AWS 콘솔에서 확인)
 2. `deploy/Caddyfile` 의 도메인 교체 → 인증서는 Caddy 가 알아서 받는다
 3. `/etc/whenigo.env` 의 `PUBLIC_ORIGIN`, `GOOGLE_REDIRECT_URI` 갱신
 4. 구글 클라우드 콘솔·카카오 개발자센터의 리다이렉트 URI 갱신

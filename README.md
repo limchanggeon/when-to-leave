@@ -9,6 +9,7 @@
   <a href="https://github.com/sponsors/limchanggeon"><img alt="후원" src="https://img.shields.io/github/sponsors/limchanggeon?style=flat-square&logo=githubsponsors&logoColor=white&label=Sponsors&color=EA4AAA"></a>
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white">
   <img alt="React" src="https://img.shields.io/badge/React_19-000000?style=flat-square&logo=react&logoColor=61DAFB">
+  <a href="LICENSE.md"><img alt="라이선스" src="https://img.shields.io/badge/License-PolyForm_Noncommercial-4B5563?style=flat-square"></a>
 </p>
 
 # 언제나가
@@ -524,3 +525,9 @@ iOS 는 오랫동안 막혀 있었지만 AlarmKit(2025 WWDC)으로 열렸습니�
 프리 티어가 끝나는 날부터는 매달 나가는 돈이 생깁니다. 그전까지 받은 것은
 그날을 위해 모아둡니다. 쓰는 사람이 늘어 무료 한도를 넘기면 그때도 씁니다.
 
+## 라이선스
+
+[PolyForm Noncommercial 1.0.0](LICENSE.md)
+
+읽고, 배우고, 개인적으로 돌려보셔도 됩니다. **상업적 사용은 안 됩니다.**
+공개는 했지만 오픈소스는 아닙니다 — 이걸로 돈을 벌 생각이라 그렇습니다.
