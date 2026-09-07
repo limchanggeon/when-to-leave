@@ -91,7 +91,7 @@ async function fetchRoutes(
     })
     const json = (await res.json()) as
       | { routes: WireRoute[]; from?: { name: string }; to?: { name: string } }
-      | { error: { code: string; message: string } }
+      | { error: { code: string; message: string; quota?: { limit?: number } } }
 
     if (!res.ok || 'error' in json) {
       const err = 'error' in json ? json.error : { code: 'upstream-error', message: '' }
@@ -101,11 +101,25 @@ async function fetchRoutes(
         'network',
         'upstream-error',
         'region-unsupported',
+        'quota-exceeded',
       ] as const
       const code = (known as readonly string[]).includes(err.code)
         ? (err.code as (typeof known)[number])
         : 'upstream-error'
-      return fail(code, SOURCE, err.message)
+      /*
+       * 한도 초과일 때는 몇 번까지였는지도 함께 옮긴다 — 화면이 그 숫자를
+       * 말해야 "하루 3번" 이라고 적을 수 있다.
+       */
+      const q = (err as { quota?: { limit?: number } }).quota
+      return {
+        ok: false as const,
+        failure: {
+          code,
+          adapter: SOURCE,
+          detail: err.message,
+          ...(code === 'quota-exceeded' && q?.limit ? { limit: q.limit } : {}),
+        },
+      }
     }
     if (json.routes.length === 0) return fail('no-data', SOURCE, '경로를 찾지 못했습니다')
     if (json.from && json.to) lastResolved = { from: json.from, to: json.to }

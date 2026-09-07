@@ -35,6 +35,8 @@ import {
   unapproveUser,
 } from './users'
 import { checkPassword } from './password'
+import { bumpSearch, closeRequest, openRequests, quotaOf, requestTier, setTier } from './quota'
+import { TIERS, isTier } from './tiers'
 import * as limiter from './rateLimit'
 import * as admin from './admin'
 import * as metrics from './metrics'
@@ -252,6 +254,30 @@ function pickDiverse(routes: WireRoute[], cap: number): WireRoute[] {
 app.post('/api/route', async (req, res) => {
   // 이 앱에서 사람이 실제로 하는 일. 방문 수보다 이게 진짜 사용량이다.
   metrics.bump('search')
+
+  /*
+   * 로그인한 사람은 하루 한도를 서버에서 잰다.
+   *
+   * 로그인하지 않은 쪽은 여기서 세지 않는다 — 방문자를 알아볼 것을 저장하지
+   * 않기로 했고(개인정보처리방침), 그쪽은 브라우저가 한 번만 세어 권한다.
+   *
+   * 답이 나왔을 때만 센다(아래). 경로를 못 찾았는데 한 번을 썼다고 하면
+   * 받은 것 없이 한도만 줄어든다.
+   */
+  const me = readSession(cookie(req, COOKIE_NAME))
+  if (me) {
+    const q = quotaOf(me.id, me.tier)
+    if (q.limit !== null && q.used >= q.limit) {
+      res.status(429).json({
+        error: {
+          code: 'quota-exceeded',
+          message: `오늘 조회 ${q.limit}번을 다 쓰셨어요. 내일 다시 열립니다`,
+          quota: q,
+        },
+      })
+      return
+    }
+  }
   const { from, to } = req.body as {
     from?: { name?: string; lat?: number; lng?: number }
     to?: { name?: string; lat?: number; lng?: number }
@@ -390,6 +416,8 @@ app.post('/api/route', async (req, res) => {
     // 열차 구간에 실제 시각표를 붙인다. ODsay 는 배차 간격만 주므로
     // 이게 없으면 역산이 "몇 분마다 온다" 수준에 머문다.
     const enriched = await withTimetables(route.routes)
+    // 답이 나왔을 때만 한 번을 센다. 못 찾았는데 한도가 줄면 안 된다.
+    if (me) bumpSearch(me.id)
     res.json({ routes: enriched, from: start, to: end })
   } catch (e) {
     // 여기까지 온 건 예상 못 한 오류다. 원본은 서버 로그에만 남기고
@@ -1002,7 +1030,7 @@ app.post('/api/contact', async (req, res) => {
   }
   limiter.fail(ipKey, limiter.CONTACT_IP)
 
-  const me = readSession(req.cookies?.[COOKIE_NAME])
+  const me = readSession(cookie(req, COOKIE_NAME))
   const msg = await submitContact({
     email: email!.trim(),
     body: body!.trim(),
@@ -1028,6 +1056,73 @@ app.post('/api/admin/contact/:id/read', (req, res) => {
   const me = requireAdmin(req, res)
   if (!me) return
   markContactRead(req.params.id)
+  res.json({ ok: true })
+})
+
+/** 내 등급과 오늘 남은 조회 수. 화면이 담을 띄울지 여기서 안다. */
+app.get('/api/me/quota', (req, res) => {
+  const me = readSession(cookie(req, COOKIE_NAME))
+  if (!me) {
+    res.status(401).json({ error: { code: 'unauthorized', message: '로그인이 필요합니다' } })
+    return
+  }
+  res.json({ ...quotaOf(me.id, me.tier), label: TIERS[quotaOf(me.id, me.tier).tier].label })
+})
+
+/*
+ * 등급을 올려달라는 요청.
+ *
+ * 깃허브 스폰서와 우리 계정을 자동으로 잇는 길이 없다 — 웹훅을 붙이려면
+ * 깃허브 앱과 공개 엔드포인트가 필요하다. 그래서 사람이 확인한다.
+ * 요청에 적힌 깃허브 아이디를 스폰서 목록과 맞춰보고 올려준다.
+ */
+app.post('/api/me/tier-request', (req, res) => {
+  const me = readSession(cookie(req, COOKIE_NAME))
+  if (!me) {
+    res.status(401).json({ error: { code: 'unauthorized', message: '로그인이 필요합니다' } })
+    return
+  }
+  const { note } = req.body as { note?: string }
+  const text = (note ?? '').trim()
+  if (text.length < 2 || text.length > 500) {
+    res.status(400).json({
+      error: { code: 'bad-note', message: '후원하신 깃허브 아이디를 적어 주세요' },
+    })
+    return
+  }
+  requestTier(me.id, text)
+  res.json({ sent: true })
+})
+
+app.get('/api/admin/tier-requests', (req, res) => {
+  const me = requireAdmin(req, res)
+  if (!me) return
+  res.json({ requests: openRequests(), tiers: TIERS })
+})
+
+app.post('/api/admin/users/:id/tier', (req, res) => {
+  const me = requireAdmin(req, res)
+  if (!me) return
+  const target = findById(req.params.id)
+  if (!target) {
+    res.status(404).json({ error: { code: 'not-found', message: '없는 계정입니다' } })
+    return
+  }
+  const { tier } = req.body as { tier?: string }
+  if (!tier || !isTier(tier)) {
+    res.status(400).json({ error: { code: 'bad-tier', message: '없는 등급입니다' } })
+    return
+  }
+  setTier(target.id, tier, me.email)
+  admin.log(me, 'set-tier', target, tier)
+  res.json({ ok: true })
+})
+
+/** 요청만 치운다. 등급은 그대로 — 확인했는데 올릴 이유가 없을 때 쓴다. */
+app.post('/api/admin/tier-requests/:id/close', (req, res) => {
+  const me = requireAdmin(req, res)
+  if (!me) return
+  closeRequest(req.params.id, me.email)
   res.json({ ok: true })
 })
 

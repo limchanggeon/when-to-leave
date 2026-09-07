@@ -13,6 +13,8 @@ export interface User {
   isAdmin: boolean
   /** 관리자가 승인했는지. 메일 인증을 대신한다. */
   approved: boolean
+  /** 등급. 하루 조회 한도가 여기서 갈린다(server/tiers.ts). */
+  tier: string
 }
 
 interface UserRow {
@@ -25,6 +27,7 @@ interface UserRow {
   is_admin: number
   approved_at: number | null
   approved_by: string | null
+  tier: string
 }
 
 const toUser = (r: UserRow): User => ({
@@ -35,6 +38,7 @@ const toUser = (r: UserRow): User => ({
   emailVerified: r.email_verified_at !== null,
   isAdmin: r.is_admin === 1,
   approved: r.approved_at !== null,
+  tier: r.tier ?? 'free',
 })
 
 /** 이메일은 대소문자를 구분하지 않는다. 저장도 조회도 소문자로 통일한다. */
@@ -104,6 +108,7 @@ export async function registerWithPassword(
     is_admin: 0,
     approved_at: null,
     approved_by: null,
+    tier: 'free',
   }
   db()
     .prepare(
@@ -207,6 +212,7 @@ export function upsertSocialUser(input: {
       emailVerified: verifiedAt !== null,
       isAdmin: false,
       approved: false,
+      tier: 'free',
     }
   } else if (verifiedAt && !user.emailVerified) {
     // 비밀번호로 먼저 가입해 미인증이던 계정에 소셜을 붙였다면, 제공자가

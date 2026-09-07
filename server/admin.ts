@@ -17,6 +17,8 @@ export interface AdminUserRow {
   emailVerified: boolean
   /** 관리자가 가입을 승인했는지. 메일 인증을 대신한다. */
   approved: boolean
+  /** 등급. 하루 조회 한도가 여기서 갈린다. */
+  tier: string
   hasPassword: boolean
   createdAt: number
   providers: string[]
@@ -27,7 +29,7 @@ export interface AdminUserRow {
 export function listUsers(): AdminUserRow[] {
   const rows = db()
     .prepare(
-      `SELECT u.id, u.email, u.name, u.is_admin, u.email_verified_at, u.approved_at, u.created_at,
+      `SELECT u.id, u.email, u.name, u.is_admin, u.email_verified_at, u.approved_at, u.tier, u.created_at,
               (u.password_hash IS NOT NULL) AS has_pw,
               (SELECT COUNT(*) FROM places p WHERE p.user_id = u.id) AS places,
               (SELECT COUNT(*) FROM sessions s WHERE s.user_id = u.id AND s.expires_at > ?) AS sessions,
@@ -44,6 +46,7 @@ export function listUsers(): AdminUserRow[] {
     isAdmin: Number(r.is_admin) === 1,
     emailVerified: r.email_verified_at !== null,
     approved: r.approved_at !== null,
+    tier: String(r.tier ?? 'free'),
     hasPassword: Number(r.has_pw) === 1,
     createdAt: Number(r.created_at),
     providers: r.providers ? String(r.providers).split(',') : [],
@@ -76,7 +79,8 @@ export function stats(): AdminStats {
 }
 
 export type AdminAction =
-  | 'verify-email'
+  
+  | 'set-tier'| 'verify-email'
   | 'delete-user'
   | 'revoke-sessions'
   | 'grant-admin'

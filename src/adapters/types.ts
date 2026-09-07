@@ -19,6 +19,8 @@ export type FailureCode =
   | 'upstream-error'
   /** 이 지역은 아직 다루지 않는다(예: 일본). 못 찾은 것과 다르다. */
   | 'region-unsupported'
+  /** 오늘 쓸 수 있는 조회 수를 다 썼다. 경로가 없는 것과 다르다. */
+  | 'quota-exceeded'
 
 export interface Failure {
   code: FailureCode
@@ -26,6 +28,8 @@ export interface Failure {
   adapter: string
   /** 사람이 읽을 부가 정보. i18n 대상이 아닌 기술 문자열. */
   detail?: string
+  /** quota-exceeded 일 때, 하루 몇 번까지였는지. 화면이 그 숫자를 말한다. */
+  limit?: number
 }
 
 export type AdapterResult<T> = { ok: true; data: T } | { ok: false; failure: Failure }

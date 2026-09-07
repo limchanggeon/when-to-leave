@@ -12,6 +12,7 @@ import { SiteHeader } from '../components/SiteHeader'
 import { HowItWorks } from '../components/HowItWorks'
 import { SiteFooter } from '../components/SiteFooter'
 import { SignUpWall } from '../components/SignUpWall'
+import { QuotaWall } from '../components/QuotaWall'
 import { markFreeSearchUsed, usedUpFreeSearch } from '../freeSearch'
 import { rememberSearch, takeSearch } from '../pendingSearch'
 import { useAuthContext } from '../../auth/AuthContext'
@@ -78,6 +79,8 @@ export function HomePage() {
   const [tour, setTour] = useState(false)
   /** 무료 조회를 다 쓴 사람에게 보이는 창. */
   const [wall, setWall] = useState(false)
+  /** 하루 한도를 다 쓴 회원에게 보이는 창. 다 쓴 한도 값을 함께 들고 있는다. */
+  const [quotaWall, setQuotaWall] = useState<number | null>(null)
   const { account } = useAuthContext()
   /**
    * 메일 링크를 누르고 돌아온 결과. 서버가 /?verify=... 로 보내준다.
@@ -163,6 +166,17 @@ export function HomePage() {
       target,
       at,
     )
+
+    /*
+     * 서버가 한도를 넘었다고 하면 결과 대신 창을 띄운다.
+     * 화면에서 미리 막지 않고 서버 답을 기다리는 이유는, 한도가 서버에만
+     * 있기 때문이다 — 브라우저가 세면 저장소를 비워 넘길 수 있다.
+     */
+    if (result.kind === 'gap' && result.failure.code === 'quota-exceeded') {
+      setQuotaWall(result.failure.limit ?? 3)
+      setPending(false)
+      return
+    }
 
     setOutcome(result)
     setShown(result.kind === 'trip' ? result.chosen : null)
@@ -393,6 +407,12 @@ export function HomePage() {
       <SiteFooter t={t} onHowTo={() => setTour(true)} />
       <Tour t={t} open={tour} onClose={() => setTour(false)} />
       <SignUpWall t={t} open={wall} onClose={() => setWall(false)} />
+      <QuotaWall
+        t={t}
+        open={quotaWall !== null}
+        limit={quotaWall ?? 3}
+        onClose={() => setQuotaWall(null)}
+      />
     </div>
   )
 }

@@ -13,6 +13,7 @@ interface AdminUser {
   isAdmin: boolean
   emailVerified: boolean
   approved: boolean
+  tier: string
   hasPassword: boolean
   createdAt: number
   providers: string[]
@@ -56,11 +57,28 @@ const STAT_LABEL: Record<string, string> = {
   activeSessions: '로그인 중',
   signupsLast7d: '최근 7일 가입',
 }
+interface TierReq {
+  id: string
+  userId: string
+  email: string
+  tier: string
+  note: string
+  createdAt: number
+}
+
+/** 등급 이름. 서버의 server/tiers.ts 와 짝이다 — 한쪽만 고치면 어긋난다. */
+const TIER_LABEL: Record<string, string> = {
+  free: '무료 (하루 3회)',
+  supporter: '후원자 (하루 50회)',
+  unlimited: '무제한',
+}
+
 const ACTION_LABEL: Record<string, string> = {
   'verify-email': '이메일 확인 처리',
   'delete-user': '계정 삭제',
   'revoke-sessions': '세션 끊기',
   'grant-admin': '관리자 세움',
+  'set-tier': '등급 바꿈',
   'revoke-admin': '관리자 내림',
   approve: '가입 승인',
   unapprove: '승인 거둠',
@@ -86,6 +104,8 @@ export function AdminPage() {
   /** 보고 있는 칸. 몇 개 안 되니 스크롤보다 갈아 끼우는 편이 빠르다. */
   const [tab, setTab] = useState<'overview' | 'users' | 'contact' | 'log'>('overview')
   const [inbox, setInbox] = useState<Inbox | null>(null)
+  /** 등급 올려달라는 요청. 후원한 사람이 누른다. */
+  const [tierReqs, setTierReqs] = useState<TierReq[]>([])
 
   async function load() {
     const res = await fetch('/api/admin/overview', { credentials: 'include' })
@@ -100,10 +120,27 @@ export function AdminPage() {
     const res = await fetch('/api/admin/contact', { credentials: 'include' })
     if (res.ok) setInbox((await res.json()) as Inbox)
   }
+  async function loadTierReqs() {
+    const res = await fetch('/api/admin/tier-requests', { credentials: 'include' })
+    if (res.ok) setTierReqs(((await res.json()) as { requests: TierReq[] }).requests)
+  }
   useEffect(() => {
     void load()
     void loadInbox()
+    void loadTierReqs()
   }, [])
+
+  async function changeTier(u: AdminUser, tier: string) {
+    setBusy(u.id)
+    await fetch(`/api/admin/users/${u.id}/tier`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tier }),
+    })
+    setBusy(null)
+    await Promise.all([load(), loadTierReqs()])
+  }
 
   /* 펼쳐 읽는 순간 읽음으로 표시한다 — 따로 누르게 하면 아무도 안 누른다. */
   async function openMessage(id: string, was: number | null) {
@@ -141,7 +178,11 @@ export function AdminPage() {
   const pending = (data?.users ?? []).filter((u) => !u.emailVerified && !u.approved).length
   const TABS = [
     { id: 'overview', label: '개요' },
-    { id: 'users', label: pending > 0 ? `계정 ${pending}` : '계정' },
+    {
+      id: 'users',
+      // 승인 대기와 등급 요청을 합쳐 센다 — 둘 다 사람이 손대야 하는 일이다
+      label: pending + tierReqs.length > 0 ? `계정 ${pending + tierReqs.length}` : '계정',
+    },
     /* 안 읽은 게 있으면 숫자를 달아둔다. 없으면 그냥 이름만 */
     { id: 'contact', label: unread > 0 ? `문의함 ${unread}` : '문의함' },
     { id: 'log', label: '기록' },
@@ -222,6 +263,45 @@ export function AdminPage() {
           )}
 
           {data && tab === 'users' && (
+            <>
+            {/*
+              등급 요청은 계정 목록보다 먼저 보여준다. 처리할 일이 있는데
+              목록 아래에 있으면 스크롤해야 보이고, 그러면 안 본다.
+            */}
+            {tierReqs.length > 0 && (
+              <section className="panel">
+                <h2 className="panel__title">등급 요청 {tierReqs.length}건</h2>
+                <p className="panel__hint">
+                  후원했다며 올려달라는 요청. 적힌 깃허브 아이디를
+                  <a href="https://github.com/sponsors/limchanggeon/dashboard" target="_blank" rel="noreferrer"> 스폰서 목록</a>
+                  과 맞춰본 뒤 등급을 바꾸면 이 줄은 사라진다.
+                </p>
+                <ul className="inbox">
+                  {tierReqs.map((r) => (
+                    <li className="inbox__item is-new" key={r.id}>
+                      <div className="inbox__head">
+                        <span className="inbox__from">{r.email}</span>
+                        <span className="num inbox__when">{when(r.createdAt)}</span>
+                      </div>
+                      <p className="inbox__body">깃허브: {r.note}</p>
+                      <div className="tierreq__acts">
+                        <button type="button" className="btn" disabled={busy === r.userId}
+                          onClick={() => void changeTier({ id: r.userId } as AdminUser, 'supporter')}>
+                          후원자로 올리기
+                        </button>
+                        <button type="button" className="btn btn--ghost" disabled={busy === r.userId}
+                          onClick={async () => {
+                            await fetch(`/api/admin/tier-requests/${r.id}/close`, { method: 'POST', credentials: 'include' })
+                            await loadTierReqs()
+                          }}>
+                          올리지 않고 닫기
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
             <section className="panel">
               <h2 className="panel__title">계정 {data.users.length}개</h2>
               <div className="adminlist">
@@ -243,6 +323,9 @@ export function AdminPage() {
                         ) : (
                           <span className="chip chip--bad">승인 대기</span>
                         )}
+                        <span className={`chip ${u.tier === 'free' ? 'chip--muted' : 'chip--good'}`}>
+                          {TIER_LABEL[u.tier] ?? u.tier}
+                        </span>
                         {u.hasPassword && <span className="chip chip--muted">비밀번호</span>}
                         {u.providers.map((p) => (
                           <span className="chip chip--muted" key={p}>{p}</span>
@@ -261,6 +344,18 @@ export function AdminPage() {
                         <button type="button" className="btn btn--ghost" disabled={busy === u.id}
                           onClick={() => act(u, '/unapprove', { method: 'POST' }, `${u.email} 의 승인을 거둘까요? 로그인도 끊깁니다.`)}>승인 거둠</button>
                       )}
+                      {/* 등급은 고르는 것이지 누르는 것이 아니다 — 셋 중 하나다 */}
+                      <select
+                        className="adminrow__tier"
+                        value={u.tier}
+                        disabled={busy === u.id}
+                        aria-label={`${u.email} 등급`}
+                        onChange={(e) => void changeTier(u, e.target.value)}
+                      >
+                        {Object.entries(TIER_LABEL).map(([k, v]) => (
+                          <option key={k} value={k}>{v}</option>
+                        ))}
+                      </select>
                       {u.sessions > 0 && (
                         <button type="button" className="btn btn--ghost" disabled={busy === u.id}
                           onClick={() => act(u, '/revoke-sessions', { method: 'POST' }, `${u.email} 의 로그인을 전부 끊을까요?`)}>세션 끊기</button>
@@ -278,6 +373,7 @@ export function AdminPage() {
                 ))}
               </div>
             </section>
+            </>
           )}
 
           {tab === 'contact' && (

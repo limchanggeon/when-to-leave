@@ -251,6 +251,56 @@ const MIGRATIONS: Migration[] = [
        WHERE approved_at IS NULL;
     `,
   },
+  {
+    id: 9,
+    name: 'tiers',
+    sql: `
+      /*
+       * 등급과 하루 조회 수.
+       *
+       * 무료로 쓰는 사람에게도 하루 몇 번은 열어준다. 대신 그 이상은
+       * 후원한 사람에게 준다 — 카카오·TAGO 호출과 서버가 공짜가 아니다.
+       *
+       * 등급 이름만 저장하고 **몇 번까지인지는 코드에 둔다**(server/tiers.ts).
+       * 숫자를 행마다 박아두면 정책을 바꿀 때 모든 행을 고쳐야 하고,
+       * 사람마다 다른 숫자가 조용히 생긴다.
+       */
+      ALTER TABLE users ADD COLUMN tier TEXT NOT NULL DEFAULT 'free';
+
+      /*
+       * 사람별 하루 조회 수.
+       *
+       * **무엇을 검색했는지는 담지 않는다.** 몇 번 했는지만 센다 —
+       * 한도를 재는 데 필요한 건 그것뿐이다. 개인정보처리방침에도 그렇게 적는다.
+       *
+       * day 는 한국 날짜(YYYY-MM-DD). 서버가 UTC 라도 timezone.ts 가
+       * 시간대를 못 박아 자정 경계가 사용자 감각과 맞는다.
+       */
+      CREATE TABLE user_daily_searches (
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        day     TEXT NOT NULL,
+        count   INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (user_id, day)
+      );
+
+      /*
+       * 등급을 올려달라는 요청. 후원한 사람이 누른다.
+       *
+       * 깃허브 스폰서와 우리 계정을 자동으로 잇는 길이 없다(웹훅을 붙이려면
+       * 깃허브 앱과 공개 엔드포인트가 필요하다). 그래서 사람이 확인한다 —
+       * 요청에 적힌 깃허브 아이디를 스폰서 목록과 맞춰보고 올려준다.
+       */
+      CREATE TABLE tier_requests (
+        id         TEXT PRIMARY KEY,
+        user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        note       TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        handled_at INTEGER,
+        handled_by TEXT
+      );
+      CREATE INDEX idx_tier_req_open ON tier_requests (handled_at, created_at DESC);
+    `,
+  },
 ]
 
 export function migrate(conn: DatabaseSync): void {
