@@ -62,9 +62,25 @@ export type RegisterResult =
   | { ok: false; code: 'email-verified-elsewhere'; user: User }
 
 /**
+ * 이 주소를 누군가 자기 것이라고 증명했는가.
+ *
+ * 두 가지 중 하나면 증명된 것으로 본다:
+ *   - 메일 링크를 눌렀다(email_verified_at)
+ *   - 관리자가 승인했다(approved_at) — 사람이 눈으로 보고 열어준 것이다
+ *
+ * **승인을 여기 넣지 않아 큰 구멍이 있었다.** 승인이 메일 인증을 대신하게
+ * 바꾸면서 이 규칙만 옛날 그대로 뒀더니, 확인 안 된(그러나 승인된) 계정을
+ * 아무나 다시 가입해서 가져갈 수 있었다 — 비밀번호를 새로 걸고 세션과
+ * 저장한 장소까지 지우면서. SES 가 샌드박스라 아무도 확인 상태가 아니었으니
+ * 승인된 모든 계정이 그랬다(2026-09-08 에 잡았다).
+ */
+const isClaimed = (r: UserRow): boolean =>
+  r.email_verified_at !== null || r.approved_at !== null
+
+/**
  * 이메일·비밀번호 가입.
  *
- * 이미 있는 주소라도 **아직 확인되지 않았으면 덮어쓴다.** 남의 주소로 미리
+ * 이미 있는 주소라도 **아직 아무도 자기 것이라고 증명하지 않았으면 덮어쓴다.** 남의 주소로 미리
  * 가입해두고 자리를 차지하는 걸 막기 위해서다 — 진짜 주인이 다시 가입하면
  * 그 계정을 가져간다. 확인되지 않은 계정은 아무도 그 주소의 주인임을
  * 증명한 적이 없으므로 지켜줄 이유가 없다.
@@ -78,7 +94,7 @@ export async function registerWithPassword(
   name: string | null,
 ): Promise<RegisterResult> {
   const existing = findByEmail(email)
-  if (existing?.email_verified_at !== null && existing !== null) {
+  if (existing && isClaimed(existing)) {
     return { ok: false, code: 'email-verified-elsewhere', user: toUser(existing) }
   }
 
@@ -86,7 +102,7 @@ export async function registerWithPassword(
   const now = Date.now()
 
   if (existing) {
-    // 미인증 계정을 이어받는다. 딸린 것들도 같이 지운다 —
+    // 주인 없는 계정을 이어받는다. 딸린 것들도 같이 지운다 —
     // 앞사람이 저장해둔 장소가 새 주인에게 넘어가면 안 된다.
     const conn = db()
     conn.prepare('DELETE FROM sessions WHERE user_id = ?').run(existing.id)
@@ -117,6 +133,12 @@ export async function registerWithPassword(
     .run(user.id, user.email, user.password_hash, user.name, user.avatar_url, now)
 
   return { ok: true, user: toUser(user) }
+}
+
+/** 이 주소를 쓸 수 있는가. 중복확인 창구가 쓴다 — 위 규칙과 같은 답이어야 한다. */
+export const emailAvailable = (email: string): boolean => {
+  const row = findByEmail(email)
+  return row === null || !isClaimed(row)
 }
 
 /** 주소를 확인 완료로 표시한다. 이미 확인돼 있으면 시각을 덮어쓰지 않는다. */

@@ -91,3 +91,29 @@ export const loginWithEmail = (email: string, password: string) =>
 /** 구글 ID 토큰을 서버로 넘겨 검증받는다. 브라우저는 토큰을 해석하지 않는다. */
 export const verifyGoogleCredential = (credential: string) =>
   post('/api/auth/google', { credential })
+
+/**
+ * 이 주소를 쓸 수 있는지 묻는다.
+ *
+ * 서버가 시간당 20번만 답한다. 그래서 글자를 칠 때마다 묻지 않고,
+ * 사람이 버튼을 눌렀을 때만 묻는다 — 자동으로 묻게 하면 주소 하나 적는
+ * 동안 스무 번이 날아가 정작 필요할 때 막힌다.
+ */
+export async function checkEmailAvailable(
+  email: string,
+): Promise<{ ok: true; available: boolean } | { ok: false; message: string }> {
+  try {
+    const res = await fetch('/api/auth/email-available', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+    const json = (await res.json()) as { available?: boolean; error?: { message: string } }
+    if (!res.ok || json.available === undefined) {
+      return { ok: false, message: json.error?.message ?? '확인하지 못했습니다' }
+    }
+    return { ok: true, available: json.available }
+  } catch {
+    return { ok: false, message: '확인하지 못했습니다' }
+  }
+}

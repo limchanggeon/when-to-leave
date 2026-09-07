@@ -31,6 +31,7 @@ import {
   registerWithPassword,
   type User,
   canSignIn,
+  emailAvailable,
   approveUser,
   unapproveUser,
 } from './users'
@@ -1049,6 +1050,48 @@ app.post('/api/admin/contact/:id/read', (req, res) => {
   if (!me) return
   markContactRead(req.params.id)
   res.json({ ok: true })
+})
+
+/*
+ * 이메일이 이미 쓰이고 있는지.
+ *
+ * **이 창구는 가입 여부를 알려준다.** 가입 자체는 새 주소든 기존 주소든
+ * 같은 답을 주도록 일부러 맞춰 뒀는데(계정 훑기 방지), 여기는 그 벽에
+ * 일부러 낸 문이다. 편의를 얻는 대신 그만큼을 내주는 것이므로:
+ *
+ *   - IP 로 시간당 20번만 센다. 사람이 가입 한 번 하며 주소를 스무 번
+ *     넘게 고쳐 볼 일은 없다
+ *   - 형식이 맞는 주소만 본다. 아무 글자나 던져 훑는 것을 막는다
+ *   - "쓸 수 있다/없다" 외에는 아무것도 말하지 않는다. 언제 가입했는지,
+ *     소셜인지, 승인됐는지 모두 알리지 않는다
+ */
+app.post('/api/auth/email-available', (req, res) => {
+  const { email } = req.body as { email?: string }
+  const value = (email ?? '').trim()
+  if (!EMAIL_RE.test(value)) {
+    res.status(400).json({ error: { code: 'bad-email', message: '이메일 형식이 올바르지 않습니다' } })
+    return
+  }
+
+  const ipKey = `email-check:${ipOf(req)}`
+  const blocked = limiter.check(ipKey, limiter.EMAIL_CHECK_IP)
+  if (blocked) {
+    tooMany(res, blocked)
+    return
+  }
+  limiter.fail(ipKey, limiter.EMAIL_CHECK_IP)
+
+  /*
+   * **확인되지 않은 계정은 비어 있는 것으로 친다.**
+   *
+   * 남의 주소로 미리 가입해 자리를 차지하는 걸 막으려고, 아직 아무도
+   * 주인임을 증명하지 않은 계정은 진짜 주인이 다시 가입하면 넘겨받게
+   * 돼 있다(registerWithPassword). 그러니 여기서도 "쓸 수 있다" 고
+   * 답해야 두 곳이 같은 말을 한다.
+   */
+  // 가입이 쓰는 규칙과 **같은 함수**로 답한다. 둘이 어긋나면
+  // "쓸 수 있다" 고 해놓고 못 쓰게 되거나 그 반대가 된다.
+  res.json({ available: emailAvailable(value) })
 })
 
 /** 내 등급과 오늘 남은 조회 수. 화면이 담을 띄울지 여기서 안다. */

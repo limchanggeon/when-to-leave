@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { loginWithEmail, registerWithEmail, resendVerification } from '../../auth/api'
+import { checkEmailAvailable, loginWithEmail, registerWithEmail, resendVerification } from '../../auth/api'
 import { useAuthContext } from '../../auth/AuthContext'
 import type { I18nShape } from '../../i18n'
 
@@ -23,6 +23,11 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
   const [sentTo, setSentTo] = useState<string | null>(null)
   /** 확인 메일이 실제로 나갔는지. 못 나갔으면 그 사실도 말해준다. */
   const [mailed, setMailed] = useState(true)
+  /**
+   * 중복확인 결과. 서버가 시간당 20번만 답하므로 글자를 칠 때마다 묻지 않고
+   * 버튼을 눌렀을 때만 묻는다 — 자동이면 주소 하나 적는 동안 다 써버린다.
+   */
+  const [avail, setAvail] = useState<null | 'checking' | 'free' | 'taken' | string>(null)
   /** 로그인은 됐는데 주소가 아직 확인되지 않은 경우. 다시 보내기를 붙인다. */
   const [needsVerify, setNeedsVerify] = useState(false)
 
@@ -139,11 +144,46 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
           type={tab === 'register' ? 'email' : 'text'}
           inputMode="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value)
+            // 주소가 바뀌면 앞 결과를 지운다 — 남겨두면 다른 주소의 답이 된다
+            setAvail(null)
+          }}
           placeholder={t.emailAuth.emailPlaceholder}
           autoComplete={tab === 'register' ? 'email' : 'username'}
           required
         />
+        {tab === 'register' && (
+          <>
+            <button
+              type="button"
+              className="emailauth__check"
+              disabled={!email.trim() || avail === 'checking'}
+              onClick={async () => {
+                setAvail('checking')
+                const r = await checkEmailAvailable(email.trim())
+                setAvail(r.ok ? (r.available ? 'free' : 'taken') : r.message)
+              }}
+            >
+              {avail === 'checking' ? t.emailAuth.checking : t.emailAuth.check}
+            </button>
+            {avail === 'free' && (
+              <em className="emailauth__hint emailauth__hint--ok">{t.emailAuth.checkFree}</em>
+            )}
+            {avail === 'taken' && (
+              <em className="emailauth__hint emailauth__hint--bad">
+                {t.emailAuth.checkTaken}{' '}
+                <button type="button" className="emailauth__inline" onClick={() => setTab('login')}>
+                  {t.emailAuth.checkGoLogin}
+                </button>
+              </em>
+            )}
+            {/* 형식 오류나 시도 초과 같은 것은 서버 문구를 그대로 보여준다 */}
+            {avail !== null && !['checking', 'free', 'taken'].includes(avail) && (
+              <em className="emailauth__hint emailauth__hint--bad">{avail}</em>
+            )}
+          </>
+        )}
       </label>
 
       <label className="emailauth__field">

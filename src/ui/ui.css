@@ -505,7 +505,26 @@
 .alt__delta--bad { color: var(--ink-faint); }
 /* 왜 보여주는 대안인지. 시각보다 앞에 두어 먼저 읽히게 한다 */
 /* 비밀번호가 안 맞을 때. 힌트와 같은 자리에 색만 바꿔 놓는다 */
-.emailauth__hint--bad { color: var(--rust); }
+/*
+ * 로그인 화면은 어두운 판이다. 여기 있는 글자는 --night-* 를 써야 한다 —
+ * 밝은 판 토큰(--ink-soft, --brand)을 쓰면 남색 위에 남색이 되어 사라진다.
+ * 실제로 중복확인 버튼 글자가 안 보였다.
+ */
+.emailauth__hint--bad { color: #FF9E90; }
+.emailauth__hint--ok { color: #7ED9B4; }
+/* 중복확인. 입력 아래에 조용히 놓는다 — 주된 행동은 가입이지 확인이 아니다 */
+.emailauth__check {
+  align-self: flex-start; margin-top: var(--sp-2);
+  font: inherit; font-size: 0.84rem; font-weight: 600; cursor: pointer;
+  padding: 6px var(--sp-3); border-radius: var(--radius-md);
+  background: none; border: 1px solid var(--night-edge); color: var(--night-soft);
+}
+.emailauth__check:hover:not(:disabled) { border-color: var(--night-ink); color: var(--night-ink); }
+.emailauth__check:disabled { opacity: 0.5; cursor: default; }
+.emailauth__inline {
+  font: inherit; background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--signal); font-weight: 700; text-decoration: underline; text-underline-offset: 2px;
+}
 
 .alts__none {
   margin: var(--sp-3) 0 0; padding: var(--sp-3) var(--sp-4); font-size: 0.88rem; line-height: 1.6;

@@ -92,6 +92,14 @@ export const RESEND_IP: Limit = { windowMs: 60 * 60_000, max: 5 }
  * 사람이 한 시간에 다섯 번 넘게 문의할 일은 없다.
  */
 export const CONTACT_IP: Limit = { windowMs: 60 * 60_000, max: 5 }
+/**
+ * 이메일 중복확인.
+ *
+ * 이건 **"이 주소가 가입돼 있다" 를 알려주는 창구**다. 편하려고 열어둔 문이
+ * 남의 가입 여부를 훑는 문이 되지 않게, 여기만은 촘촘히 센다. 사람이 가입
+ * 한 번 하면서 주소를 스무 번 넘게 고쳐 볼 일은 없다.
+ */
+export const EMAIL_CHECK_IP: Limit = { windowMs: 60 * 60_000, max: 20 }
 /** 비밀번호 변경은 현재 비밀번호를 맞혀야 하므로, 그걸 두드리는 것도 막는다. */
 export const PASSWORD_USER: Limit = { windowMs: 15 * 60_000, max: 8 }
 
