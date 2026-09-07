@@ -1,4 +1,6 @@
 import { tagoCall } from './tago'
+import { serverEnv } from './env'
+import { fetchJson } from './http'
 import { distanceM } from './terminalIndex'
 
 /**
@@ -19,9 +21,35 @@ export interface Stop {
   lng: number
 }
 
+/**
+ * 어느 자료로 노선을 찾을 것인가.
+ *
+ * TAGO 는 지자체가 넘겨준 것만 담는데 **서울시는 빠져 있다** — 자체 API 를
+ * 쓰기 때문이다. 그래서 서울은 서울시 API(ws.bus.go.kr)로 따로 묻는다.
+ * 인증키는 같은 공공데이터포털 키를 쓴다.
+ */
+export type BusRegion = { kind: 'tago'; cityCode: number } | { kind: 'seoul' }
+
+/*
+ * 서울 경계를 네모로 어림한다. 정확한 행정 경계가 필요한 일이 아니다 —
+ * 어느 자료에 먼저 물어볼지만 정하면 되고, 잘못 골라도 정류장 이름과 좌표를
+ * 함께 보는 관문이 엉뚱한 노선을 걸러낸다.
+ */
+const SEOUL_BOX = { minLat: 37.41, maxLat: 37.71, minLng: 126.76, maxLng: 127.19 }
+const inSeoul = (p: { lat: number; lng: number }) =>
+  p.lat >= SEOUL_BOX.minLat && p.lat <= SEOUL_BOX.maxLat &&
+  p.lng >= SEOUL_BOX.minLng && p.lng <= SEOUL_BOX.maxLng
+
 /* 노선 정보는 거의 바뀌지 않는다. 프로세스가 사는 동안 들고 있는다. */
 const cityCache = new Map<string, number | null>()
 const routeCache = new Map<string, Stop[][]>()
+
+/** 이 좌표의 버스 노선을 어느 자료에서 찾을지. */
+export async function busRegionFor(point: { lat: number; lng: number }): Promise<BusRegion | null> {
+  if (inSeoul(point)) return { kind: 'seoul' }
+  const code = await cityCodeNear(point)
+  return code === null ? null : { kind: 'tago', cityCode: code }
+}
 
 /** 이 좌표가 어느 지자체인가. 근처 정류소가 알려준다. */
 export async function cityCodeNear(point: { lat: number; lng: number }): Promise<number | null> {
@@ -39,16 +67,77 @@ export async function cityCodeNear(point: { lat: number; lng: number }): Promise
   return code
 }
 
+
+/*
+ * 서울시 버스 노선 조회(ws.bus.go.kr).
+ *
+ * **https 가 안 된다.** 인증서 문제로 TLS 핸드셰이크가 실패해서 http 로 부른다.
+ * 서버끼리의 호출이고 노선 정류장 목록에는 비밀이 없으므로 감수한다 —
+ * 인증키는 쿼리로 나가지만 이건 공공데이터포털 키라 원래 그렇게 쓴다.
+ */
+const SEOUL_ROOT = 'http://ws.bus.go.kr/api/rest'
+
+interface SeoulItem {
+  seq?: string
+  stationNm?: string
+  gpsX?: string
+  gpsY?: string
+  busRouteId?: string
+  busRouteNm?: string
+}
+
+async function seoulCall(path: string): Promise<SeoulItem[] | null> {
+  if (!serverEnv.tagoKey) return null
+  const url = `${SEOUL_ROOT}/${path}&serviceKey=${encodeURIComponent(serverEnv.tagoKey)}&resultType=json`
+  const res = await fetchJson<{ msgBody?: { itemList?: SeoulItem[] } }>(
+    url,
+    {},
+    { label: '서울 버스 노선' },
+  )
+  if (!res.ok) return null
+  return res.data.msgBody?.itemList ?? []
+}
+
+async function seoulRouteStops(routeNo: string): Promise<Stop[][]> {
+  const found = await seoulCall(`busRouteInfo/getBusRouteList?strSrch=${encodeURIComponent(routeNo)}`)
+  // 부분 일치로도 오므로(5 를 물으면 5511 도 온다) 번호가 정확히 같은 것만 본다
+  const exact = (found ?? []).filter((r) => (r.busRouteNm ?? '').trim() === routeNo)
+
+  const out: Stop[][] = []
+  for (const r of exact.slice(0, 3)) {
+    if (!r.busRouteId) continue
+    const rows = await seoulCall(`busRouteInfo/getStaionByRoute?busRouteId=${r.busRouteId}`)
+    const stops = (rows ?? [])
+      .map((s) => ({
+        ord: Number(s.seq),
+        name: (s.stationNm ?? '').trim(),
+        lat: Number(s.gpsY),
+        lng: Number(s.gpsX),
+      }))
+      .filter((s) => s.name && Number.isFinite(s.lat) && Number.isFinite(s.lng))
+      .sort((a, b) => a.ord - b.ord)
+    if (stops.length) out.push(stops)
+  }
+  return out
+}
+
 /**
  * 이 지자체의 이 번호 노선이 지나는 정류소를, 순서대로.
  *
  * 같은 번호가 여러 노선일 수 있다(지선·급행). 전부 돌려주고 고르는 건
  * 부르는 쪽 몫이다 — 어느 쪽을 탔는지는 정류소 이름이 알려준다.
  */
-export async function routeStops(cityCode: number, routeNo: string): Promise<Stop[][]> {
-  const key = `${cityCode}:${routeNo}`
+export async function routeStops(region: BusRegion, routeNo: string): Promise<Stop[][]> {
+  const key = `${region.kind === 'seoul' ? 'seoul' : region.cityCode}:${routeNo}`
   const hit = routeCache.get(key)
   if (hit) return hit
+
+  if (region.kind === 'seoul') {
+    const out = await seoulRouteStops(routeNo)
+    routeCache.set(key, out)
+    return out
+  }
+  const cityCode = region.cityCode
 
   const routes = await tagoCall<{ routeid?: string; routeno?: string }>(
     'BusRouteInfoInqireService',
@@ -120,14 +209,14 @@ export async function betterAlightStop(
   routeNos: string[],
   alight: { name: string; lat: number; lng: number },
   dest: { lat: number; lng: number },
-  cityCode: number,
+  region: BusRegion,
 ): Promise<BetterStop | null> {
   let best: BetterStop | null = null
 
   for (const no of routeNos) {
     let variants: Stop[][]
     try {
-      variants = await routeStops(cityCode, no)
+      variants = await routeStops(region, no)
     } catch {
       continue // 노선 정보를 못 받으면 그냥 원래대로 둔다
     }

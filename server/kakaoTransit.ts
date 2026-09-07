@@ -3,7 +3,7 @@ import { fetchJson } from './http'
 import type { GeoPoint } from './geocode'
 import type { LatLng, RouteResult, WireLeg, WireRoute } from './routeTypes'
 import { encodePolyline } from './polyline'
-import { betterAlightStop, cityCodeNear } from './busRoutes'
+import { betterAlightStop, busRegionFor } from './busRoutes'
 import { distanceM } from './terminalIndex'
 
 /**
@@ -197,16 +197,26 @@ async function rideFurtherIfCloser(
    */
   if (distanceM(origin, dest) > 30000) return legs
 
-  const i = legs.map((l) => l.kind).lastIndexOf('bus')
-  if (i < 0) return legs
+  /*
+   * **마지막으로 타는 것**이 버스일 때만 본다.
+   *
+   * 예전에는 "마지막 버스 구간" 을 찾았는데, 그 뒤에 지하철이 오면 그 버스는
+   * 목적지가 아니라 환승역으로 가는 길이다. 그걸 늘리면 갈아탈 곳을 지나쳐
+   * 버린다 — 서울 강남역 → 건국대에서 논현역 대신 광림교회까지 타라는
+   * 답이 나왔다. 둘 다 건국대와는 멀다.
+   */
+  const rides = legs.map((l, idx) => ({ l, idx })).filter((x) => x.l.kind !== 'walk')
+  const tail = rides[rides.length - 1]
+  if (!tail || tail.l.kind !== 'bus') return legs
+  const i = tail.idx
   const leg = legs[i]
   if (typeof leg.to.lat !== 'number' || typeof leg.to.lng !== 'number' || !leg.carrier) return legs
 
   const gapM = distanceM(dest, { lat: leg.to.lat, lng: leg.to.lng })
   if (gapM < 500) return legs // 이미 가깝다 — 조회할 값이 없다
 
-  const cityCode = await cityCodeNear(dest)
-  if (cityCode === null) return legs
+  const region = await busRegionFor(dest)
+  if (region === null) return legs
 
   /*
    * 노선 번호를 두 개까지만 본다.
@@ -221,7 +231,7 @@ async function rideFurtherIfCloser(
     nos,
     { name: leg.to.name, lat: leg.to.lat, lng: leg.to.lng },
     dest,
-    cityCode,
+    region,
   )
   if (!better) return legs
 
