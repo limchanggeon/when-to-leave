@@ -1444,10 +1444,26 @@ if (hasWeb) {
   // SPA 폴백. /login, /me 를 새로고침해도 열려야 한다.
   // 라우트가 아닌 미들웨어로 두는 이유: Express 5 는 '*' 경로 문법이 바뀌어
   // app.get('*') 가 그대로는 동작하지 않는다.
+  /*
+   * 파일처럼 생긴 주소는 폴백에서 뺀다.
+   *
+   * 화면 경로(/login, /me)는 확장자가 없다. 확장자가 붙은 주소를 찾는 쪽은
+   * 사람이 아니라 기계다 — 검색엔진, 광고 심사, 소유권 확인 같은 것들.
+   * 그런 요청에 index.html 을 200 으로 내주면 **없는 파일이 있는 것처럼
+   * 보인다.**
+   *
+   * 실제로 구글 서치 콘솔 소유권 확인이 여기서 걸렸다. 확인 파일을 아직
+   * 안 올린 상태에서 구글이 가져갔는데, 404 대신 200 + index.html 이
+   * 돌아가서 "확인 파일에 잘못된 콘텐츠가 있습니다" 가 됐다 —
+   * "파일이 없습니다" 였으면 한눈에 알았을 것이다.
+   */
+  const looksLikeFile = /\.[a-z0-9]{1,8}$/i
+
   app.use((req, res, next) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') return next()
     // 없는 API 는 index.html 이 아니라 404 여야 한다.
     if (req.path === '/api' || req.path.startsWith('/api/')) return next()
+    if (looksLikeFile.test(req.path)) return next()
     // sendFile 기본값은 max-age=0 이라 의도가 흐릿하다. 명시해 둔다.
     res.sendFile(join(webRoot, 'index.html'), { headers: { 'Cache-Control': 'no-cache' } })
   })
