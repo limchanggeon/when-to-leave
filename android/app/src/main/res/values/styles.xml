@@ -22,7 +22,21 @@
     </style>
 
 
+    <!--
+        시작 화면.
+
+        안드로이드 12(API 31)부터는 시스템이 스플래시를 직접 그린다.
+        예전처럼 android:background 로 그림을 깔면 **그 값은 무시되고**
+        기본 배경(밝은 회색)이 나온다 — 어두운 앱이 회색 판에서 시작해
+        덜컹거린다. 실제로 릴리스 APK 를 처음 깔았을 때 그랬다.
+        시스템이 읽는 이름으로 다시 적는다.
+    -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/whenigoInk</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <!-- 스플래시가 끝나면 앱 테마로 넘긴다. 안 적으면 그 순간 흰 화면이 스친다 -->
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+        <!-- 12 이전 기기는 여전히 이 그림을 쓴다 -->
         <item name="android:background">@drawable/splash</item>
     </style>
 </resources>

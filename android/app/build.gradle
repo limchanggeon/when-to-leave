@@ -16,10 +16,39 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    /*
+     * 릴리스 서명.
+     *
+     * 키와 비밀번호는 android/keystore.properties 에 있고 **저장소에
+     * 안 올라간다**(android/.gitignore). 저장소가 공개라 올라가면 누구나
+     * 우리 이름으로 앱을 만들 수 있다.
+     *
+     * 파일이 없으면 서명 설정 없이 넘어간다 — 남이 저장소를 받아
+     * 디버그 빌드만 해보는 데 지장이 없어야 한다. 그때 릴리스 빌드는
+     * 서명되지 않은 APK 를 내놓고, 그건 기기에 설치되지 않으므로
+     * 서명 없는 것을 모르고 배포할 일은 없다.
+     */
+    signingConfigs {
+        release {
+            def props = new Properties()
+            def f = rootProject.file('keystore.properties')
+            if (f.exists()) {
+                f.withInputStream { props.load(it) }
+                storeFile rootProject.file(props['storeFile'])
+                storePassword props['storePassword']
+                keyAlias props['keyAlias']
+                keyPassword props['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (rootProject.file('keystore.properties').exists()) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
