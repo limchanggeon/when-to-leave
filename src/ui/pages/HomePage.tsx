@@ -111,7 +111,22 @@ export function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account])
 
+  /*
+   * 저장한 장소를 받아온다. **로그인했을 때만.**
+   *
+   * 예전에는 무조건 불렀다. 로그인 안 한 사람에게는 반드시 401 이 오는
+   * 요청이라, 처음 오는 사람마다 헛걸음이 하나씩 나갔다 — 구글 서치 콘솔이
+   * "로드하지 못한 리소스" 로 잡아줬다.
+   *
+   * account 를 의존성에 넣은 김에 로그인 직후에도 다시 받아온다. 예전에는
+   * 처음 한 번만 불러서, 로그인하고 돌아와도 저장한 장소가 안 보이고
+   * 새로고침해야 나왔다.
+   */
   useEffect(() => {
+    if (!account) {
+      setPlaces([])
+      return
+    }
     let cancelled = false
     fetchMe().then((r) => {
       if (!cancelled && r.ok) setPlaces(r.data.places)
@@ -119,7 +134,7 @@ export function HomePage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [account])
 
   async function run(query: QueryInput) {
     /*
