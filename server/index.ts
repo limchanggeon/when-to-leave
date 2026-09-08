@@ -1172,6 +1172,18 @@ app.get('/api/admin/overview', (req, res) => {
   })
 })
 
+/** 한 사람에 대한 상세. 저장한 장소의 주소는 담기지 않는다(server/admin.ts 참고). */
+app.get('/api/admin/users/:id', (req, res) => {
+  const me = requireAdmin(req, res)
+  if (!me) return
+  const detail = admin.userDetail(req.params.id)
+  if (!detail) {
+    res.status(404).json({ error: { code: 'not-found', message: '없는 계정입니다' } })
+    return
+  }
+  res.json({ user: detail })
+})
+
 app.post('/api/admin/users/:id/verify', (req, res) => {
   const me = requireAdmin(req, res)
   if (!me) return

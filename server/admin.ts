@@ -135,3 +135,89 @@ export function revokeSessions(userId: string): number {
   const r = db().prepare('DELETE FROM sessions WHERE user_id = ?').run(userId)
   return Number(r.changes ?? 0)
 }
+
+export interface AdminUserDetail {
+  id: string
+  email: string
+  name: string | null
+  tier: string
+  isAdmin: boolean
+  createdAt: number
+  emailVerifiedAt: number | null
+  approvedAt: number | null
+  approvedBy: string | null
+  hasPassword: boolean
+  /** 소셜 연결. 언제 이었는지까지 본다. */
+  identities: { provider: string; createdAt: number }[]
+  /** 살아 있는 세션 수와, 가장 최근에 로그인한 시각. */
+  sessions: number
+  lastLoginAt: number | null
+  /** 저장한 장소는 **개수만** 본다. 아래 주석 참고. */
+  places: number
+  /** 최근 이레의 하루 조회 수. */
+  searches: { day: string; count: number }[]
+  /** 이 사람이 보낸 문의. 내용은 문의함에서 본다 — 여기서는 몇 건인지만. */
+  contacts: number
+}
+
+/**
+ * 한 사람에 대해 관리자가 볼 것.
+ *
+ * **저장한 장소의 주소는 담지 않는다.** 개수만 센다. "집" 이라고 저장한
+ * 좌표는 그 사람이 사는 곳이고, 승인할지 정하거나 문의에 답하는 데
+ * 그게 필요한 적은 없다. 볼 수 있게 해두면 언젠가 보게 된다.
+ *
+ * 비밀번호 해시도 담지 않는다. 있는지 없는지만 본다.
+ */
+export function userDetail(id: string): AdminUserDetail | null {
+  const conn = db()
+  const u = conn
+    .prepare(
+      `SELECT id, email, name, tier, is_admin, created_at, email_verified_at,
+              approved_at, approved_by, (password_hash IS NOT NULL) AS has_pw
+         FROM users WHERE id = ?`,
+    )
+    .get(id) as Record<string, unknown> | undefined
+  if (!u) return null
+
+  const identities = (
+    conn
+      .prepare('SELECT provider, created_at FROM identities WHERE user_id = ? ORDER BY created_at')
+      .all(id) as Record<string, unknown>[]
+  ).map((r) => ({ provider: String(r.provider), createdAt: Number(r.created_at) }))
+
+  const now = Date.now()
+  const sess = conn
+    .prepare('SELECT COUNT(*) AS n, MAX(created_at) AS last FROM sessions WHERE user_id = ? AND expires_at > ?')
+    .get(id, now) as { n: number; last: number | null }
+
+  const searches = (
+    conn
+      .prepare('SELECT day, count FROM user_daily_searches WHERE user_id = ? ORDER BY day DESC LIMIT 7')
+      .all(id) as Record<string, unknown>[]
+  ).map((r) => ({ day: String(r.day), count: Number(r.count) }))
+
+  const places = conn.prepare('SELECT COUNT(*) AS n FROM places WHERE user_id = ?').get(id) as { n: number }
+  const contacts = conn
+    .prepare('SELECT COUNT(*) AS n FROM contact_messages WHERE user_id = ?')
+    .get(id) as { n: number }
+
+  return {
+    id: String(u.id),
+    email: String(u.email),
+    name: (u.name as string) ?? null,
+    tier: String(u.tier ?? 'free'),
+    isAdmin: Number(u.is_admin) === 1,
+    createdAt: Number(u.created_at),
+    emailVerifiedAt: u.email_verified_at === null ? null : Number(u.email_verified_at),
+    approvedAt: u.approved_at === null ? null : Number(u.approved_at),
+    approvedBy: (u.approved_by as string) ?? null,
+    hasPassword: Number(u.has_pw) === 1,
+    identities,
+    sessions: Number(sess.n ?? 0),
+    lastLoginAt: sess.last === null ? null : Number(sess.last),
+    places: Number(places.n ?? 0),
+    searches,
+    contacts: Number(contacts.n ?? 0),
+  }
+}

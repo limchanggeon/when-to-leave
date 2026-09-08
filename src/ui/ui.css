@@ -612,8 +612,7 @@
 .inbox__head::-webkit-details-marker { display: none; }
 .inbox__head:hover { background: var(--sunk); }
 .inbox__from { font-weight: 600; font-size: 0.92rem; }
-/* 펼치면 바탕이 회색으로 바뀐다 — ink-faint 는 거기서 4.44:1 로 모자란다 */
-.inbox__when { font-size: 0.82rem; color: var(--ink-soft); margin-left: auto; }
+.inbox__when { font-size: 0.82rem; color: var(--ink-faint); margin-left: auto; }
 .inbox__unsent {
   font-size: 0.76rem; font-weight: 600; color: var(--rust);
   background: var(--rust-wash); padding: 2px var(--sp-2); border-radius: var(--radius-sm);
@@ -623,6 +622,32 @@
   font-size: 0.9rem; line-height: 1.7; white-space: pre-wrap; color: var(--ink);
 }
 .inbox__err { margin: 0; padding: 0 var(--sp-4) var(--sp-3); font-size: 0.8rem; color: var(--rust); }
+/* 이메일이 펼치는 손잡이다 — 버튼이지만 글자처럼 보여야 목록이 안 시끄럽다 */
+.adminrow__email {
+  font: inherit; background: none; border: 0; padding: 0; cursor: pointer;
+  color: inherit; text-align: left; display: flex; align-items: baseline; gap: var(--sp-2);
+}
+.adminrow__email:hover { text-decoration: underline; text-underline-offset: 3px; }
+.adminrow__name { font-size: 0.84rem; font-weight: 400; color: var(--ink-soft); }
+
+/* 줄 전체를 쓴다. flex 줄바꿈에서 혼자 한 줄을 차지하게 basis 를 100% 로 준다 —
+   안 주면 왼쪽 칸 너비에 갇혀 항목이 세로로 길게 늘어선다 */
+.udetail {
+  flex: 1 1 100%; margin-top: var(--sp-3); padding: var(--sp-4);
+  background: var(--sunk); border-radius: var(--radius-md);
+}
+.udetail__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--sp-3); margin: 0; }
+.udetail__grid dt { font-size: 0.76rem; color: var(--ink-soft); margin-bottom: 2px; }
+.udetail__grid dd { margin: 0; font-size: 0.88rem; font-weight: 600; }
+.udetail__label { margin: var(--sp-5) 0 var(--sp-2); font-size: 0.76rem; color: var(--ink-soft); }
+.udetail__days { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.udetail__days li {
+  display: flex; gap: var(--sp-2); font-size: 0.82rem;
+  padding: 4px var(--sp-2); background: var(--surface); border-radius: var(--radius-sm);
+}
+.udetail__empty, .udetail__loading { margin: 0; font-size: 0.84rem; color: var(--ink-soft); }
+.udetail__note { margin: var(--sp-4) 0 0; font-size: 0.8rem; color: var(--ink-faint); }
+
 .adminrow__tier {
   font: inherit; font-size: 0.84rem; padding: 5px var(--sp-2);
   border: 1px solid var(--rule-strong); border-radius: var(--radius-md);

@@ -57,6 +57,25 @@ const STAT_LABEL: Record<string, string> = {
   activeSessions: '로그인 중',
   signupsLast7d: '최근 7일 가입',
 }
+interface UserDetail {
+  id: string
+  email: string
+  name: string | null
+  tier: string
+  isAdmin: boolean
+  createdAt: number
+  emailVerifiedAt: number | null
+  approvedAt: number | null
+  approvedBy: string | null
+  hasPassword: boolean
+  identities: { provider: string; createdAt: number }[]
+  sessions: number
+  lastLoginAt: number | null
+  places: number
+  searches: { day: string; count: number }[]
+  contacts: number
+}
+
 interface TierReq {
   id: string
   userId: string
@@ -106,6 +125,9 @@ export function AdminPage() {
   const [inbox, setInbox] = useState<Inbox | null>(null)
   /** 등급 올려달라는 요청. 후원한 사람이 누른다. */
   const [tierReqs, setTierReqs] = useState<TierReq[]>([])
+  /** 펼쳐 본 계정의 상세. 한 번에 하나만 연다 — 여럿을 열면 목록이 아니게 된다. */
+  const [detail, setDetail] = useState<UserDetail | null>(null)
+  const [detailFor, setDetailFor] = useState<string | null>(null)
 
   async function load() {
     const res = await fetch('/api/admin/overview', { credentials: 'include' })
@@ -129,6 +151,19 @@ export function AdminPage() {
     void loadInbox()
     void loadTierReqs()
   }, [])
+
+  /* 펼칠 때 불러온다. 목록을 그릴 때마다 사람 수만큼 부르지 않으려는 것이다. */
+  async function openDetail(id: string) {
+    if (detailFor === id) {
+      setDetailFor(null)
+      setDetail(null)
+      return
+    }
+    setDetailFor(id)
+    setDetail(null)
+    const res = await fetch(`/api/admin/users/${id}`, { credentials: 'include' })
+    if (res.ok) setDetail(((await res.json()) as { user: UserDetail }).user)
+  }
 
   async function changeTier(u: AdminUser, tier: string) {
     setBusy(u.id)
@@ -308,7 +343,16 @@ export function AdminPage() {
                 {data.users.map((u) => (
                   <div className="adminrow" key={u.id}>
                     <div className="adminrow__who">
-                      <span className="adminrow__email">{u.email}</span>
+                      {/* 이메일이 곧 펼치는 손잡이다 — 따로 버튼을 두면 줄만 길어진다 */}
+                      <button
+                        type="button"
+                        className="adminrow__email"
+                        onClick={() => void openDetail(u.id)}
+                        aria-expanded={detailFor === u.id}
+                      >
+                        {u.email}
+                        {u.name && <span className="adminrow__name">{u.name}</span>}
+                      </button>
                       <span className="adminrow__tags">
                         {u.isAdmin && <span className="chip chip--good">관리자</span>}
                         {/*
@@ -369,6 +413,68 @@ export function AdminPage() {
                         onClick={() => act(u, '', { method: 'DELETE' },
                           `${u.email} 계정을 지웁니다. 저장한 장소와 연동도 함께 사라지고 되돌릴 수 없습니다. 계속할까요?`)}>삭제</button>
                     </div>
+
+                    {/*
+                      상세는 왼쪽 칸이 아니라 **줄 전체**를 쓴다. 칸 안에 두면
+                      버튼 자리만큼 좁아져 항목이 세로로 길게 늘어선다.
+                    */}
+                    {detailFor === u.id && (
+                      <div className="udetail">
+                        {!detail ? (
+                          <p className="udetail__loading">불러오는 중…</p>
+                        ) : (
+                          <>
+                            <dl className="udetail__grid">
+                              <div><dt>이름</dt><dd>{detail.name ?? '—'}</dd></div>
+                              <div><dt>등급</dt><dd>{TIER_LABEL[detail.tier] ?? detail.tier}</dd></div>
+                              <div><dt>가입</dt><dd className="num">{when(detail.createdAt)}</dd></div>
+                              <div><dt>주소 확인</dt><dd className="num">{detail.emailVerifiedAt ? when(detail.emailVerifiedAt) : '안 됨'}</dd></div>
+                              <div>
+                                <dt>승인</dt>
+                                <dd className="num">
+                                  {detail.approvedAt
+                                    ? `${when(detail.approvedAt)}${detail.approvedBy ? ` · ${detail.approvedBy}` : ''}`
+                                    : '대기 중'}
+                                </dd>
+                              </div>
+                              <div><dt>마지막 로그인</dt><dd className="num">{detail.lastLoginAt ? when(detail.lastLoginAt) : '기록 없음'}</dd></div>
+                              <div>
+                                <dt>로그인 수단</dt>
+                                <dd>
+                                  {[detail.hasPassword ? '비밀번호' : null, ...detail.identities.map((i) => i.provider)]
+                                    .filter(Boolean)
+                                    .join(', ') || '없음'}
+                                </dd>
+                              </div>
+                              <div><dt>문의</dt><dd className="num">{detail.contacts}건</dd></div>
+                            </dl>
+
+                            <p className="udetail__label">최근 조회</p>
+                            {detail.searches.length === 0 ? (
+                              <p className="udetail__empty">아직 없습니다.</p>
+                            ) : (
+                              <ul className="udetail__days">
+                                {detail.searches.map((d) => (
+                                  <li key={d.day}>
+                                    <span className="num">{d.day}</span>
+                                    <span className="num">{d.count}회</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+
+                            {/*
+                              저장한 장소는 **개수만** 보여준다. "집" 이라고 저장한 좌표는
+                              그 사람이 사는 곳이고, 승인을 정하거나 문의에 답하는 데 그게
+                              필요한 적은 없다. 볼 수 있게 해두면 언젠가 보게 된다.
+                            */}
+                            <p className="udetail__note">
+                              저장한 장소 {detail.places}곳 — 주소는 관리자에게도 보이지 않습니다
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
