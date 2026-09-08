@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { usePageMeta } from '../usePageMeta'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthContext } from '../../auth/AuthContext'
 import { mountGoogleButton } from '../../auth/google'
@@ -25,6 +26,8 @@ function failureText(f: AuthFailure, t: I18nShape): string {
 }
 
 export function LoginPage() {
+  usePageMeta('로그인', '로그인하면 자주 가는 곳과 계산한 여정을 저장하고, 출발 알람을 캘린더에 걸어둘 수 있습니다.')
+
   const { account, failure, busy, signIn, applyResult } = useAuthContext()
   const { t } = usePrefs()
   const navigate = useNavigate()

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { usePageMeta } from '../usePageMeta'
 import { displayName } from '../../auth/displayName'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuthContext } from '../../auth/AuthContext'
@@ -24,6 +25,8 @@ const SPONSOR = 'https://github.com/sponsors/limchanggeon'
  * 하지 않는 일이다. 여기로 접어 넣으면 필요한 사람만 열어 본다.
  */
 export function SettingsPage() {
+  usePageMeta('설정')
+
   const { t, lang, setLang, theme, setTheme } = usePrefs()
   const { account, signOut } = useAuthContext()
   const [contact, setContact] = useState(false)

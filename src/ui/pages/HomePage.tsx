@@ -218,9 +218,17 @@ export function HomePage() {
    * 탭을 다른 곳으로 옮겨도 남은 시간이 보이게 한다.
    * 출발을 기다리는 동안 이 앱을 계속 보고 있을 이유가 없다.
    */
+  /*
+   * 결과가 없을 때는 **설명이 붙은 제목**을 쓴다.
+   *
+   * 이름만 있으면("언제나가") 검색 결과에 그 한 마디로 뜬다 — 무슨
+   * 서비스인지 알 수 없다. 수집기는 검색을 하지 않으므로 늘 이 상태를 본다.
+   */
+  const idleTitle = `${t.app.title} — ${t.app.eyebrow}`
+
   useEffect(() => {
     if (!shown) {
-      document.title = t.app.title
+      document.title = idleTitle
       return
     }
     const update = () => {
@@ -234,9 +242,9 @@ export function HomePage() {
     const id = setInterval(update, 30_000)
     return () => {
       clearInterval(id)
-      document.title = t.app.title
+      document.title = idleTitle
     }
-  }, [shown, t])
+  }, [shown, t, idleTitle])
   const resolved = outcome?.kind === 'trip' ? getLastResolved() : null
 
   const hasResult = outcome !== null
@@ -250,6 +258,17 @@ export function HomePage() {
 
   return (
     <div className="page">
+      {/*
+        * 이 화면의 이름. 눈에는 안 보이지만 화면 낭독기와 검색엔진이 읽는다.
+        *
+        * 화면에 보이는 큰 글자는 "나가실 시각" 인데 그건 칸 이름이지
+        * 이 화면의 제목이 아니다. 제목이 없으면 낭독기로 들어온 사람은
+        * 어디에 왔는지 알 수 없고, 검색 결과에도 h1 없이 색인된다.
+        * 문서 제목과 같은 말을 쓴다 — 수집기에만 다른 말을 보여주면 그게 클로킹이다.
+        */}
+      <h1 className="a11y-only">
+        {t.app.title} — {t.app.eyebrow}
+      </h1>
       <SiteHeader t={t} solid={hasResult} onHome={goHome} onHowTo={() => setTour(true)} />
       <QuickRoutes
         places={places}

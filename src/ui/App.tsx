@@ -34,6 +34,26 @@ const SettingsPage = page(() => import('./pages/SettingsPage'), 'SettingsPage')
  * (탭 위에 여백을 따로 잡는다) 여기서는 뺀다.
  */
 /**
+ * 이 화면의 정식 주소(canonical).
+ *
+ * 같은 화면이 여러 주소로 열릴 수 있다 — 물음표가 붙거나(?utm_source=…),
+ * 끝에 빗금이 있거나. 정식 주소를 알려주지 않으면 검색엔진이 그것들을
+ * 서로 다른 페이지로 세고 평가가 쪼개진다.
+ *
+ * **도메인을 옮길 때도 여기가 기준이 된다.** 지금은 현재 접속한 주소를
+ * 그대로 쓰므로, 서버가 새 도메인으로 옮겨가면 저절로 따라간다.
+ */
+function setCanonical(path: string) {
+  let el = document.querySelector<HTMLLinkElement>('link[rel="canonical"]')
+  if (!el) {
+    el = document.createElement('link')
+    el.rel = 'canonical'
+    document.head.appendChild(el)
+  }
+  el.href = `${window.location.origin}${path}`
+}
+
+/**
  * 화면을 옮기면 맨 위부터 보여준다.
  *
  * 브라우저는 뒤로 갈 때 있던 자리를 되살려주지만, **앞으로 갈 때는
@@ -44,6 +64,8 @@ function ScrollTop() {
   const { pathname } = useLocation()
   useEffect(() => {
     window.scrollTo(0, 0)
+    // 정식 주소도 여기서 갱신한다. 화면마다 따로 부르면 빠뜨리는 화면이 생긴다
+    setCanonical(pathname)
   }, [pathname])
   return null
 }

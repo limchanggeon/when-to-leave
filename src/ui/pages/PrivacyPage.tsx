@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { usePageMeta } from '../usePageMeta'
 import { adsEnabled } from '../../ads'
 import { privacyPolicy } from '../../i18n/privacy'
 import { usePrefs } from '../PrefsContext'
@@ -14,6 +15,8 @@ import { SiteFooter } from '../components/SiteFooter'
  * 한다는 뜻이기도 하다.
  */
 export function PrivacyPage() {
+  usePageMeta('개인정보 처리방침', '「언제나가」가 어떤 개인정보를 어떤 목적으로 처리하고 언제 파기하는지 「개인정보 보호법」 제30조에 따라 공개합니다.')
+
   const { t } = usePrefs()
   const p = privacyPolicy
 

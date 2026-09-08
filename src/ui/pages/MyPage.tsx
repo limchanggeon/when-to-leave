@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { usePageMeta } from '../usePageMeta'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthContext } from '../../auth/AuthContext'
 import * as api from '../../auth/me'
@@ -12,6 +13,8 @@ import { SiteHeader } from '../components/SiteHeader'
 import { SiteFooter } from '../components/SiteFooter'
 
 export function MyPage() {
+  usePageMeta('마이페이지')
+
   const { t } = usePrefs()
   const { account, signOut } = useAuthContext()
   const navigate = useNavigate()
