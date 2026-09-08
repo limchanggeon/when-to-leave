@@ -1,0 +1,21 @@
+# Caddy 접속 로그 회전. `sudo cp deploy/caddy-logrotate /etc/logrotate.d/caddy`
+#
+# 이 로그에는 접속자 IP 가 남는다(remote_ip). 개인정보이므로 언제까지 들고
+# 있을지 정해야 하고, 그 값이 개인정보 처리방침에 적힌 값과 같아야 한다.
+# 설정이 없으면 파일이 영원히 자라고, 방침에 적을 보유기간도 없어진다.
+#
+# 30일치만 남긴다 — 방침 제3조에 적힌 값과 같다. 여기를 고치면 방침도 고쳐야 한다.
+# (logrotate 는 줄 끝 주석을 값의 일부로 읽는다. 주석은 줄 위에 둔다.)
+/var/log/caddy/*.log {
+    daily
+    rotate 30
+    missingok
+    notifempty
+    compress
+    delaycompress
+    su caddy caddy
+    create 0600 caddy caddy
+    postrotate
+        systemctl reload caddy >/dev/null 2>&1 || true
+    endscript
+}

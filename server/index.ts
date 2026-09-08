@@ -47,6 +47,7 @@ import {
   checkContact,
   listContact,
   markContactRead,
+  purgeOldContact,
   submitContact,
   unreadContactCount,
 } from './contact'
@@ -1455,8 +1456,23 @@ if (hasWeb) {
 app.listen(serverEnv.port, () => {
   console.log(`[server] http://localhost:${serverEnv.port}`)
   console.log(hasWeb ? '[server] dist/ 서빙 중' : '[server] dist/ 없음 — API 만 응답합니다')
-  const purged = purgeExpiredSessions()
-  if (purged > 0) console.log(`[server] 만료 세션 ${purged}건 정리`)
+  /*
+   * 보유기간이 지난 것을 치운다. 뜰 때 한 번, 그 뒤로 하루에 한 번.
+   *
+   * **하루에 한 번이 중요하다.** 뜰 때만 하면 몇 주씩 안 죽는 서버에서는
+   * 사실상 안 도는 것이고, 그러면 개인정보 처리방침에 적어둔 보유기간이
+   * 지켜지지 않는다 — 적어만 두고 안 지키는 것이 제일 나쁘다.
+   */
+  const sweep = () => {
+    const sessions = purgeExpiredSessions()
+    if (sessions > 0) console.log(`[server] 만료 세션 ${sessions}건 정리`)
+    const contact = purgeOldContact()
+    if (contact > 0) console.log(`[server] 보유기간 지난 문의 ${contact}건 삭제`)
+  }
+  sweep()
+  const daily = setInterval(sweep, 24 * 60 * 60 * 1000)
+  // 청소 때문에 프로세스가 안 끝나는 일이 없게 한다
+  daily.unref()
   for (const { name, breaks } of missingServerEnv()) {
     console.log(`[server] ⚠ ${name} 없음 → ${breaks}`)
   }

@@ -143,3 +143,24 @@ export function markContactRead(id: string): void {
     .prepare('UPDATE contact_messages SET read_at = ? WHERE id = ? AND read_at IS NULL')
     .run(Date.now(), id)
 }
+
+/**
+ * 오래된 문의를 지운다. 서버가 뜰 때와 하루에 한 번 돈다.
+ *
+ * **개인정보 처리방침에 적은 보유기간을 실제로 지키는 코드다.** 없으면
+ * 문의에 적힌 이메일 주소가 영원히 남는다 — 게다가 user_id 는
+ * ON DELETE SET NULL 이라 회원이 탈퇴해도 문의와 거기 적은 주소는
+ * 그대로 남아 있었다.
+ *
+ * 회원 여부와 무관하게 접수일 기준으로 센다. 문의는 회원이 아닌 사람도
+ * 보낼 수 있어서 계정에 매달아 둘 수 없다.
+ *
+ * 기간을 바꾸면 방침 제3조도 같이 바꿔야 한다.
+ */
+export const CONTACT_KEEP_DAYS = 365
+
+export function purgeOldContact(): number {
+  const cutoff = Date.now() - CONTACT_KEEP_DAYS * 24 * 60 * 60 * 1000
+  const r = db().prepare('DELETE FROM contact_messages WHERE created_at < ?').run(cutoff)
+  return Number(r.changes ?? 0)
+}

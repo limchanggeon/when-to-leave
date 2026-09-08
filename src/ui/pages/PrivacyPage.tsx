@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { adsEnabled } from '../../ads'
+import { privacyPolicy } from '../../i18n/privacy'
 import { usePrefs } from '../PrefsContext'
 import { SiteHeader } from '../components/SiteHeader'
 import { SiteFooter } from '../components/SiteFooter'
@@ -14,7 +15,7 @@ import { SiteFooter } from '../components/SiteFooter'
  */
 export function PrivacyPage() {
   const { t } = usePrefs()
-  const p = t.privacy
+  const p = privacyPolicy
 
   return (
     <div className="page">
@@ -28,11 +29,16 @@ export function PrivacyPage() {
           * 애드센스는 도메인을 사기 전까지 꺼져 있는데(vite.config.ts),
           * 그동안 광고 쿠키를 설명해두면 안 하는 일을 한다고 적는 셈이다.
           */}
+        {/*
+          * **조 번호는 여기서 매긴다.** 본문에 박아두면 광고 조항이 빠지는
+          * 순간(광고를 안 달 때) 제13조 다음이 제15조가 된다 — 법정 문서에서
+          * 번호가 건너뛰면 안 된다. 실제로 그렇게 나왔다.
+          */}
         {p.sections
           .filter((s) => adsEnabled || !('ads' in s && s.ads))
-          .map((s) => (
+          .map((s, i) => (
           <section className="doc__section" key={s.h}>
-            <h2 className="doc__h">{s.h}</h2>
+            <h2 className="doc__h">{`제${i + 1}조 (${s.h})`}</h2>
             {s.body.map((line) => (
               <p className="doc__p" key={line}>
                 {line}
