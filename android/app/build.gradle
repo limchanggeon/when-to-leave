@@ -7,8 +7,15 @@ android {
         applicationId "kr.whenigo.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
+        /*
+         * versionCode 는 스토어가 "어느 쪽이 더 새것인가" 를 판단하는 유일한
+         * 값이다. 올릴 때마다 1씩 키운다. **한 번 올린 값은 다시 못 쓴다.**
+         *
+         * versionName 은 사람이 읽는 값이라 아무렇게나 적어도 된다.
+         * 아직 알파라 그렇게 적는다 — 받는 사람이 무엇을 받는지 알아야 한다.
+         */
         versionCode 1
-        versionName "1.0"
+        versionName "0.1.0-alpha"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
