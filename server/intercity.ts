@@ -12,7 +12,7 @@ import {
   terminalKnown,
   normalize as normalizeName,
 } from './tagoSchedules'
-import { terminalsNear } from './terminalIndex'
+import { airportsFromTable, terminalsNear } from './terminalIndex'
 
 /**
  * 시외 경로를 직접 엮는다.
@@ -104,6 +104,20 @@ let airportsPromise: Promise<Hub[]> | null = null
 function loadAirports(): Promise<Hub[]> {
   if (!airportsPromise) {
     airportsPromise = (async () => {
+      /*
+       * 적어둔 표가 있으면 그걸 쓴다(server/terminalCoords.json).
+       * 남의 서버에 물어보지 않으므로 부팅이 즉시 끝나고, 카카오나 TAGO 가
+       * 잠깐 죽어 있어도 공항 경로가 그대로 나온다.
+       *
+       * 표가 비어 있으면 예전처럼 물어본다 — 표는 더하기만 하는 것이라,
+       * 없어도 오늘 되는 것은 그대로 된다.
+       */
+      const fromTable = airportsFromTable()
+      if (fromTable.length) {
+        console.log(`[intercity] 공항 좌표 ${fromTable.length}곳 (표)`)
+        return fromTable.map((a) => ({ name: a.name, lat: a.lat, lng: a.lng, distanceM: 0 }))
+      }
+
       const rows =
         (await tagoCall<{ airportNm?: string }>(TAGO.flight, 'GetArprtList', { numOfRows: '200' })) ??
         []

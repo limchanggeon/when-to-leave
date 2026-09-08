@@ -23,7 +23,10 @@ export interface TerminalCoord {
   region?: string
 }
 
-type Table = Record<'suburbsBus' | 'expressBus', TerminalCoord[]>
+type Table = Record<'suburbsBus' | 'expressBus', TerminalCoord[]> & {
+  /** 공항. 나중에 더한 칸이라 없을 수도 있다 — 없으면 부르는 쪽이 직접 찾는다. */
+  airport?: TerminalCoord[]
+}
 
 const table: Table = JSON.parse(
   readFileSync(new URL('./terminalCoords.json', import.meta.url), 'utf8'),
@@ -80,8 +83,19 @@ export function terminalsNear(
     .slice(0, limit)
 }
 
+/**
+ * 표에 적힌 공항. 없으면 빈 배열을 준다.
+ *
+ * 예전에는 서버가 뜰 때마다 TAGO 가 준 공항 이름 열다섯 개를 카카오에 물어
+ * 좌표를 만들었다. **부팅이 남의 서버에 매달려 있었다** — 카카오가 잠깐
+ * 죽으면 그날은 공항 경로가 통째로 안 나왔다. 공항은 열다섯 곳이고 자리가
+ * 안 바뀌므로 적어두는 편이 맞다.
+ */
+export const airportsFromTable = (): TerminalCoord[] => table.airport ?? []
+
 /** 표에 몇 곳이 들어 있는지. 서버가 뜰 때 한 줄 찍는다. */
 export const terminalCount = {
   suburbsBus: table.suburbsBus.length,
   expressBus: table.expressBus.length,
+  airport: (table.airport ?? []).length,
 }

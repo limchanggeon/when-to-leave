@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { usePrefs } from '../PrefsContext'
-import { dictionaries } from '../../i18n'
 import { SiteHeader } from '../components/SiteHeader'
 import { SiteFooter } from '../components/SiteFooter'
 
@@ -13,8 +12,7 @@ import { SiteFooter } from '../components/SiteFooter'
  * 한다는 뜻이기도 하다.
  */
 export function PrivacyPage() {
-  const { lang } = usePrefs()
-  const t = dictionaries[lang]
+  const { t } = usePrefs()
   const p = t.privacy
 
   return (

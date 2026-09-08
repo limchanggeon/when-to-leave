@@ -46,14 +46,18 @@
       href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap"
     />
     <!--
-      구글 애드센스. 광고는 이 스크립트가 알아서 붙인다.
+      구글 애드센스. VITE_ADSENSE_CLIENT 가 있을 때만 들어간다(vite.config.ts).
 
-      CSP 를 함께 열어야 한다(deploy/Caddyfile) — 광고는 스크립트를
-      더 불러오고 프레임을 띄우므로, 막힌 채로 두면 조용히 아무것도
-      안 나온다. 어떤 출처가 필요한지는 브라우저로 재서 넣었다.
+      값이 없으면 이 줄은 통째로 사라진다. 승인 전에는 광고가 하나도 안
+      나오는데 스크립트는 913 kB 를 받아오고 LCP 를 1.34초 늘린다 —
+      아무도 못 보는 광고를 위해 모든 방문자가 치르는 값이다.
+      도메인을 사고 승인받으면 서버의 .env 에 값만 넣으면 된다.
+
+      켤 때는 CSP 도 함께 열어야 한다(deploy/Caddyfile). 광고는 스크립트를
+      더 불러오고 프레임을 띄우므로, 막힌 채로 두면 조용히 아무것도 안 나온다.
+      필요한 출처는 이미 Caddyfile 에 들어 있다.
     -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2327680830824048"
-     crossorigin="anonymous"></script>
+    <!--ADSENSE-->
   </head>
   <body>
     <div id="root"></div>

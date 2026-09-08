@@ -6,7 +6,6 @@ import { googleAuth, kakaoAuth } from '../../auth/providers'
 import type { AuthFailure } from '../../auth/types'
 import { KakaoLoginButton } from '../components/KakaoLoginButton'
 import { EmailAuthForm } from '../components/EmailAuthForm'
-import { dictionaries } from '../../i18n'
 import { usePrefs } from '../PrefsContext'
 import type { I18nShape } from '../../i18n'
 
@@ -27,8 +26,7 @@ function failureText(f: AuthFailure, t: I18nShape): string {
 
 export function LoginPage() {
   const { account, failure, busy, signIn, applyResult } = useAuthContext()
-  const { lang } = usePrefs()
-  const t = dictionaries[lang]
+  const { t } = usePrefs()
   const navigate = useNavigate()
   const googleSlot = useRef<HTMLDivElement>(null)
   const [googleRendered, setGoogleRendered] = useState(false)

@@ -3,7 +3,6 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthContext } from '../../auth/AuthContext'
 import { exchangeKakaoCode } from '../../auth/api'
 import { config } from '../../config'
-import { dictionaries } from '../../i18n'
 import { usePrefs } from '../PrefsContext'
 
 type State =
@@ -20,8 +19,7 @@ export function KakaoCallbackPage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const { applyResult } = useAuthContext()
-  const { lang } = usePrefs()
-  const t = dictionaries[lang]
+  const { t } = usePrefs()
 
   const code = params.get('code')
   const oauthError = params.get('error')

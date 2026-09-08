@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { dictionaries } from '../../i18n'
 import { usePrefs } from '../PrefsContext'
 import { SiteHeader } from '../components/SiteHeader'
 import { DayBars } from '../components/DayBars'
@@ -115,8 +114,7 @@ const when = (ms: number) => new Date(ms).toLocaleString('ko-KR')
  * 남의 데이터가 사라지는 일이라 되돌릴 수가 없다.
  */
 export function AdminPage() {
-  const { lang } = usePrefs()
-  const t = dictionaries[lang]
+  const { t } = usePrefs()
   const [data, setData] = useState<Overview | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)

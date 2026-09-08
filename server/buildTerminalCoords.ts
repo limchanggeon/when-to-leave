@@ -16,7 +16,7 @@
  *   pnpm terminals:build
  */
 import './timezone'
-import { writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { serverEnv } from './env'
 import { TAGO, tagoCall } from './tago'
 import { INTERCITY_STOP } from './intercity'
@@ -174,25 +174,128 @@ async function build(service: string, op: string, kind: string, label: string) {
   return out
 }
 
-const suburbs = await build(TAGO.suburbsBus, 'GetSuberbsBusTrminlList', '시외버스터미널', '시외')
-const express = await build(TAGO.expBus, 'GetExpBusTrminlList', '고속버스터미널', '고속')
+/**
+ * 공항. 열다섯 곳뿐이고 이름이 또렷해서(“김포국제공항”) 터미널만큼 까다롭지 않다.
+ *
+ * 그래도 표에 넣는 이유는 **부팅이 남의 서버에 매달리지 않게** 하려는 것이다.
+ * 예전에는 서버가 뜰 때마다 이름 열다섯 개를 카카오에 물어 좌표를 만들었다.
+ * 카카오가 잠깐 죽어 있으면 그날은 공항 경로가 통째로 안 나왔고, 잘 돌 때도
+ * 첫 손님이 그 시간을 기다렸다.
+ *
+ * 검증은 분류로 한다 — 카카오 분류에 "공항" 이 들어간 것만 받는다.
+ * "김포공항역"(지하철)이나 도심공항터미널을 공항으로 잡으면 안 된다.
+ */
+async function buildAirports(): Promise<TerminalCoord[]> {
+  const rows =
+    (await tagoCall<{ airportId?: string; airportNm?: string }>(TAGO.flight, 'GetArprtList', {
+      numOfRows: '200',
+    })) ?? []
+  const out: TerminalCoord[] = []
+  const missed: string[] = []
+
+  for (const r of rows) {
+    const name = r.airportNm?.trim()
+    if (!name) continue
+    const docs = await search(name.endsWith('공항') ? name : `${name}공항`)
+    // 분류가 공항인 것만. 역·터미널이 섞여 들어오는 걸 여기서 막는다.
+    const ok = docs.filter(
+      (d) => /공항/.test(String(d.category_name ?? '')) && !/역$|터미널/.test(String(d.place_name ?? '')),
+    )
+    if (!ok.length) {
+      missed.push(name)
+      continue
+    }
+    const best = ok
+      .map((d) => ({ d, score: overlap(name, d.place_name ?? '') }))
+      .sort((a, b) => b.score - a.score)[0]
+    const lat = Number(best.d.y)
+    const lng = Number(best.d.x)
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      missed.push(name)
+      continue
+    }
+    const a = strip(name)
+    const b = strip(best.d.place_name ?? '')
+    out.push({
+      id: r.airportId?.trim() ?? '',
+      name,
+      lat,
+      lng,
+      matched: best.d.place_name,
+      region: regionOf(best.d),
+      confidence: b.includes(a) || a.includes(b) ? 'high' : 'low',
+    })
+  }
+  console.log(`\n공항: ${rows.length}곳 중 ${out.length}곳 찾음`)
+  if (missed.length) console.log(`  못 찾음: ${missed.join(', ')}`)
+  for (const x of out.filter((x) => x.confidence === 'low'))
+    console.log(`  검수 필요: "${x.name}" → "${x.matched}"`)
+  return out
+}
+
+/*
+ * 공항만 다시 만들 수 있게 한다: `pnpm terminals:build --airports`
+ *
+ * 터미널 쪽은 사람이 눈으로 검수한 결과라, 공항 하나 고치자고 수백 번
+ * 다시 물어 표를 통째로 갈아엎을 이유가 없다. 안 건드리는 칸은 지금
+ * 파일에 있는 것을 그대로 옮겨 적는다.
+ */
+const airportsOnly = process.argv.includes('--airports')
+const current = JSON.parse(
+  readFileSync(new URL('./terminalCoords.json', import.meta.url), 'utf8'),
+) as Record<string, TerminalCoord[]>
+const currentReview = JSON.parse(
+  readFileSync(new URL('./terminalCoords.review.json', import.meta.url), 'utf8'),
+) as Record<string, TerminalCoord[]>
+
+const suburbs = airportsOnly
+  ? (current.suburbsBus ?? [])
+  : await build(TAGO.suburbsBus, 'GetSuberbsBusTrminlList', '시외버스터미널', '시외')
+const express = airportsOnly
+  ? (current.expressBus ?? [])
+  : await build(TAGO.expBus, 'GetExpBusTrminlList', '고속버스터미널', '고속')
+const airports = await buildAirports()
 
 /* 믿을 수 있는 것만 남긴다. 나머지는 표에 없으니 예전대로 이름으로 맞춘다. */
 const keep = (rows: TerminalCoord[]) => rows.filter((r) => r.confidence === 'high')
-const s2 = keep(suburbs)
-const e2 = keep(express)
+
+/*
+ * **옮겨 적는 칸에는 이 체를 대지 않는다.**
+ *
+ * 지금 파일은 사람이 검수한 결과다. 이름이 안 겹쳐 빌더가 low 로 뱉은 것
+ * 중에도 사람이 보고 되살린 것이 있다 — "서울경부" → "서울고속버스터미널(경부)"
+ * 처럼 글자는 안 겹쳐도 명백히 맞는 것들이다. 여기에 체를 다시 대면 그런
+ * 판단이 조용히 지워진다(실제로 서울경부·광주 유스퀘어·백운이 날아갔다).
+ */
+const s2 = airportsOnly ? suburbs : keep(suburbs)
+const e2 = airportsOnly ? express : keep(express)
+const a2 = keep(airports)
+
+// 옮겨 적기만 한 칸이 줄었다면 뭔가 잘못된 것이다. 쓰지 않고 멈춘다.
+if (airportsOnly && (s2.length !== (current.suburbsBus ?? []).length || e2.length !== (current.expressBus ?? []).length)) {
+  console.error('터미널 칸이 그대로 옮겨지지 않았습니다. 쓰지 않고 멈춥니다.')
+  process.exit(1)
+}
 
 writeFileSync(
   new URL('./terminalCoords.json', import.meta.url),
-  JSON.stringify({ suburbsBus: s2, expressBus: e2 }, null, 1) + '\n',
+  JSON.stringify({ suburbsBus: s2, expressBus: e2, airport: a2 }, null, 1) + '\n',
 )
 writeFileSync(
   new URL('./terminalCoords.review.json', import.meta.url),
   JSON.stringify(
-    { suburbsBus: suburbs.filter((r) => r.confidence === 'low'), expressBus: express.filter((r) => r.confidence === 'low') },
+    airportsOnly
+      ? { ...currentReview, airport: airports.filter((r) => r.confidence === 'low') }
+      : {
+          suburbsBus: suburbs.filter((r) => r.confidence === 'low'),
+          expressBus: express.filter((r) => r.confidence === 'low'),
+          airport: airports.filter((r) => r.confidence === 'low'),
+        },
     null,
     1,
   ) + '\n',
 )
-console.log(`\n저장: server/terminalCoords.json (시외 ${s2.length} · 고속 ${e2.length})`)
-console.log(`검수용: server/terminalCoords.review.json (버린 것 ${suburbs.length - s2.length + express.length - e2.length}곳)`)
+console.log(`\n저장: server/terminalCoords.json (시외 ${s2.length} · 고속 ${e2.length} · 공항 ${a2.length})`)
+console.log(
+  `검수용: server/terminalCoords.review.json (버린 것 ${suburbs.length - s2.length + express.length - e2.length + airports.length - a2.length}곳)`,
+)

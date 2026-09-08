@@ -4976,5 +4976,142 @@
    "region": "서울",
    "confidence": "low"
   }
+ ],
+ "airport": [
+  {
+   "id": "NAARKJJ",
+   "name": "광주공항",
+   "lat": 35.1399338081509,
+   "lng": 126.81071196365689,
+   "matched": "광주공항",
+   "region": "전남광주통합특별시",
+   "confidence": "high"
+  },
+  {
+   "id": "NAARKJK",
+   "name": "군산공항",
+   "lat": 35.926056290656426,
+   "lng": 126.6154961710501,
+   "matched": "군산공항",
+   "region": "전북특별자치도",
+   "confidence": "high"
+  },
+  {
+   "id": "NAARKSS",
+   "name": "김포국제공항",
+   "lat": 37.55867678737794,
+   "lng": 126.80278135337612,
+   "matched": "김포국제공항 국내선",
+   "region": "서울",
+   "confidence": "high"
+  },
+  {
+   "id": "NAARKPK",
+   "name": "김해국제공항",
+   "lat": 35.17248776128935,
+   "lng": 128.9467852952128,
+   "matched": "김해국제공항 국제선청사",
+   "region": "부산",
+   "confidence": "high"
+  },
+  {
+   "id": "NAARKTN",
+   "name": "대구국제공항",
+   "lat": 35.89984054200828,
+   "lng": 128.63783835924795,
+   "matched": "대구국제공항",
+   "region": "대구",
+   "confidence": "high"
+  },
+  {
+   "id": "NAARKJB",
+   "name": "무안국제공항",
+   "lat": 34.99379238536811,
+   "lng": 126.38771352304379,
+   "matched": "무안국제공항",
+   "region": "전남광주통합특별시",
+   "confidence": "high"
+  },
+  {
+   "id": "NAARKPS",
+   "name": "사천공항",
+   "lat": 35.09224622361144,
+   "lng": 128.0866076055195,
+   "matched": "사천공항",
+   "region": "경남",
+   "confidence": "high"
+  },
+  {
+   "id": "NAARKNY",
+   "name": "양양국제공항",
+   "lat": 38.0587708561368,
+   "lng": 128.662893990739,
+   "matched": "양양국제공항",
+   "region": "강원특별자치도",
+   "confidence": "high"
+  },
+  {
+   "id": "NAARKJY",
+   "name": "여수공항",
+   "lat": 34.84020808849665,
+   "lng": 127.61395891494388,
+   "matched": "여수공항",
+   "region": "전남광주통합특별시",
+   "confidence": "high"
+  },
+  {
+   "id": "NAARKPU",
+   "name": "울산공항",
+   "lat": 35.5928514066839,
+   "lng": 129.355896902649,
+   "matched": "울산공항",
+   "region": "울산",
+   "confidence": "high"
+  },
+  {
+   "id": "NAARKNW",
+   "name": "원주공항",
+   "lat": 37.4592123278961,
+   "lng": 127.977120601283,
+   "matched": "원주공항",
+   "region": "강원특별자치도",
+   "confidence": "high"
+  },
+  {
+   "id": "NAARKSI",
+   "name": "인천국제공항",
+   "lat": 37.44916785897667,
+   "lng": 126.45092036935392,
+   "matched": "인천국제공항",
+   "region": "인천",
+   "confidence": "high"
+  },
+  {
+   "id": "NAARKPC",
+   "name": "제주국제공항",
+   "lat": 33.50683984835887,
+   "lng": 126.49272304493574,
+   "matched": "제주국제공항",
+   "region": "제주특별자치도",
+   "confidence": "high"
+  },
+  {
+   "id": "NAARKTU",
+   "name": "청주국제공항",
+   "lat": 36.72202695140528,
+   "lng": 127.49585623771586,
+   "matched": "청주국제공항",
+   "region": "충북",
+   "confidence": "high"
+  },
+  {
+   "id": "NAARKTH",
+   "name": "포항경주공항",
+   "lat": 35.98411314293607,
+   "lng": 129.43403945710318,
+   "matched": "포항경주공항",
+   "region": "경북",
+   "confidence": "high"
+  }
  ]
 }

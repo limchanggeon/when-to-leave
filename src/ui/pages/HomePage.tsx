@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { resolveWhen } from '../../parse/parse'
 import { dayOffset, diffMin, formatClock, hhmm, humanDuration } from '../../engine/time'
-import { dictionaries, type I18nShape } from '../../i18n'
+import type { I18nShape } from '../../i18n'
 import { planTrip, type PlanOutcome, type RouteOption } from '../planTrip'
 import { describeRoute } from '../../engine/rank'
 import { getLastResolved } from '../../adapters/live/koreaLive'
@@ -48,8 +48,7 @@ function dayTag(d: Date, base: Date, c: I18nShape['clock']): string | null {
 }
 
 export function HomePage() {
-  const { lang } = usePrefs()
-  const t = dictionaries[lang]
+  const { t } = usePrefs()
   const UNIT = { h: t.units.hour, m: t.units.minute }
   const [pending, setPending] = useState(false)
   const [outcome, setOutcome] = useState<PlanOutcome | null>(null)

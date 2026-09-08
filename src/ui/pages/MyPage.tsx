@@ -6,14 +6,13 @@ import type { MeSummary, SavedPlace } from '../../auth/me'
 import { calendarProvider, connectCalendar } from '../../alarm/calendarProvider'
 import { locate } from '../../geo'
 import { reverseGeocode } from '../../geo/reverse'
-import { dictionaries } from '../../i18n'
+import type { I18nShape } from '../../i18n'
 import { usePrefs } from '../PrefsContext'
 import { SiteHeader } from '../components/SiteHeader'
 import { SiteFooter } from '../components/SiteFooter'
 
 export function MyPage() {
-  const { lang } = usePrefs()
-  const t = dictionaries[lang]
+  const { t } = usePrefs()
   const { account, signOut } = useAuthContext()
   const navigate = useNavigate()
 
@@ -103,7 +102,7 @@ function ProfileSection({
   me,
   onSaved,
 }: {
-  t: typeof dictionaries.ko
+  t: I18nShape
   me: MeSummary
   onSaved: (m: MeSummary) => void
 }) {
@@ -151,7 +150,7 @@ function PlacesSection({
   onChanged,
   onError,
 }: {
-  t: typeof dictionaries.ko
+  t: I18nShape
   places: SavedPlace[]
   onChanged: () => void
   onError: (m: string) => void
@@ -251,7 +250,7 @@ function LinkedSection({
   t,
   identities,
 }: {
-  t: typeof dictionaries.ko
+  t: I18nShape
   identities: MeSummary['identities']
 }) {
   return (
@@ -279,7 +278,7 @@ function PasswordSection({
   onDone,
   onError,
 }: {
-  t: typeof dictionaries.ko
+  t: I18nShape
   hasPassword: boolean
   onDone: () => void
   onError: (m: string) => void
@@ -343,7 +342,7 @@ function DangerSection({
   onDeleted,
   onError,
 }: {
-  t: typeof dictionaries.ko
+  t: I18nShape
   onDeleted: () => void
   onError: (m: string) => void
 }) {
@@ -371,7 +370,7 @@ function CalendarSection({
   t,
   onError,
 }: {
-  t: typeof dictionaries.ko
+  t: I18nShape
   onError: (m: string) => void
 }) {
   const [connected, setConnected] = useState<boolean | null>(null)
