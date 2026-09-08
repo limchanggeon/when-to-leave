@@ -393,6 +393,32 @@ export const ko = {
       },
     ],
   },
+  /**
+   * 앱 껍데기. 웹에는 안 쓰인다.
+   *
+   * 앱에서는 화면 아래 탭으로 옮겨 다닌다. 웹의 햄버거 드로어는 웹 관습이고,
+   * 6인치 화면 맨 위는 엄지가 가장 닿기 어려운 자리다.
+   */
+  appNav: {
+    route: '길찾기',
+    settings: '설정',
+    tabs: '화면 이동',
+  },
+  settings: {
+    title: '설정',
+    account: '계정',
+    signedInAs: (who: string) => `${who} 님으로 로그인했습니다`,
+    signedOut: '로그인하지 않았습니다',
+    display: '화면',
+    help: '도움말',
+    about: '이 앱에 대해',
+    sources: '데이터 출처',
+    sourceKakao: '카카오맵 — 길찾기·장소',
+    sourceTago: '국토교통부 TAGO — 시각표',
+    repo: '소스 보기',
+    sponsor: '후원하기',
+    version: (v: string) => `버전 ${v}`,
+  },
   nav: {
     home: '홈',
     how: '어떻게 동작하나',

@@ -1375,3 +1375,104 @@
   .adminnav__home { margin-top: 0; margin-left: auto; white-space: nowrap; }
   .adminmain { padding: var(--sp-5) var(--sp-4); }
 }
+
+/* ================= 앱 껍데기 ================= */
+/*
+ * 웹에는 안 쓰인다(isApp() 으로 갈린다). 앱에서는 안내판이 화면을 위아래로
+ * 감싼다 — 머리에 이름표, 발치에 갈 곳. 그 사이가 내용이다.
+ *
+ * 웹의 머리말은 여덟 가지를 이고 있고 발치에는 링크 열 개짜리 사이트맵이
+ * 붙는데, 그건 화면이 넓고 마우스가 있을 때 통하는 배치다. 6인치에서는
+ * 홈 화면 높이의 35%가 푸터였다.
+ */
+.appbar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  /* 상태바 자리를 앱이 직접 칠하게 되면 그만큼 더 내려 앉는다 */
+  padding: calc(var(--sp-3) + env(safe-area-inset-top, 0px)) var(--sp-5) var(--sp-3);
+  background: var(--night); color: var(--night-ink);
+  border-bottom: 1px solid var(--night-rule);
+}
+.appbar__brand { display: flex; align-items: center; gap: var(--sp-2); text-decoration: none; color: inherit; }
+.appbar__logo { width: 26px; height: 26px; }
+.appbar__name { font-family: var(--font-display); font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; }
+.appbar__title { margin: 0; font-family: var(--font-display); font-size: 1.05rem; font-weight: 700; color: var(--night-ink); }
+.appbar__quota {
+  font-family: var(--font-num); font-size: 0.78rem; font-weight: 600;
+  font-variant-numeric: tabular-nums; color: var(--night-soft);
+}
+.appbar__quota.is-low { color: var(--signal); }
+
+/*
+ * 갈 곳. 아이콘을 쓰지 않는다 — 이 앱의 얼굴은 안내판이고 안내판에는
+ * 그림이 없다. 여기에만 아이콘 한 벌을 들이면 그 자리만 다른 앱에서
+ * 가져온 것처럼 뜬다. 고른 칸에는 검색판의 밑줄과 같은 호박색 표시를 준다.
+ */
+.apptabs {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  background: var(--night);
+  border-top: 1px solid var(--night-rule);
+  /* 제스처 막대 위로 띄운다. 없는 기기에서도 손가락이 모서리에 닿지 않게 최소값을 준다 */
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--sp-2));
+}
+.apptabs__tab {
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  /* 48px 은 손가락이 확실히 닿는 최소 크기다 */
+  min-height: 48px; padding: var(--sp-3) var(--sp-2);
+  font-family: var(--font-body); font-size: 0.9rem; font-weight: 600;
+  color: var(--night-soft); text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.apptabs__tab.is-on { color: var(--signal); }
+/* 고른 칸의 표시. 내용을 마주보는 위쪽 모서리에 긋는다 */
+.apptabs__tab.is-on::before {
+  content: ''; position: absolute; top: -1px; left: 22%; right: 22%; height: 2px;
+  background: var(--signal);
+}
+.apptabs__tab:active { background: rgba(255, 255, 255, 0.06); }
+
+/* 탭에 마지막 내용이 가리지 않게. 탭 높이(48) + 안전영역만큼 비운다 */
+.page--app,
+body:has(.apptabs) .page { padding-bottom: calc(56px + max(env(safe-area-inset-bottom, 0px), var(--sp-2))); }
+
+/* ================= 설정 화면 (앱) ================= */
+.settings { max-width: 640px; margin: 0 auto; padding: var(--sp-5) var(--sp-5) var(--sp-8); }
+.settings__group { padding: var(--sp-5) 0; border-bottom: 1px solid var(--rule); }
+.settings__group:last-of-type { border-bottom: none; }
+.settings__head {
+  margin: 0 0 var(--sp-3); font-size: 0.78rem; font-weight: 700;
+  color: var(--ink-faint); letter-spacing: 0.02em;
+}
+.settings__who { margin: 0 0 var(--sp-3); font-size: 0.95rem; font-weight: 600; color: var(--ink); }
+.settings__acts { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.settings__act {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  min-height: 44px; padding: var(--sp-2) var(--sp-4);
+  font-family: var(--font-body); font-size: 0.9rem; font-weight: 600;
+  color: var(--ink); text-decoration: none;
+  background: var(--surface); border: 1px solid var(--edge); border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.settings__act--go { background: var(--night); border-color: var(--night); color: var(--night-ink); }
+.settings__mark { width: 16px; height: 16px; }
+.settings__row {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+}
+.settings__label { font-size: 0.9rem; color: var(--ink-soft); }
+.settings__seg { display: flex; border: 1px solid var(--edge); border-radius: var(--radius-md); overflow: hidden; }
+.settings__segbtn {
+  min-height: 40px; padding: var(--sp-2) var(--sp-3);
+  font-family: var(--font-body); font-size: 0.84rem; font-weight: 600;
+  color: var(--ink-soft); background: var(--surface); border: none; cursor: pointer;
+}
+.settings__segbtn + .settings__segbtn { border-left: 1px solid var(--edge); }
+.settings__segbtn.is-on { background: var(--night); color: var(--night-ink); }
+.settings__list { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--sp-2); }
+.settings__list a { font-size: 0.9rem; color: var(--ink); }
+.settings__meta { display: grid; grid-template-columns: auto 1fr; gap: var(--sp-2) var(--sp-4); margin: var(--sp-4) 0 0; }
+.settings__meta dt { font-size: 0.8rem; color: var(--ink-faint); }
+.settings__meta dd { margin: 0; font-size: 0.88rem; color: var(--ink); }
+.settings__note { margin: var(--sp-3) 0 0; font-size: 0.78rem; line-height: 1.6; color: var(--ink-faint); }

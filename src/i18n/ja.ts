@@ -381,6 +381,32 @@ export const ja: I18nShape = {
       },
     ],
   },
+  /**
+   * 앱 껍데기. 웹에는 안 쓰인다.
+   *
+   * 앱에서는 화면 아래 탭으로 옮겨 다닌다. 웹의 햄버거 드로어는 웹 관습이고,
+   * 6인치 화면 맨 위는 엄지가 가장 닿기 어려운 자리다.
+   */
+  appNav: {
+    route: '経路',
+    settings: '設定',
+    tabs: '画面移動',
+  },
+  settings: {
+    title: '設定',
+    account: 'アカウント',
+    signedInAs: (who: string) => `${who} でログイン中`,
+    signedOut: 'ログインしていません',
+    display: '表示',
+    help: 'ヘルプ',
+    about: 'このアプリについて',
+    sources: 'データ出典',
+    sourceKakao: '카카오맵 — 길찾기·장소',
+    sourceTago: '국토교통부 TAGO — 시각표',
+    repo: 'ソースを見る',
+    sponsor: '支援する',
+    version: (v: string) => `バージョン ${v}`,
+  },
   nav: {
     home: 'ホーム',
     how: '仕組み',

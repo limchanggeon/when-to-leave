@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { isApp } from '../../native/platform'
 import { adsEnabled } from '../../ads'
 import { Link } from 'react-router-dom'
 import { useAuthContext } from '../../auth/AuthContext'
@@ -32,6 +33,15 @@ export function SiteFooter({ t, onHowTo }: { t: I18nShape; onHowTo?: () => void 
   const l = t.footerNav.links
   const f = t.footer
   const [contact, setContact] = useState(false)
+
+  /*
+   * 앱에서는 안 그린다. 같은 내용이 설정 화면에 있다.
+   *
+   * 재보니 이 푸터가 홈 화면 높이의 35%, 결과 화면의 24%였다. 링크 열 개짜리
+   * 사이트맵을 화면마다 발치에 붙여 두는 건 웹의 습관이고, 결과를 보다가
+   * 스크롤했더니 후원 링크가 나오는 것은 앱에서 하지 않는 일이다.
+   */
+  if (isApp()) return null
 
   return (
     <footer className="sitefooter">

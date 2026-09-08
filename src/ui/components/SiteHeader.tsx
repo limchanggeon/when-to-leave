@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom'
+import { displayName } from '../../auth/displayName'
+import { isApp } from '../../native/platform'
 import { useAuthContext } from '../../auth/AuthContext'
 import type { I18nShape, Lang } from '../../i18n'
 import { usePrefs, type Theme } from '../PrefsContext'
@@ -71,6 +73,30 @@ export function SiteHeader({
     }
   }, [menu])
 
+  /*
+   * 앱에서는 머리말이 이름표만 단다.
+   *
+   * 여기 있던 것들(언어·테마·사용법·로그인·마이페이지)은 전부 아래 탭과
+   * 설정 화면으로 내려갔다 — 6인치 화면 맨 위는 엄지가 가장 닿기 어려운
+   * 자리라, 자주 누르는 것을 거기 두는 것은 웹에서만 통하는 배치다.
+   * 남은 횟수만 남긴다. 검색하기 전에 알아야 하는 값이라 검색 화면에 있어야 한다.
+   */
+  if (isApp()) {
+    return (
+      <header className="appbar">
+        <Link className="appbar__brand" to="/" onClick={onHome}>
+          <Logo className="appbar__logo" />
+          <span className="appbar__name">{t.app.title}</span>
+        </Link>
+        {quota?.left !== null && quota?.left !== undefined && (
+          <span className={`appbar__quota ${quota.left <= 1 ? 'is-low' : ''}`}>
+            {t.quota.left(quota.left)}
+          </span>
+        )}
+      </header>
+    )
+  }
+
   return (
     <header className={`siteheader ${solid ? 'siteheader--solid' : ''}`}>
       <Link className="siteheader__brand" to="/" onClick={onHome}>
@@ -138,7 +164,7 @@ export function SiteHeader({
             )}
             <Link className="siteheader__me" to="/me">
               {account.avatarUrl && <img className="siteheader__avatar" src={account.avatarUrl} alt="" />}
-              <span className="siteheader__who">{account.name ?? account.email ?? ''}</span>
+              <span className="siteheader__who">{displayName(account)}</span>
             </Link>
             <button className="siteheader__btn siteheader__btn--ghost" type="button" onClick={signOut}>
               {t.nav.logout}
@@ -182,7 +208,7 @@ export function SiteHeader({
             <div className="hmenu">
               {account && (
                 <div className="hmenu__who">
-                  {account.name ?? account.email}
+                  {displayName(account)}
                   {quota?.left !== null && quota?.left !== undefined && (
                     <span className={`hmenu__quota ${quota.left <= 1 ? 'is-low' : ''}`}>
                       {t.quota.left(quota.left)}
