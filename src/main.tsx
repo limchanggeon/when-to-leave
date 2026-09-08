@@ -1,8 +1,16 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './ui/App'
+import { installApiBase } from './api/base'
+import { startShell } from './native/shell'
 import './ui/tokens.css'
 import './ui/ui.css'
+
+/*
+ * 앱이면 서버 주소를 붙인다. 웹이면 아무 일도 하지 않는다.
+ * **첫 요청(아래 /api/visit)보다 먼저** 해야 한다.
+ */
+installApiBase()
 
 /*
  * 방문 한 번 알린다.
@@ -26,3 +34,10 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+
+/*
+ * 앱 껍데기 준비(뒤로가기·상태바·스플래시). 그리기를 시작한 **뒤에** 부른다 —
+ * 스플래시는 첫 그림이 나온 다음 내려야 흰 화면이 안 번쩍인다.
+ * 웹에서는 아무 일도 하지 않는다.
+ */
+void startShell()

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        판 색. 웹의 tokens.css 와 index.html 의 theme-color 와 같은 값이다.
+
+        상태바 자리를 이 색으로 칠하려고 둔다. 안드로이드 15(API 35)부터는
+        setStatusBarColor 가 무시되므로 @capacitor/status-bar 로는 못 바꾼다 —
+        대신 창 배경을 칠하면 웹뷰 위에 남는 띠가 이 색이 된다.
+        안 칠하면 흰 띠가 남아 어두운 화면 위에 흰 줄이 그어진 꼴이 된다.
+    -->
+    <color name="whenigoInk">#0C1A2B</color>
+</resources>

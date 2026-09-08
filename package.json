@@ -22,9 +22,18 @@
     "admin:revoke": "tsx server/adminCli.ts revoke",
     "terminals:build": "tsx --env-file=.env server/buildTerminalCoords.ts",
     "terminals:verify": "tsx --env-file=.env server/verifyTerminalCoords.ts",
-    "admin:create": "tsx server/createAdmin.ts"
+    "admin:create": "tsx server/createAdmin.ts",
+    "app:build": "tsx scripts/appBuild.ts",
+    "app:apk": "pnpm app:build && cd android && ./gradlew assembleDebug",
+    "app:open": "pnpm app:build && cap open android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/browser": "^8.0.4",
+    "@capacitor/core": "^8.5.1",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "express": "^5.2.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -32,6 +41,8 @@
     "tsx": "^4.23.12"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.1",
     "@types/express": "^5.0.6",
     "@types/node": "^26.4.0",
     "@types/react": "^19.1.0",

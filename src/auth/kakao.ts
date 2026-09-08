@@ -56,6 +56,16 @@ export const kakaoAuth: AuthProvider = {
       return { ok: false, failure: { code: 'not-configured', provider: 'kakao', envVar: 'VITE_KAKAO_JS_KEY' } }
     }
 
+    /*
+     * 앱에서는 아래 길로 가지 않는다.
+     *
+     * 아래는 화면을 통째로 카카오로 옮기는 방식인데, 앱에서 그러면 웹뷰가
+     * 웹사이트를 열어버려 **앱이 사이트로 바뀐다.** 앱은 시스템 브라우저를
+     * 띄우고 앱 전용 주소로 돌아온다(src/auth/kakaoNative.ts).
+     */
+    const { isApp, signInWithKakaoApp } = await import('./kakaoNative')
+    if (isApp()) return signInWithKakaoApp()
+
     const Kakao = await ensureKakaoSdk()
     if (!Kakao) return { ok: false, failure: { code: 'sdk-unavailable', provider: 'kakao' } }
 

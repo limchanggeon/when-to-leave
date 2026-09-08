@@ -10,8 +10,13 @@ import { readFileSync } from 'node:fs'
 const text = readFileSync(new URL('../.env.example', import.meta.url), 'utf8')
 const lines = text.split('\n').filter((l) => l.trim() && !l.trim().startsWith('#'))
 
-/** 값이 있어도 되는 것들 — 비밀이 아니라 기본값이다. */
-const ALLOWED = new Set(['AWS_REGION', 'MAIL_TRANSPORT', 'PUBLIC_ORIGIN'])
+/**
+ * 값이 있어도 되는 것들 — 비밀이 아니라 기본값이다.
+ *
+ * APP_API_BASE 는 앱이 볼 서버 주소다. 앱을 뜯으면 그대로 보이는 공개
+ * 주소라 숨길 것이 없고, 오히려 적혀 있어야 다음 사람이 앱을 빌드할 수 있다.
+ */
+const ALLOWED = new Set(['AWS_REGION', 'MAIL_TRANSPORT', 'PUBLIC_ORIGIN', 'APP_API_BASE'])
 
 describe('.env.example', () => {
   it('비밀값이 적혀 있지 않다', () => {

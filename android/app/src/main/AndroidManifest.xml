@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        시계 앱에 알람을 만들 수 있게 한다.
+
+        설치할 때 묻지 않는 권한이다(normal). 우리가 알람을 소유하는 게 아니라
+        시계 앱에 부탁만 하는 것이라, 백그라운드 실행도 정확한 알람 권한도
+        필요 없다 — 사용자는 시계 앱에서 직접 끄고 켤 수 있다.
+    -->
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+                카카오 로그인이 끝나고 앱으로 돌아오는 문.
+
+                시스템 브라우저에서 로그인이 끝나면 카카오가 이 주소로
+                보내고, 안드로이드가 그걸 보고 우리 앱을 깨운다.
+                **카카오 콘솔의 Redirect URI 에 같은 값을 등록해야 한다** —
+                kr.whenigo.app://oauth/kakao (src/auth/kakaoNative.ts)
+
+                MainActivity 가 singleTask 라 이미 떠 있는 앱이 그대로
+                살아난다. 새로 뜨면 로그인 전 화면을 잃는다.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="kr.whenigo.app" android:host="oauth" />
+            </intent-filter>
+
+        </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"></meta-data>
+        </provider>
+    </application>
+
+    <!-- Permissions -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+</manifest>
