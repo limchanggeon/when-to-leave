@@ -156,6 +156,9 @@ export const ko = {
     doneBody: (name: string) => `${name ? name + '님, ' : ''}잠시 후 홈으로 이동합니다.`,
     failed: '로그인하지 못했습니다',
     retry: '다시 시도',
+    backToApp: '앱으로 돌아갑니다',
+    backToAppBody: '로그인이 끝났습니다. 앱이 바로 열리지 않으면 아래를 눌러주세요.',
+    backToAppAction: '언제나가 앱 열기',
   },
   geo: {
     staleCoords: '위치 정보가 사라졌습니다. ◎ 현재 위치를 다시 눌러주세요.',

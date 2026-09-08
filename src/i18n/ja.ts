@@ -154,6 +154,9 @@ export const ja: I18nShape = {
     doneBody: (name: string) => `${name ? name + 'さん、' : ''}まもなくホームに移動します。`,
     failed: 'ログインできませんでした',
     retry: '再試行',
+    backToApp: 'アプリに戻ります',
+    backToAppBody: 'ログインが完了しました。アプリが開かない場合は下を押してください。',
+    backToAppAction: 'アプリを開く',
   },
   geo: {
     staleCoords: '位置情報が失われました。◎ 現在地をもう一度押してください。',
