@@ -1,17 +1,14 @@
 import { Link } from 'react-router-dom'
+import { LangMenu } from './LangMenu'
 import { displayName } from '../../auth/displayName'
 import { isApp } from '../../native/platform'
 import { useAuthContext } from '../../auth/AuthContext'
-import type { I18nShape, Lang } from '../../i18n'
+import type { I18nShape } from '../../i18n'
 import { usePrefs, type Theme } from '../PrefsContext'
 import { Logo } from './Logo'
 import { useQuota } from '../quota'
 import { useEffect, useRef, useState } from 'react'
 
-const LANGS: { id: Lang; short: string }[] = [
-  { id: 'ko', short: '한국어' },
-  { id: 'ja', short: '日本語' },
-]
 
 const THEME_ORDER: Theme[] = ['system', 'light', 'dark']
 const THEME_ICON: Record<Theme, string> = { system: '◐', light: '☀', dark: '☾' }
@@ -41,7 +38,7 @@ export function SiteHeader({
   const { account, signOut } = useAuthContext()
   /* 다 쓰고 나서야 알면 늦다. 남은 횟수를 미리 보여준다. */
   const quota = useQuota(Boolean(account))
-  const { lang, setLang, theme, setTheme } = usePrefs()
+  const { theme, setTheme } = usePrefs()
 
   const nextTheme = THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length]
 
@@ -106,19 +103,7 @@ export function SiteHeader({
 
       <nav className="siteheader__nav">
         <div className="siteheader__wide">
-        <div className="langswitch" role="group" aria-label={t.nav.language}>
-          {LANGS.map((l) => (
-            <button
-              key={l.id}
-              type="button"
-              className={`langswitch__btn ${lang === l.id ? 'is-on' : ''}`}
-              onClick={() => setLang(l.id)}
-              aria-pressed={lang === l.id}
-            >
-              {l.short}
-            </button>
-          ))}
-        </div>
+        <LangMenu />
 
         {onHowTo && (
           <button
@@ -217,18 +202,9 @@ export function SiteHeader({
                 </div>
               )}
 
-              <div className="hmenu__row" role="group" aria-label={t.nav.language}>
-                {LANGS.map((l) => (
-                  <button
-                    key={l.id}
-                    type="button"
-                    className={`hmenu__seg ${lang === l.id ? 'is-on' : ''}`}
-                    onClick={() => setLang(l.id)}
-                    aria-pressed={lang === l.id}
-                  >
-                    {l.short}
-                  </button>
-                ))}
+              <div className="hmenu__row">
+                <span className="hmenu__rowlabel">{t.nav.language}</span>
+                <LangMenu className="langmenu--up" />
               </div>
 
               <button

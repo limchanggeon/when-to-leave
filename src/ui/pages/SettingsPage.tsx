@@ -6,11 +6,11 @@ import { useAuthContext } from '../../auth/AuthContext'
 import { adsEnabled } from '../../ads'
 import { usePrefs, type Theme } from '../PrefsContext'
 import { AppTabs } from '../components/AppTabs'
+import { LangMenu } from '../components/LangMenu'
 import { ContactDialog } from '../components/ContactDialog'
 import { GitHubMark, SponsorHeart } from '../components/BrandMarks'
 import { Tour } from '../components/Tour'
 import { isApp } from '../../native/platform'
-import type { Lang } from '../../i18n'
 
 const REPO = 'https://github.com/limchanggeon/when-to-leave'
 const SPONSOR = 'https://github.com/sponsors/limchanggeon'
@@ -27,7 +27,7 @@ const SPONSOR = 'https://github.com/sponsors/limchanggeon'
 export function SettingsPage() {
   usePageMeta('설정')
 
-  const { t, lang, setLang, theme, setTheme } = usePrefs()
+  const { t, theme, setTheme } = usePrefs()
   const { account, signOut } = useAuthContext()
   const [contact, setContact] = useState(false)
   const [tour, setTour] = useState(false)
@@ -40,10 +40,6 @@ export function SettingsPage() {
    */
   if (!isApp()) return <Navigate to="/" replace />
 
-  const LANGS: { id: Lang; label: string }[] = [
-    { id: 'ko', label: '한국어' },
-    { id: 'ja', label: '日本語' },
-  ]
   const THEMES: Theme[] = ['system', 'light', 'dark']
 
   return (
@@ -84,21 +80,10 @@ export function SettingsPage() {
         <section className="settings__group">
           <h2 className="settings__head">{s.display}</h2>
 
-          <div className="settings__row" role="group" aria-label={t.nav.language}>
+          <div className="settings__row">
             <span className="settings__label">{t.nav.language}</span>
-            <div className="settings__seg">
-              {LANGS.map((l) => (
-                <button
-                  key={l.id}
-                  type="button"
-                  className={`settings__segbtn ${lang === l.id ? 'is-on' : ''}`}
-                  aria-pressed={lang === l.id}
-                  onClick={() => setLang(l.id)}
-                >
-                  {l.label}
-                </button>
-              ))}
-            </div>
+            {/* 머리말과 같은 지구본 단추. 언어가 늘어도 이 줄은 안 밀린다 */}
+            <LangMenu />
           </div>
 
           <div className="settings__row" role="group" aria-label={t.nav.theme}>

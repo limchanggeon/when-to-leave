@@ -44,7 +44,10 @@ function loadJapaneseFont(): void {
   document.head.appendChild(link)
 }
 
-const readLang = (): Lang => (webStorage.get(KEY_LANG) === 'ja' ? 'ja' : 'ko')
+const readLang = (): Lang => {
+  const v = webStorage.get(KEY_LANG)
+  return v === 'ja' || v === 'en' ? v : 'ko'
+}
 const readTheme = (): Theme => {
   const v = webStorage.get(KEY_THEME)
   return v === 'light' || v === 'dark' ? v : 'system'

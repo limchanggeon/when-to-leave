@@ -1,6 +1,6 @@
 import { ko } from './ko'
 
-export type Lang = 'ko' | 'ja'
+export type Lang = 'ko' | 'ja' | 'en'
 export type { I18nShape } from './ko'
 
 /**
@@ -15,5 +15,16 @@ export type { I18nShape } from './ko'
  */
 export const dictionaries = { ko }
 
-export const loadDictionary = async (lang: Lang) =>
-  lang === 'ja' ? (await import('./ja')).ja : ko
+export const loadDictionary = async (lang: Lang) => {
+  if (lang === 'ja') return (await import('./ja')).ja
+  if (lang === 'en') return (await import('./en')).en
+  return ko
+}
+
+/** 고를 수 있는 언어. 화면에 보이는 이름은 그 언어 자신의 말로 적는다 —
+ *  영어를 못 읽는 사람도 "English" 는 알아본다. */
+export const LANGS: { id: Lang; label: string; htmlLang: string }[] = [
+  { id: 'ko', label: '한국어', htmlLang: 'ko' },
+  { id: 'ja', label: '日本語', htmlLang: 'ja' },
+  { id: 'en', label: 'English', htmlLang: 'en' },
+]
