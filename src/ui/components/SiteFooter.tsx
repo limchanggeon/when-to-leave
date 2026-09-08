@@ -6,7 +6,7 @@ import { useAuthContext } from '../../auth/AuthContext'
 import type { I18nShape } from '../../i18n'
 import { Logo } from './Logo'
 import { ContactDialog } from './ContactDialog'
-import { GitHubMark, SponsorHeart } from './BrandMarks'
+import { AndroidMark, GitHubMark, SponsorHeart } from './BrandMarks'
 
 const REPO = 'https://github.com/limchanggeon/when-to-leave'
 /**
@@ -14,6 +14,18 @@ const REPO = 'https://github.com/limchanggeon/when-to-leave'
  * 링크를 미리 두면 등록하는 날 저절로 살아난다.
  */
 const SPONSOR = 'https://github.com/sponsors/limchanggeon'
+
+/**
+ * 안드로이드 앱 내려받기.
+ *
+ * 깃허브 릴리스에 둔다. 저장소에 넣으면 3.2MB 짜리 바이너리가 판을 올릴
+ * 때마다 쌓여 저장소가 계속 무거워진다.
+ *
+ * **버전을 주소에 박아 둔다.** latest 주소는 사전 릴리스(알파)를 안 가리켜서
+ * 지금은 쓸 수 없고, 새 판을 낼 때 여기도 같이 고치게 하는 편이 낫다 —
+ * 링크가 조용히 옛 판을 가리키는 것보다 낫다.
+ */
+const APK = 'https://github.com/limchanggeon/when-to-leave/releases/download/v0.1.0-alpha/whenigo-0.1.0-alpha.apk'
 
 /**
  * 승강장 옆에 붙은 안내문.
@@ -77,6 +89,15 @@ export function SiteFooter({ t, onHowTo }: { t: I18nShape; onHowTo?: () => void 
         <section className="sitefooter__col">
           <h2 className="sitefooter__head">{t.footerNav.project}</h2>
           {/* 마크는 원형 그대로 두고 여백만 준다 — 깃허브 브랜드 지침 */}
+          {/*
+            * 내려받기. download 속성을 주면 브라우저가 창을 옮기지 않고
+            * 파일로 받는다. 다른 사이트 파일이라 강제되지는 않지만,
+            * 되는 브라우저에서는 화면이 안 흔들린다.
+            */}
+          <a className="sitefooter__brandlink" href={APK} download>
+            <AndroidMark className="sitefooter__mark--gh" />
+            {l.androidApp}
+          </a>
           <a className="sitefooter__brandlink" href={REPO} target="_blank" rel="noreferrer">
             <GitHubMark className="sitefooter__mark--gh" />
             {l.source}

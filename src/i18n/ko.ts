@@ -249,6 +249,7 @@ export const ko = {
       sponsor: '후원하기',
       privacy: '개인정보처리방침',
       contact: '문의하기',
+      androidApp: '안드로이드 앱 (알파)',
     },
   },
   quickRoutes: {

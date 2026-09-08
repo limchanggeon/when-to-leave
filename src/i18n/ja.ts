@@ -247,6 +247,7 @@ export const ja: I18nShape = {
       sponsor: '支援する',
       privacy: 'プライバシーポリシー',
       contact: 'お問い合わせ',
+      androidApp: 'Android アプリ (アルファ)',
     },
   },
   quickRoutes: {

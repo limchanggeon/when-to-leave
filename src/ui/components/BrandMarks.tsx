@@ -39,3 +39,24 @@ export function SponsorHeart({ className }: { className?: string }) {
     </svg>
   )
 }
+
+/**
+ * 안드로이드 로봇. 앱 내려받기 링크에 쓴다.
+ *
+ * 무엇을 받는지 한눈에 알려야 해서 로봇을 쓴다 — 아래 화살표만 그리면
+ * 뭘 받는지 모르고, 이 앱은 iOS 판이 아직 없어서 "앱" 이라고만 하면
+ * 아이폰 쓰는 사람이 헛걸음한다.
+ *
+ * 구글 안드로이드 브랜드 지침대로 모양을 고치지 않고, 색은 옆 글자를
+ * 따라가게 둔다(단색 사용은 허용된다).
+ */
+export function AndroidMark({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false">
+      <path
+        fill="currentColor"
+        d="M17.6 9.48l1.84-3.18a.4.4 0 0 0-.7-.4l-1.86 3.22a11.4 11.4 0 0 0-9.76 0L5.26 5.9a.4.4 0 1 0-.7.4L6.4 9.48A10.7 10.7 0 0 0 1 18h22a10.7 10.7 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"
+      />
+    </svg>
+  )
+}

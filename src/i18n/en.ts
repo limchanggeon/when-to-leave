@@ -252,6 +252,7 @@ export const en: I18nShape = {
       sponsor: 'Sponsor',
       privacy: 'Privacy policy',
       contact: 'Contact',
+      androidApp: 'Android app (alpha)',
     },
   },
   quickRoutes: {
