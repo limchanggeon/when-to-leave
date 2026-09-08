@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { adsEnabled } from '../../ads'
 import { Link } from 'react-router-dom'
 import { useAuthContext } from '../../auth/AuthContext'
 import type { I18nShape } from '../../i18n'
@@ -99,7 +100,7 @@ export function SiteFooter({ t, onHowTo }: { t: I18nShape; onHowTo?: () => void 
             </dd>
           </div>
         </dl>
-        <p className="sitefooter__note">{f.nonprofit}</p>
+        <p className="sitefooter__note">{adsEnabled ? f.nonprofit : f.nonprofitNoAds}</p>
         <p className="sitefooter__note">{f.disclaimer}</p>
       </div>
 

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { adsEnabled } from '../../ads'
 import { usePrefs } from '../PrefsContext'
 import { SiteHeader } from '../components/SiteHeader'
 import { SiteFooter } from '../components/SiteFooter'
@@ -22,7 +23,14 @@ export function PrivacyPage() {
         <h1 className="doc__title">{p.title}</h1>
         <p className="doc__lead">{p.lead}</p>
 
-        {p.sections.map((s) => (
+        {/*
+          * 광고 절은 광고를 실제로 달았을 때만 보인다.
+          * 애드센스는 도메인을 사기 전까지 꺼져 있는데(vite.config.ts),
+          * 그동안 광고 쿠키를 설명해두면 안 하는 일을 한다고 적는 셈이다.
+          */}
+        {p.sections
+          .filter((s) => adsEnabled || !('ads' in s && s.ads))
+          .map((s) => (
           <section className="doc__section" key={s.h}>
             <h2 className="doc__h">{s.h}</h2>
             {s.body.map((line) => (
