@@ -103,7 +103,14 @@ const ACCESS_MIN_M = 120
  * 정류장에서 목적지까지 걷고, 시외 후보 넷도 같은 터미널로 걸어간다.
  * 10m 눈금으로 접어 캐시한다.
  */
-const walkCache = new Map<string, WireLeg | null>()
+/*
+ * **값이 아니라 프라미스를 담는다.** 값을 담으면 동시에 나간 같은 요청이
+ * 모두 캐시를 빗나가 중복으로 물어보게 되고, 그게 싫어 호출부가 줄을
+ * 세우고 있었다 — 검색 한 번이 도보 여섯 번을 하나씩 기다렸다(713ms,
+ * 겹침 1.0배). 프라미스를 담으면 먼저 나간 요청에 나머지가 올라타므로,
+ * 중복 없이 한꺼번에 보낼 수 있다.
+ */
+const walkCache = new Map<string, Promise<WireLeg | null>>()
 const walkKey = (a: GeoPoint, b: GeoPoint) =>
   `${a.lat.toFixed(4)},${a.lng.toFixed(4)}>${b.lat.toFixed(4)},${b.lng.toFixed(4)}`
 
@@ -125,16 +132,8 @@ function guessWalk(from: GeoPoint, to: GeoPoint): WireLeg {
   }
 }
 
-export async function walkLeg(from: GeoPoint, to: GeoPoint): Promise<WireLeg | null> {
-  if (metres(from, to) < ACCESS_MIN_M) return null
-
-  const key = walkKey(from, to)
-  const hit = walkCache.get(key)
-  if (hit !== undefined) {
-    // 이름은 부르는 쪽마다 다르므로 좌표만 재사용하고 이름은 새로 붙인다
-    return hit && { ...hit, from: { ...hit.from, name: from.name }, to: { ...hit.to, name: to.name } }
-  }
-
+/** 실제로 물어보는 쪽. 캐시는 부르는 쪽(walkLeg)이 맡는다. */
+async function askWalk(from: GeoPoint, to: GeoPoint): Promise<WireLeg> {
   const url =
     `${WALK_URL}?start_x=${from.lng}&start_y=${from.lat}&end_x=${to.lng}&end_y=${to.lat}`
   const res = await fetchJson<WalkResponse>(url, { headers: auth() }, { label: '카카오 도보' })
@@ -147,17 +146,13 @@ export async function walkLeg(from: GeoPoint, to: GeoPoint): Promise<WireLeg | n
    * 걷는 구간이 통째로 빠졌다 — 청주 성안길 → 충북대가 "총 7분" 으로 나왔다.
    * 걸어야 하는 것은 사실이므로, 못 물어봤다고 없던 일로 만들지 않는다.
    */
-  if (!res.ok || res.data.status !== 'OK') {
-    const guess = guessWalk(from, to)
-    walkCache.set(key, guess)
-    return guess
-  }
+  if (!res.ok || res.data.status !== 'OK') return guessWalk(from, to)
 
   const leg = res.data.route?.legs?.[0]
   const minutes = Math.max(1, Math.round((leg?.properties?.time ?? 0) / 60))
   const shape = (leg?.steps ?? []).flatMap((s) => toLatLng(s.path?.points))
 
-  const out: WireLeg = {
+  return {
     kind: 'walk',
     from: { name: from.name, lat: from.lat, lng: from.lng },
     to: { name: to.name, lat: to.lat, lng: to.lng },
@@ -165,8 +160,23 @@ export async function walkLeg(from: GeoPoint, to: GeoPoint): Promise<WireLeg | n
     confidence: 'estimated',
     shape: shape.length > 1 ? encodePolyline(shape) : undefined,
   }
-  walkCache.set(key, out)
-  return out
+}
+
+export async function walkLeg(from: GeoPoint, to: GeoPoint): Promise<WireLeg | null> {
+  if (metres(from, to) < ACCESS_MIN_M) return null
+
+  const key = walkKey(from, to)
+  let pending = walkCache.get(key)
+  if (!pending) {
+    // 이 프라미스는 거절되지 않는다 — askWalk 이 실패를 어림값으로 바꾼다.
+    // 거절되는 프라미스를 담으면 그 자리가 영영 실패로 굳는다.
+    pending = askWalk(from, to)
+    walkCache.set(key, pending)
+  }
+
+  const hit = await pending
+  // 이름은 부르는 쪽마다 다르므로 좌표만 재사용하고 이름은 새로 붙인다
+  return hit && { ...hit, from: { ...hit.from, name: from.name }, to: { ...hit.to, name: to.name } }
 }
 
 function toLegs(route: KakaoRoute): WireLeg[] {
@@ -368,26 +378,36 @@ export async function searchTransitKakao(
   const extended = await Promise.all(
     (res.data.routes ?? []).slice(0, limit).map((r) => rideFurtherIfCloser(toLegs(r), from, to)),
   )
-  for (const legs of extended) {
-    if (legs.length === 0) continue
+  /*
+   * 앞뒤 도보도 한꺼번에 묻는다.
+   *
+   * 예전에는 경로를 하나씩 돌며 도보를 기다렸다. 여덟 경로의 앞뒤라
+   * 열여섯 번인데, 서로를 모르는 일을 열여섯 번 줄 세운 셈이다 —
+   * 목원대 → 대전역을 재보니 외부 호출 일곱 번이 겹침 없이 713ms 를 썼다.
+   * 같은 자리로 걷는 경로가 많아 실제로 나가는 요청은 몇 개뿐이고,
+   * 그 몇 개는 walkCache 가 하나로 묶어준다.
+   */
+  const withWalks = await Promise.all(
+    extended.map(async (legs) => {
+      if (legs.length === 0) return null
 
-    const first = legs[0]
-    const last = legs[legs.length - 1]
-    const access =
-      typeof first.from.lat === 'number' && typeof first.from.lng === 'number'
-        ? await walkLeg(from, { name: first.from.name, lat: first.from.lat, lng: first.from.lng })
-        : null
-    const egress =
-      typeof last.to.lat === 'number' && typeof last.to.lng === 'number'
-        ? await walkLeg({ name: last.to.name, lat: last.to.lat, lng: last.to.lng }, to)
-        : null
+      const first = legs[0]
+      const last = legs[legs.length - 1]
+      const [access, egress] = await Promise.all([
+        typeof first.from.lat === 'number' && typeof first.from.lng === 'number'
+          ? walkLeg(from, { name: first.from.name, lat: first.from.lat, lng: first.from.lng })
+          : null,
+        typeof last.to.lat === 'number' && typeof last.to.lng === 'number'
+          ? walkLeg({ name: last.to.name, lat: last.to.lat, lng: last.to.lng }, to)
+          : null,
+      ])
 
-    const all = [...(access ? [access] : []), ...legs, ...(egress ? [egress] : [])]
-    routes.push({
-      legs: all,
-      totalMin: all.reduce((sum, l) => sum + l.durationMin, 0),
-    })
-  }
+      const all = [...(access ? [access] : []), ...legs, ...(egress ? [egress] : [])]
+      return { legs: all, totalMin: all.reduce((sum, l) => sum + l.durationMin, 0) }
+    }),
+  )
+  // 순서는 Promise.all 이 지켜준다 — 카카오가 준 차례 그대로다
+  for (const r of withWalks) if (r) routes.push(r)
 
   if (routes.length === 0) {
     return { ok: false, code: 'no-data', message: '경로를 찾지 못했습니다' }

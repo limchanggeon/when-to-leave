@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { I18nShape } from '../../i18n'
 import { parseUtterance } from '../../parse/parse'
 import { locate, permissionState, type Coords, type GeoFailure } from '../../geo'
-import { fetchMe, type SavedPlace } from '../../auth/me'
+import type { SavedPlace } from '../../auth/me'
 import { reverseGeocode } from '../../geo/reverse'
 
 export interface QueryInput {
@@ -45,12 +45,21 @@ export function SearchPanel({
   pending,
   origin,
   onOriginChange,
+  saved,
 }: {
   t: I18nShape
   onSubmit: (q: QueryInput) => void
   pending: boolean
   origin: OriginState
   onOriginChange: (next: OriginState) => void
+  /**
+   * 마이페이지에 저장해둔 장소. 로그인 안 했으면 비어 있다.
+   *
+   * **여기서 직접 받아오지 않는다.** 예전에는 이 컴포넌트도 홈 화면도 각자
+   * /api/me 를 불러, 홈에 들어올 때마다 똑같은 요청이 두 번 나갔다.
+   * 부모가 이미 들고 있는 것을 내려받는다.
+   */
+  saved: SavedPlace[]
 }) {
   const [mode, setMode] = useState<QueryInput['mode']>('arriveBy')
   const [freeform, setFreeform] = useState(false)
@@ -58,18 +67,6 @@ export function SearchPanel({
   const [when, setWhen] = useState('')
   const [text, setText] = useState('')
   const { name: from, coords: fromCoords, geoName } = origin
-  /** 마이페이지에 저장해둔 장소. 로그인 안 했으면 비어 있다. */
-  const [saved, setSaved] = useState<SavedPlace[]>([])
-
-  useEffect(() => {
-    let cancelled = false
-    fetchMe().then((r) => {
-      if (!cancelled && r.ok) setSaved(r.data.places)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   /** 저장된 장소를 고르면 좌표까지 함께 들어온다 — 이름을 검색할 일이 없다. */
   function pickSaved(place: SavedPlace) {

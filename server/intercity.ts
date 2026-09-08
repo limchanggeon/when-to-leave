@@ -107,19 +107,31 @@ function loadAirports(): Promise<Hub[]> {
       const rows =
         (await tagoCall<{ airportNm?: string }>(TAGO.flight, 'GetArprtList', { numOfRows: '200' })) ??
         []
-      const out: Hub[] = []
-      for (const r of rows) {
-        const name = r.airportNm?.trim()
-        if (!name) continue
-        const g = await geocode(name)
-        if (g.ok) out.push({ name, lat: g.point.lat, lng: g.point.lng, distanceM: 0 })
-      }
+      /*
+       * 열다섯 곳을 한꺼번에 묻는다. 하나씩 물으면 1초 가까이 걸리는데,
+       * 그 값을 **서버가 뜨고 나서 첫 손님이 혼자 치른다** — 이 함수는
+       * 프로세스당 한 번만 도므로 그 한 번이 누군가의 검색 시간이 된다.
+       * 서로를 모르는 열다섯 개라 줄 세울 이유가 없다.
+       */
+      const names = rows.map((r) => r.airportNm?.trim()).filter((n): n is string => !!n)
+      const found = await Promise.all(names.map(async (name) => ({ name, g: await geocode(name) })))
+      const out: Hub[] = found
+        .filter((f) => f.g.ok)
+        .map((f) => ({
+          name: f.name,
+          lat: (f.g as Extract<typeof f.g, { ok: true }>).point.lat,
+          lng: (f.g as Extract<typeof f.g, { ok: true }>).point.lng,
+          distanceM: 0,
+        }))
       console.log(`[intercity] 공항 좌표 ${out.length}곳`)
       return out
     })()
   }
   return airportsPromise
 }
+
+/** 공항 좌표를 미리 받아둔다. server/index.ts 가 뜰 때 부른다. */
+export const warmAirports = loadAirports
 
 /** 공항까지는 멀어도 간다. 역·터미널보다 넉넉하게 본다. */
 const AIRPORT_RANGE_M = 80_000

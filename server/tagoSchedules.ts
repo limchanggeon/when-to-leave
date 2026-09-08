@@ -96,6 +96,31 @@ function find(lookup: Lookup, name: string): string | null {
   )
 }
 
+/**
+ * 물음별로 답을 들고 있는다. `once` 와 달리 **키가 있다.**
+ *
+ * 값이 아니라 프라미스를 담는다. 값을 담으면 동시에 나간 같은 물음이 모두
+ * 캐시를 빗나가 중복으로 나간다 — 목원대 → 서울역 한 번에 똑같은 URL 이
+ * 여덟 번 다시 나갔고 1.16초 어치였다.
+ *
+ * 실패한 답은 지운다. 한 번 못 물어본 것이 프로세스가 사는 내내 굳으면 안 된다.
+ * 오래된 것부터 버려 무한정 자라지 않게 한다 — 이 서버는 몇 주씩 산다.
+ */
+function memo<T>(limit: number): (key: string, load: () => Promise<T>) => Promise<T> {
+  const map = new Map<string, Promise<T>>()
+  return (key, load) => {
+    const hit = map.get(key)
+    if (hit) return hit
+    const p = load().catch((e) => {
+      map.delete(key)
+      throw e
+    })
+    map.set(key, p)
+    if (map.size > limit) map.delete(map.keys().next().value!)
+    return p
+  }
+}
+
 /** 목록은 거의 바뀌지 않으므로 한 번 받아 프로세스가 사는 동안 들고 있는다. */
 function once<T>(load: () => Promise<T>): () => Promise<T> {
   let cached: T | null = null
@@ -329,13 +354,19 @@ function splitId(id: string): { prefix: string; order: number } | null {
 }
 
 
+/** 역 이름 → 후보. 역 목록은 바뀌지 않으므로 이름당 한 번만 묻는다. */
+const candCache = memo<SubwayStationRow[]>(500)
+
 async function subwayCandidates(name: string): Promise<SubwayStationRow[]> {
   const clean = name.replace(/\(.*?\)/g, '').replace(/역$/, '').trim()
-  const rows =
-    (await tagoCall<SubwayStationRow>(TAGO.subway, 'GetKwrdFndSubwaySttnList', {
-      subwayStationName: clean,
-      numOfRows: '50',
-    })) ?? []
+  const rows = await candCache(
+    clean,
+    async () =>
+      (await tagoCall<SubwayStationRow>(TAGO.subway, 'GetKwrdFndSubwaySttnList', {
+        subwayStationName: clean,
+        numOfRows: '50',
+      })) ?? [],
+  )
   // 키워드 검색이라 "강남" 에 "강남대", "강남구청" 까지 딸려온다.
   // 이름이 정확히 같은 것을 앞으로 보낸다.
   const exact = (r: SubwayStationRow) =>
@@ -377,6 +408,18 @@ function samePair(
  *
  * 순서대로 물어보고 먼저 걸리는 것을 쓴다.
  */
+/**
+ * 참조 목록을 미리 받아둔다. 서버가 뜬 뒤 한 번 부른다.
+ *
+ * 안 부르면 이것들이 **첫 손님의 검색 시간에 얹힌다** — 목원대 → 서울역을
+ * 재보니 터미널·공항·역 목록을 받느라 첫 요청이 1초 가까이 더 걸렸다.
+ * 두 번째 손님부터는 공짜인 일을 첫 손님만 치르는 셈이라, 손님이 오기 전에
+ * 해둔다.
+ */
+export async function warmLists(): Promise<void> {
+  await Promise.all([expTerminals(), suburbsTerminals(), airports()])
+}
+
 export function dailyTypeCodes(d: Date): string[] {
   const day = d.getDay()
   if (day === 0) return ['03']
@@ -403,6 +446,9 @@ export const hhmmss = (v: string | undefined, base: Date): Date | null => {
  * 방향을 확신할 수 없으면 **null 을 준다.** 상·하행을 잘못 고르면
  * 반대편 열차 시각을 사실인 양 보여주게 되는데, 그건 시각표가 없는 것보다 나쁘다.
  */
+/** 역별 시각표. 인자에 날짜가 없어 답이 고정이다 — 그대로 들고 있는다. */
+const schedCache = memo<SubwaySchedRow[]>(800)
+
 export async function subwayDeparturesBetween(
   fromName: string,
   toName: string,
@@ -430,13 +476,19 @@ export async function subwayDeparturesBetween(
     // 토요일은 02 를 먼저 보고, 그 노선에 토요일 시각표가 따로 없으면 03 으로 간다
     outer: for (const code of dailyTypeCodes(day)) {
       for (const ud of ['U', 'D']) {
-        const rows =
+        /*
+         * (역, 요일코드, 상하행) 이면 답이 정해진다 — 날짜는 인자에 없다.
+         * 발차 시각만 받아 와 날짜는 아래에서 붙이므로, 하루가 바뀌어도
+         * 같은 답을 그대로 쓸 수 있다.
+         */
+        const rows = await schedCache(`${pair.dep}|${code}|${ud}`, async () =>
           (await tagoCall<SubwaySchedRow>(TAGO.subway, 'GetSubwaySttnAcctoSchdulList', {
             subwayStationId: pair.dep,
             dailyTypeCode: code,
             upDownTypeCode: ud,
             numOfRows: '400',
-          })) ?? []
+          })) ?? [],
+        )
         const end = rows[0]?.endSubwayStationId ? splitId(rows[0].endSubwayStationId) : null
         if (!end || end.prefix !== a.prefix) continue
         // 종점이 목적지와 같은 쪽에 있어야 그 방향 열차가 목적지를 지난다

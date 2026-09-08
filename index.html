@@ -32,9 +32,18 @@
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      일본어 폰트(Noto Sans JP)는 여기 없다. 일본어를 고른 사람만 받는다
+      (src/ui/PrefsContext.tsx).
+
+      CJK 폰트는 글자마다 unicode-range 를 쪼개 넣으므로 **목록 자체가 크다.**
+      JP 를 같이 넣으면 이 스타일시트가 gzip 209 kB 가 되고, 스타일시트는
+      렌더를 막으므로 한국어로 들어온 사람이 쓰지도 않을 118 kB 를 기다린 뒤에야
+      화면을 본다. 빼면 91 kB 다.
+    -->
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;800&family=Noto+Sans+JP:wght@400;500;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap"
     />
     <!--
       구글 애드센스. 광고는 이 스크립트가 알아서 붙인다.

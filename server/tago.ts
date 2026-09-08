@@ -88,22 +88,34 @@ interface StationRow { nodeid?: string; nodename?: string }
 
 /**
  * 역 목록은 거의 바뀌지 않으므로 한 번 받아 오래 들고 있는다.
- * 도시마다 따로 불러야 해서 처음 한 번이 느리다.
+ * 도시마다 따로 불러야 하므로 처음 한 번은 호출이 여러 번 나간다.
  */
 let stationMap: Map<string, string> | null = null
 let loading: Promise<Map<string, string>> | null = null
 
-async function loadStations(): Promise<Map<string, string>> {
+export async function loadStations(): Promise<Map<string, string>> {
   if (stationMap) return stationMap
   if (loading) return loading
 
   loading = (async () => {
-    const map = new Map<string, string>()
     const cities = await call<CityRow>('GetCtyCodeList', {})
-    for (const city of cities ?? []) {
-      const code = String(city.citycode ?? '')
-      if (!code) continue
-      const stations = await call<StationRow>('GetCtyAcctoTrainSttnList', { cityCode: code })
+    const codes = (cities ?? [])
+      .map((c) => String(c.citycode ?? ''))
+      .filter(Boolean)
+
+    /*
+     * 도시를 한꺼번에 묻는다. 하나씩 물으면 열댓 번이 줄을 서 2초 가까이
+     * 걸렸다. 도시들은 서로를 모르는 일이다.
+     *
+     * 결과를 넣는 순서는 도시 순서 그대로 지킨다 — 같은 이름이 여러 도시에
+     * 있을 때 어느 것이 이기는지가 바뀌면 안 된다(먼저 나온 것이 이긴다).
+     */
+    const perCity = await Promise.all(
+      codes.map((code) => call<StationRow>('GetCtyAcctoTrainSttnList', { cityCode: code })),
+    )
+
+    const map = new Map<string, string>()
+    for (const stations of perCity) {
       for (const st of stations ?? []) {
         if (st.nodename && st.nodeid && !map.has(st.nodename)) map.set(st.nodename, st.nodeid)
       }

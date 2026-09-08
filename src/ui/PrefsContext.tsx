@@ -16,6 +16,27 @@ const KEY_THEME = 'wtl.theme'
 
 const Ctx = createContext<Prefs | null>(null)
 
+const JA_FONT =
+  'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;800&display=swap'
+
+/**
+ * 일본어 폰트는 일본어를 고른 사람만 받는다.
+ *
+ * index.html 에 같이 넣어두면 한국어로 들어온 사람도 렌더 전에 이걸 기다린다 —
+ * CJK 폰트는 unicode-range 목록이 길어서 스타일시트만 gzip 118 kB 다.
+ * 한국어 화면에는 KR 폰트로 다 그려지므로 받을 이유가 없다.
+ *
+ * 늦게 붙어도 괜찮다. display=swap 이라 폰트가 오기 전에는 대체 글꼴로
+ * 먼저 보이고, 오면 바뀐다.
+ */
+function loadJapaneseFont(): void {
+  if (document.querySelector(`link[href="${JA_FONT}"]`)) return
+  const link = document.createElement('link')
+  link.rel = 'stylesheet'
+  link.href = JA_FONT
+  document.head.appendChild(link)
+}
+
 const readLang = (): Lang => (webStorage.get(KEY_LANG) === 'ja' ? 'ja' : 'ko')
 const readTheme = (): Theme => {
   const v = webStorage.get(KEY_THEME)
@@ -39,6 +60,7 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.lang = lang
+    if (lang === 'ja') loadJapaneseFont()
   }, [lang])
 
   const setLang = useCallback((l: Lang) => {

@@ -62,13 +62,14 @@ import {
 import { geocode, reverseGeocode, type GeoPoint } from './geocode'
 import type { WireRoute } from './routeTypes'
 import { searchTransitKakao } from './kakaoTransit'
-import { searchIntercity } from './intercity'
-import { trainsBetween } from './tago'
+import { searchIntercity, warmAirports } from './intercity'
+import { loadStations, trainsBetween } from './tago'
 import {
   expressBusesBetween,
   flightsBetween,
   suburbsBusesBetween,
   subwayDeparturesBetween,
+  warmLists,
   type Run,
 } from './tagoSchedules'
 import {
@@ -789,10 +790,22 @@ async function searchKorea(start: GeoPoint, end: GeoPoint) {
   }
 }
 
+/**
+ * 구간마다 시각표를 붙인다.
+ *
+ * **한꺼번에 물어본다.** 예전에는 구간을 하나씩 돌며 기다렸다 — 경로 여섯
+ * 개의 구간을 줄 세우면 검색 끝자락에 TAGO 만 1.3초를 더 썼다(목원대 →
+ * 서울역에서 잰 값). 구간들은 서로를 모르는 일이라 줄 세울 이유가 없다.
+ *
+ * 캐시에는 **값이 아니라 프라미스를 담는다.** 값을 담으면 동시에 나간 같은
+ * 질문이 모두 캐시를 빗나가 중복으로 물어보게 된다 — 그게 싫어서 예전 코드가
+ * 줄을 세우고 있었다. 프라미스를 담으면 먼저 나간 쪽에 나머지가 올라탄다.
+ */
 async function withTimetables(routes: WireRoute[]): Promise<WireRoute[]> {
-  const cache = new Map<string, Run[] | null>()
+  const cache = new Map<string, Promise<Run[] | null>>()
   const now = new Date()
 
+  const pending: { leg: WireRoute['legs'][number]; runs: Promise<Run[] | null> }[] = []
   for (const route of routes) {
     for (const leg of route.legs) {
       if (!leg.tagoKind) continue
@@ -800,20 +813,34 @@ async function withTimetables(routes: WireRoute[]): Promise<WireRoute[]> {
       if (leg.runs?.length) continue
 
       const key = `${leg.tagoKind}:${leg.from.name}>${leg.to.name}`
-      if (!cache.has(key)) {
-        cache.set(key, await lookupRuns(leg, now))
+      let runs = cache.get(key)
+      if (!runs) {
+        /*
+         * 여기서 터진 것은 삼킨다. 한 구간의 시각표를 못 얻은 것이지
+         * 경로를 못 찾은 것이 아니다 — 예전에는 하나가 터지면 검색 전체가
+         * 500 이 됐고, 이제는 공유하는 프라미스라 한 번의 실패가 그걸
+         * 기다리는 모든 구간으로 번진다. 시각표 없는 구간은 아래에서
+         * 이미 다루고 있다.
+         */
+        runs = lookupRuns(leg, now).catch(() => null)
+        cache.set(key, runs)
       }
-      const runs = cache.get(key)
-      if (!runs?.length) continue
+      pending.push({ leg, runs })
+    }
+  }
 
-      leg.runs = runs.map((r) => ({
+  await Promise.all(
+    pending.map(async ({ leg, runs }) => {
+      const found = await runs
+      if (!found?.length) return
+      leg.runs = found.map((r) => ({
         departAt: r.departAt,
         arriveAt: r.arriveAt,
         carrier: r.carrier,
         fare: r.fare,
       }))
-    }
-  }
+    }),
+  )
   return routes
 }
 
@@ -1436,4 +1463,24 @@ app.listen(serverEnv.port, () => {
   if (serverEnv.sessionSecret === 'dev-only-insecure-secret') {
     console.log('[server] ⚠ SESSION_SECRET 이 기본값입니다. 운영 전에 반드시 바꾸세요')
   }
+
+  /*
+   * 참조 목록을 미리 받아둔다.
+   *
+   * 역·터미널·공항 목록은 프로세스당 한 번만 받으면 되는데, 미리 안 받으면
+   * **첫 손님의 검색에 얹힌다.** 재배포할 때마다 그다음 한 사람이 1초 가까이
+   * 더 기다리는 셈이다.
+   *
+   * listen 안에서 부르되 기다리지 않는다 — 목록이 아직이어도 요청은 받아야
+   * 하고, 그 경우 예전처럼 요청 쪽에서 같은 프라미스를 기다린다.
+   * 실패해도 서버를 세우지 않는다. TAGO 가 잠깐 죽어 있을 수 있고,
+   * 그때는 다음 요청이 다시 시도한다.
+   */
+  const began = Date.now()
+  Promise.allSettled([loadStations(), warmLists(), warmAirports()]).then((rs) => {
+    const failed = rs.filter((r) => r.status === 'rejected').length
+    console.log(
+      `[server] 참조 목록 준비 ${Date.now() - began}ms` + (failed ? ` (${failed}건 실패 — 다음 요청이 다시 시도합니다)` : ''),
+    )
+  })
 })

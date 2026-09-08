@@ -12,6 +12,21 @@ export type HttpResult<T> =
 const DEFAULT_TIMEOUT_MS = 4000
 const DEFAULT_RETRIES = 3
 
+/*
+ * 한 번의 호출에 쓸 수 있는 전체 시간.
+ *
+ * 재시도 자체는 위 이유로 필요하지만, **매번 타임아웃까지 다 기다리는**
+ * 경우가 문제였다. 4초 × 4회 = 16초를 한 호출이 혼자 쓸 수 있었고, 검색은
+ * 호출 수십 개를 나란히 기다리므로 그중 하나만 그래도 검색 전체가 그만큼
+ * 걸린다 — 부산역 → 해운대가 다른 때는 2.2초인데 한 번은 12.4초가 나왔다.
+ * 호출 26번 중 하나가 멈춘 것이었다.
+ *
+ * 그래서 횟수 대신 시간으로 막는다. 안 붙는 IP 는 연결이 밀리초 만에
+ * 실패하므로 네 번 다 시도할 수 있고(원래 노리던 경우), 상대가 느려서
+ * 매번 타임아웃이 나는 경우에만 두 번에서 멈춘다.
+ */
+const DEFAULT_BUDGET_MS = 8000
+
 /**
  * 외부 API 호출. 타임아웃과 재시도를 붙인다.
  *
@@ -23,16 +38,22 @@ const DEFAULT_RETRIES = 3
 export async function fetchJson<T>(
   url: string,
   init: RequestInit = {},
-  opts: { timeoutMs?: number; retries?: number; label?: string } = {},
+  opts: { timeoutMs?: number; retries?: number; budgetMs?: number; label?: string } = {},
 ): Promise<HttpResult<T>> {
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
   const retries = opts.retries ?? DEFAULT_RETRIES
+  const budgetMs = opts.budgetMs ?? DEFAULT_BUDGET_MS
   const label = opts.label ?? '외부 서비스'
 
+  const started = Date.now()
   let lastMessage = ''
   for (let attempt = 0; attempt <= retries; attempt++) {
+    // 남은 예산보다 오래 기다리지 않는다. 예산을 다 썼으면 더 시도하지 않는다.
+    const left = budgetMs - (Date.now() - started)
+    if (left <= 0) break
+
     const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), timeoutMs)
+    const timer = setTimeout(() => controller.abort(), Math.min(timeoutMs, left))
     try {
       const res = await fetch(url, { ...init, signal: controller.signal })
       clearTimeout(timer)
@@ -64,5 +85,10 @@ export async function fetchJson<T>(
       }
     }
   }
-  return { ok: false, kind: 'network', message: lastMessage || `${label} 호출에 실패했습니다` }
+  // 예산을 다 써서 빠져나온 경우. 마지막으로 본 실패를 그대로 전한다.
+  return {
+    ok: false,
+    kind: lastMessage.includes('오지 않았습니다') ? 'timeout' : 'network',
+    message: lastMessage || `${label} 호출에 실패했습니다`,
+  }
 }

@@ -321,6 +321,7 @@ export function HomePage() {
           pending={pending}
           origin={origin}
           onOriginChange={setOrigin}
+          saved={places}
         />
       </Hero>
 
