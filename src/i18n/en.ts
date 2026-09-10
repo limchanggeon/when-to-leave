@@ -273,7 +273,7 @@ export const en: I18nShape = {
   sections: { journey: 'Journey', map: 'Map' },
   seat: { ok: 'Seats available', soldOut: 'Sold out' },
   verifyNotice: {
-    pending: 'Your address is confirmed. Now wait for an administrator to approve you — you can sign in as soon as they do',
+    pending: 'Email verification is complete. Sign in with your email and password; administrator approval is not required.',
     ok: 'Your email address is confirmed. You are signed in.',
     expired: 'That link expired. Ask for the email again from the sign-in screen.',
     used: 'That link was already used. You can just sign in.',
