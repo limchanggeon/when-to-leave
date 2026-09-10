@@ -384,7 +384,7 @@ export function AdminPage() {
                       )}
                       {u.approved && !u.emailVerified && (
                         <button type="button" className="btn btn--ghost" disabled={busy === u.id}
-                          onClick={() => act(u, '/unapprove', { method: 'POST' }, `${u.email} 의 승인을 거둘까요? 로그인도 끊깁니다.`)}>승인 거둠</button>
+                          onClick={() => act(u, '/unapprove', { method: 'POST' }, `${u.email} 의 수동 승인을 거둘까요? 현재 세션은 끊기지만 이메일 인증을 마친 계정은 다시 로그인할 수 있습니다.`)}>승인 거둠</button>
                       )}
                       {/* 등급은 고르는 것이지 누르는 것이 아니다 — 셋 중 하나다 */}
                       <select

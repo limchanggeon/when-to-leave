@@ -64,3 +64,45 @@ describe('중복확인', () => {
     expect(emailAvailable('MIXED@Example.COM')).toBe(false)
   })
 })
+
+describe('이메일 인증 가입', () => {
+  it('메일 확인 전에는 막고 확인 후에는 관리자 승인 없이 로그인한다', async () => {
+    const { canSignIn, markEmailVerified, findById } = await import('./users')
+    const r = await registerWithPassword('new@example.com', 'Whenigo-2026!', null)
+    if (!r.ok) throw new Error('가입 실패')
+    expect(canSignIn(r.user)).toBe(false)
+    markEmailVerified(r.user.id)
+    const user = findById(r.user.id)!
+    expect(user.approved).toBe(false)
+    expect(canSignIn(user)).toBe(true)
+  })
+
+  it('기존 수동 승인 계정은 계속 로그인할 수 있다', async () => {
+    const { canSignIn, findByEmail, findById } = await import('./users')
+    seed('legacy@example.com', { approved: true })
+    expect(canSignIn(findById(findByEmail('legacy@example.com')!.id)!)).toBe(true)
+  })
+
+  it('소셜로 소유를 확인하면 미인증 가입자가 심은 비밀번호와 토큰을 없앤다', async () => {
+    const { upsertSocialUser, findByEmail, canSignIn } = await import('./users')
+    const { issue, consume } = await import('./emailTokens')
+    const r = await registerWithPassword('owner@example.com', 'Whenigo-2026!', null)
+    if (!r.ok) throw new Error('가입 실패')
+    const token = issue(r.user.id, r.user.email, 'verify', 60_000)
+    const owner = upsertSocialUser({ provider: 'google', providerUserId: 'owner',
+      email: 'owner@example.com', name: 'Owner', avatarUrl: null })
+    expect(canSignIn(owner)).toBe(true)
+    expect(findByEmail(owner.email)!.password_hash).toBeNull()
+    expect(consume(token, 'verify').ok).toBe(false)
+  })
+
+  it('해싱 중 소셜 인증이 끝나도 뒤늦은 가입 요청이 비밀번호를 덮어쓰지 않는다', async () => {
+    const { upsertSocialUser, findByEmail } = await import('./users')
+    seed('race@example.com', {})
+    const registration = registerWithPassword('race@example.com', 'Whenigo-2026!', 'Attacker')
+    upsertSocialUser({ provider: 'google', providerUserId: 'race',
+      email: 'race@example.com', name: 'Owner', avatarUrl: null })
+    expect((await registration).ok).toBe(false)
+    expect(findByEmail('race@example.com')!.password_hash).toBeNull()
+  })
+})

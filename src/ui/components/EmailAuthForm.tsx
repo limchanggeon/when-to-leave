@@ -21,8 +21,6 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
    * 가입 직후 할 일은 이 화면에 더 입력하는 게 아니라 메일을 여는 것이다.
    */
   const [sentTo, setSentTo] = useState<string | null>(null)
-  /** 확인 메일이 실제로 나갔는지. 못 나갔으면 그 사실도 말해준다. */
-  const [mailed, setMailed] = useState(true)
   /**
    * 중복확인 결과. 서버가 시간당 20번만 답하므로 글자를 칠 때마다 묻지 않고
    * 버튼을 눌렀을 때만 묻는다 — 자동이면 주소 하나 적는 동안 다 써버린다.
@@ -62,7 +60,6 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
       // 가입은 계정 대신 "보냈다" 만 온다. 링크를 눌러야 로그인된다.
       if ('sent' in r) {
         setSentTo(email.trim())
-        setMailed(r.mailed !== false)
       }
       else applyResult({ ok: true, account: r.account })
     } else {
@@ -79,8 +76,12 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
 
   async function resend() {
     setBusy(true)
-    await resendVerification(email.trim())
+    const r = await resendVerification(email.trim())
     setBusy(false)
+    if (!r.ok) {
+      setError(r.message)
+      return
+    }
     setSentTo(email.trim())
     setNeedsVerify(false)
     setError(null)
@@ -98,8 +99,10 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
         <h3 className="emailauth__senttitle">{t.emailAuth.sentTitle}</h3>
         <p className="emailauth__sentto num">{sentTo}</p>
         <p className="emailauth__senthint">{t.emailAuth.sentHint}</p>
-        {/* 메일이 못 나갔어도 신청은 접수됐다 — 그 둘을 헷갈리지 않게 적는다 */}
-        {!mailed && <p className="emailauth__senthint">{t.emailAuth.sentMailNote}</p>}
+        {error && <p className="emailauth__error" role="alert">{error}</p>}
+        <button type="button" className="emailauth__resend" onClick={resend} disabled={busy}>
+          {busy ? t.emailAuth.working : t.emailAuth.resend}
+        </button>
         <button
           type="button"
           className="emailauth__back"

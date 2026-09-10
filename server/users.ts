@@ -93,12 +93,17 @@ export async function registerWithPassword(
   password: string,
   name: string | null,
 ): Promise<RegisterResult> {
-  const existing = findByEmail(email)
+  let existing = findByEmail(email)
   if (existing && isClaimed(existing)) {
     return { ok: false, code: 'email-verified-elsewhere', user: toUser(existing) }
   }
 
   const hash = await hashPassword(password)
+  // 해싱을 기다리는 동안 인증이나 다른 가입이 끝났을 수 있다.
+  existing = findByEmail(email)
+  if (existing && isClaimed(existing)) {
+    return { ok: false, code: 'email-verified-elsewhere', user: toUser(existing) }
+  }
   const now = Date.now()
 
   if (existing) {
@@ -237,6 +242,14 @@ export function upsertSocialUser(input: {
       tier: 'free',
     }
   } else if (verifiedAt && !user.emailVerified) {
+    // 미인증 가입자가 미리 심은 비밀번호와 인증 링크가 소셜 인증 후 살아나면
+    // 그 가입자가 진짜 이메일 소유자의 계정에 들어올 수 있다.
+    if (!user.approved) {
+      conn.prepare('UPDATE users SET password_hash = NULL WHERE id = ?').run(user.id)
+      conn.prepare('DELETE FROM sessions WHERE user_id = ?').run(user.id)
+      conn.prepare('DELETE FROM email_tokens WHERE user_id = ?').run(user.id)
+      conn.prepare('DELETE FROM places WHERE user_id = ?').run(user.id)
+    }
     // 비밀번호로 먼저 가입해 미인증이던 계정에 소셜을 붙였다면, 제공자가
     // 확인해준 것이므로 이 시점에 확인 완료가 된다.
     conn.prepare('UPDATE users SET email_verified_at = ? WHERE id = ?').run(verifiedAt, user.id)
@@ -252,17 +265,8 @@ export function upsertSocialUser(input: {
   return user
 }
 
-/**
- * 이 계정으로 로그인할 수 있는가. **승인 하나로 갈린다.**
- *
- * 메일 확인이나 소셜 로그인은 "이 주소가 진짜인가" 에 대한 답이지
- * "이 사람을 받을 것인가" 에 대한 답이 아니다. 구글·카카오는 **연동 수단**
- * 이지 입장 허가가 아니다 — 그쪽 계정은 누구나 몇 초면 만든다.
- *
- * 그래서 어떻게 들어오든 사람이 한 번 열어줘야 한다. 메일 확인은 그대로
- * 남는다. 승인할지 정할 때 관리자가 보는 근거가 된다.
- */
-export const canSignIn = (u: User): boolean => u.approved
+/** 이메일 소유 확인을 마치면 로그인한다. 기존 관리자 승인 계정도 유지한다. */
+export const canSignIn = (u: User): boolean => u.emailVerified || u.approved
 
 /** 관리자가 가입을 승인한다. 이미 승인돼 있으면 시각을 덮어쓰지 않는다. */
 export function approveUser(userId: string, byEmail: string): void {
@@ -271,7 +275,7 @@ export function approveUser(userId: string, byEmail: string): void {
     .run(Date.now(), byEmail, userId)
 }
 
-/** 승인을 거둔다. 다시 못 들어온다. */
+/** 수동 승인을 거둔다. 이메일 인증 계정의 이용 정지는 별도 기능이다. */
 export function unapproveUser(userId: string): void {
   db().prepare('UPDATE users SET approved_at = NULL, approved_by = NULL WHERE id = ?').run(userId)
 }

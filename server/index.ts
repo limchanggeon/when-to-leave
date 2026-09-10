@@ -169,15 +169,7 @@ app.get('/api/auth/me', (req, res) => {
 })
 
 /** 카카오 인가 코드 → 세션. 클라이언트는 코드만 넘기고 토큰은 구경도 못 한다. */
-/**
- * 승인 전이면 세션을 주지 않는다.
- *
- * 소셜로 들어오든 메일 링크를 누르든 마찬가지다. 구글·카카오는 **연동
- * 수단**이지 입장 허가가 아니다 — 그쪽 계정은 누구나 몇 초면 만든다.
- * 계정은 이미 만들어져 있으므로, 관리자가 승인하면 다시 눌러 들어온다.
- *
- * 참이면 호출부는 그대로 진행한다. 거짓이면 여기서 응답을 끝냈다.
- */
+/** 확인된 이메일이나 기존 수동 승인이 있는 소셜 계정에 세션을 준다. */
 function grantSession(res: express.Response, user: User): boolean {
   if (!canSignIn(user)) {
     res.status(403).json({
@@ -542,20 +534,15 @@ app.post('/api/auth/register', async (req, res) => {
     sent = await sendMail(alreadyRegisteredMail(result.user.email))
   }
 
-  /*
-   * 메일이 나갔든 안 나갔든 **가입 신청은 접수됐다.**
-   *
-   * 예전에는 메일 실패를 503 으로 알렸다. 그때는 메일 링크가 계정을 여는
-   * 관문이었으니 맞는 말이었는데, 지금은 관리자 승인이 관문이다. 그래서
-   * "메일을 못 보냈으니 다시 시도하세요" 는 두 번 틀린다 — 다시 시도할
-   * 것이 없고, 정작 승인 줄에 들어갔다는 사실을 안 알려준다.
-   *
-   * 두 갈래(새 가입 · 이미 확인된 주소)가 **같은 답**을 준다. 다르게 답하면
-   * 그 차이만으로 어떤 주소가 가입돼 있는지 훑을 수 있다.
-   * `mailed` 는 알려줘도 된다 — 메일이 못 나가는 것은 전송기 사정이라
-   * 주소마다 다르지 않다. 어떤 주소가 가입돼 있는지와 무관하다.
-   */
-  res.json({ sent: true, pending: true, mailed: sent.ok })
+  // 링크 확인이 가입 관문이므로 발송 실패를 성공으로 안내하지 않는다.
+  if (!sent.ok) {
+    res.status(503).json({ error: {
+      code: 'mail-unavailable',
+      message: '인증 메일을 보내지 못했습니다. 잠시 후 다시 시도해 주세요',
+    } })
+    return
+  }
+  res.json({ sent: true })
 })
 
 /**
@@ -586,17 +573,7 @@ app.get('/api/auth/verify', (req, res) => {
     return
   }
 
-  /*
-   * 주소는 확인해 준다 — 링크를 누른 건 사실이고, 그 사실은 관리자가
-   * 승인을 정할 때 보는 근거가 된다. 다만 **들여보내지는 않는다.**
-   * 확인은 "이 주소가 진짜인가" 의 답이지 "이 사람을 받을 것인가" 가 아니다.
-   */
   markEmailVerified(r.userId)
-  const fresh = findById(r.userId)
-  if (!fresh || !canSignIn(fresh)) {
-    res.redirect(`${home}/?verify=pending`)
-    return
-  }
   res.cookie(COOKIE_NAME, createSession(r.userId), cookieOptions)
   res.redirect(`${home}/?verify=ok`)
 })
@@ -627,7 +604,7 @@ app.post('/api/auth/verify/resend', async (req, res) => {
     const token = issue(row.id, row.email, 'verify', VERIFY_TTL_MS)
     await sendMail(verifyMail(row.email, token))
   }
-  res.json({ sent: true, pending: true })
+  res.json({ sent: true })
 })
 
 /** 이메일·비밀번호 로그인. */
@@ -670,10 +647,8 @@ app.post('/api/auth/login', async (req, res) => {
     limiter.succeed(accountKey)
     res.status(403).json({
       error: {
-        // 'email-unverified' 가 아니다. 메일을 다시 받아도 안 열린다 —
-        // 열어주는 것은 사람이므로, 무엇을 기다리는지 이름으로도 말한다.
-        code: 'not-approved',
-        message: '가입 승인을 기다리는 중입니다. 승인되면 바로 로그인할 수 있습니다',
+        code: 'email-unverified',
+        message: '이메일 인증을 완료해 주세요. 받은 메일의 링크를 누르면 로그인할 수 있습니다',
       },
     })
     return
