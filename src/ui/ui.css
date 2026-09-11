@@ -510,8 +510,6 @@
  * 밝은 판 토큰(--ink-soft, --brand)을 쓰면 남색 위에 남색이 되어 사라진다.
  * 실제로 중복확인 버튼 글자가 안 보였다.
  */
-.emailauth__hint--bad { color: #FF9E90; }
-.emailauth__hint--ok { color: #7ED9B4; }
 /*
  * 입력과 버튼을 한 줄에 둔다. 아래 선에 맞춰 세워야 밑줄이 이어져 보인다 —
  * 이 판의 입력은 테두리가 아니라 밑줄 하나로 그려진다.
@@ -546,7 +544,7 @@
 .map {
   display: flex; flex-direction: column; flex: 1 1 auto; min-height: 320px; height: 100%;
 }
-.map__head { display: flex; align-items: baseline; justify-content: space-between; padding: 0 0 var(--sp-3); }
+.map__head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: space-between; padding: 0 0 var(--sp-3); }
 .map__label { font-size: 0.9rem; font-weight: 700; color: var(--ink); }
 .map__provider { font-size: 0.8rem; color: var(--ink-faint); }
 .map__canvas { width: 100%; flex: 1 1 auto; min-height: 240px; border-radius: var(--radius-md); overflow: hidden; }
@@ -918,6 +916,13 @@
 .emailauth__field input:hover { border-bottom-color: var(--night-ink); }
 .emailauth__field input:focus { border-bottom-color: var(--signal); border-bottom-width: 2px; outline: none; padding-bottom: calc(var(--sp-2) - 1px); }
 .emailauth__hint { font-style: normal; font-size: 0.76rem; color: var(--night-soft); }
+/*
+ * 수식 클래스는 **기본 규칙 뒤에** 와야 한다. 특정도가 같으면 나중 것이
+ * 이기므로, 앞에 두면 조용히 먹힌다 — 실제로 그래서 "너무 흔한
+ * 비밀번호입니다" 가 평범한 회색 본문으로 보이고 있었다(앱에서 잡았다).
+ */
+.emailauth__hint--bad { color: #FF9E90; }
+.emailauth__hint--ok { color: #7ED9B4; }
 .emailauth__error {
   margin: 0; padding: var(--sp-2) 0 var(--sp-2) var(--sp-4);
   border-left: 3px solid #FF8A7A; font-size: 0.86rem; color: var(--night-ink);
@@ -1582,3 +1587,9 @@ body:has(.apptabs) .page { padding-bottom: calc(56px + max(env(safe-area-inset-b
 .login .pwrules__item { color: var(--night-soft); }
 .login .pwrules__item.is-met { color: var(--night-ink); }
 .login .pwrules__status { color: var(--night-ink); }
+
+/* Android GPS position is distinct from itinerary markers. */
+.map__current-dot { display: block; width: 16px; height: 16px; border: 3px solid white; border-radius: 50%; background: #2f6bff; box-shadow: 0 0 0 5px rgb(47 107 255 / 20%); }
+.map__locate { margin-left: auto; min-height: 44px; padding: 6px 10px; background: transparent; color: inherit; border: 1px solid currentColor; border-radius: 4px; cursor: pointer; }
+.map__locate:disabled { opacity: .55; cursor: wait; }
+.map__location-status { margin: 0; padding: 8px 12px; font-size: 12px; }
