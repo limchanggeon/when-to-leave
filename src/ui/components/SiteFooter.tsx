@@ -25,7 +25,8 @@ const SPONSOR = 'https://github.com/sponsors/limchanggeon'
  * 지금은 쓸 수 없고, 새 판을 낼 때 여기도 같이 고치게 하는 편이 낫다 —
  * 링크가 조용히 옛 판을 가리키는 것보다 낫다.
  */
-const APK = 'https://github.com/limchanggeon/when-to-leave/releases/download/v0.1.0-alpha/whenigo-0.1.0-alpha.apk'
+const APK =
+  'https://github.com/limchanggeon/when-to-leave/releases/download/v0.1.2-alpha/whenigo-0.1.2-alpha.apk'
 
 /**
  * 승강장 옆에 붙은 안내문.
