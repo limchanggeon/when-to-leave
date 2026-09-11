@@ -14,7 +14,7 @@
 
 - 운영: **https://whenigo.p-e.kr**
 - 저장소: `limchanggeon/when-to-leave` (2026-09-08 공개 전환 기록, 비상업용 라이선스)
-- React 웹과 **Capacitor Android 앱**을 공유 코드로 제공한다. 공개 Android는 `0.1.0-alpha`, 최신 로컬 빌드는 `0.1.1-alpha`다. iOS 앱은 미구현이다.
+- React 웹과 **Capacitor Android 앱**을 공유 코드로 제공한다. 공개 Android는 `0.1.0-alpha`, 최신 로컬 빌드는 `0.1.2-alpha`다. iOS 앱은 미구현이다.
 
 ## Android GPS·출발 알람 — 2026-09-11 작업
 
@@ -36,7 +36,8 @@
 - 빌드 JDK는 Java 21을 사용한다. 현재 Android Studio 내장 Java 25는 Gradle 8.14.3과
   맞지 않아 `Unsupported class file major version 69`로 실패한다.
   로컬 JDK 경로: `/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home`.
-- 전달용 APK: `android/app/build/outputs/apk/release/whenigo-0.1.1-alpha.apk`.
+- 전달용 APK: `android/app/build/outputs/apk/release/whenigo-0.1.2-alpha.apk` (versionCode 3).
+  **0.1.1 은 쓰지 말 것 — 시계 알람이 아무 일도 하지 않는다**(ClockAlarm.then 버그).
   Gradle 원본은 같은 폴더의 `app-release.apk`이며 두 파일은 동일하다.
   실제 휴대전화의 GPS 수신과 시계 앱 저장·울림 확인은 남아 있다.
 
@@ -55,7 +56,7 @@
 | 캘린더 | 구글 캘린더에 출발 알람 등록 |
 | 디자인 | "발차 안내판" 시각 언어 적용 완료 |
 | 접근성 | 이전 검사에서 axe 위반 0건(홈·로그인·결과). 이번에는 재검사하지 않음 |
-| Android | 로컬 `0.1.1-alpha`: GPS 현재 위치·오차 반경, 버튼식 출발 알람. 서명 APK 완성, 공개 다운로드는 아직 `0.1.0-alpha` |
+| Android | 로컬 `0.1.2-alpha`: GPS 현재 위치·오차 반경, 버튼식 출발 알람. 서명 APK 완성, 공개 다운로드는 아직 `0.1.0-alpha` |
 | 언어 | 한국어·일본어·영어. 교통 데이터는 국내만 지원 |
 | 조회 한도 | 비회원 브라우저에서 1회 체험, 회원 무료 3회/일·후원자 50회/일·무제한 등급 |
 | 디자인 재작업 | 2026-09-04 — 흰 카드 제거, 판 하나로 통합, 알약 폐기 |

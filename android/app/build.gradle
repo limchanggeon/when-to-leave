@@ -14,8 +14,8 @@ android {
          * versionName 은 사람이 읽는 값이라 아무렇게나 적어도 된다.
          * 아직 알파라 그렇게 적는다 — 받는 사람이 무엇을 받는지 알아야 한다.
          */
-        versionCode 2
-        versionName "0.1.1-alpha"
+        versionCode 3
+        versionName "0.1.2-alpha"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
