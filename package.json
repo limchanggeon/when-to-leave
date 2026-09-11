@@ -26,7 +26,8 @@
     "app:build": "tsx scripts/appBuild.ts",
     "app:apk": "pnpm app:build && cd android && ./gradlew assembleDebug",
     "app:open": "pnpm app:build && cap open android",
-    "app:icons": "tsx scripts/appIcons.ts"
+    "app:icons": "tsx scripts/appIcons.ts",
+    "app:release": "pnpm app:build && cd android && ./gradlew assembleRelease"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",
