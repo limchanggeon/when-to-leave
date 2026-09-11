@@ -68,6 +68,24 @@ export const ko = {
     submitLogin: '로그인',
     submitRegister: '가입하고 시작하기',
     passwordHint: '8자 이상, 영문 대문자·숫자·특수문자를 각각 하나 이상',
+    /** 입력하는 동안 무엇을 채웠는지 보여준다. 순서는 화면에 나오는 순서다. */
+    passwordRules: {
+      label: '비밀번호 조건',
+      length: '8자 이상',
+      upper: '대문자',
+      digit: '숫자',
+      symbol: '특수문자',
+      done: '충족',
+      todo: '아직',
+      allMet: '조건을 모두 채웠습니다',
+    },
+    /** 조건은 지켰는데 걸리는 것들. 서버가 거절하는 이유와 같다. */
+    passwordProblem: {
+      'too-long': '비밀번호가 너무 깁니다 (128자 이하)',
+      'too-common': '너무 흔한 비밀번호입니다',
+      'too-simple': '연속되거나 반복되는 문자만으로는 안 됩니다',
+      'looks-like-email': '이메일과 너무 비슷합니다',
+    },
     password2: '비밀번호 확인',
     mismatch: '비밀번호가 서로 다릅니다',
     or: '또는',

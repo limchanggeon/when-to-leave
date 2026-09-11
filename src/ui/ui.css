@@ -1546,3 +1546,39 @@ body:has(.apptabs) .page { padding-bottom: calc(56px + max(env(safe-area-inset-b
 /* 설정 화면의 밝은 판 위에서는 테두리도 밝은 판 것을 쓴다 */
 .settings .langmenu__btn { color: var(--ink); border-color: var(--edge); }
 .settings .langmenu__btn:hover { border-color: var(--ink-soft); }
+
+/* ================= 비밀번호 조건 =================
+ *
+ * 무엇을 채웠는지 입력하는 동안 보여준다. 제출해봐야 아는 건 답답하다.
+ * 상자로 감싸지 않고 입력창 아래 한 줄로 눕힌다 — 폼이 무거워지면
+ * 정작 채워야 할 칸에서 눈이 멀어진다.
+ */
+.pwrules {
+  list-style: none; margin: var(--sp-2) 0 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-4);
+}
+.pwrules__item {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.8rem; color: var(--ink-faint);
+  transition: color 0.15s ease;
+}
+/* 색만으로 알리지 않는다 — 표시가 · 에서 ✓ 로 바뀌는 것이 본체다 */
+.pwrules__mark {
+  width: 0.9em; text-align: center; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.pwrules__item.is-met { color: var(--teal); }
+/* 비어 있어도 자리를 잡는다 — 다 채운 순간 아래가 밀리면 시선이 튄다. */
+.pwrules__status {
+  display: block; font-size: 0.8rem; color: var(--teal);
+  min-height: 1.1em; margin-top: 2px;
+}
+
+/*
+ * 로그인 화면은 판 자체다. 밝은 바탕용 색을 그대로 쓰면 어두운 판 위에서
+ * 3.3:1 까지 떨어진다(실측). 판 위에서는 판의 어휘를 쓴다 —
+ * 초록을 새로 들이지 않고, 채운 것은 흰 글자와 ✓ 로 구분한다.
+ */
+.login .pwrules__item { color: var(--night-soft); }
+.login .pwrules__item.is-met { color: var(--night-ink); }
+.login .pwrules__status { color: var(--night-ink); }

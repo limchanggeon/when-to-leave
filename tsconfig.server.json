@@ -9,5 +9,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["server"]
+  "include": ["server", "src/auth/passwordRules.ts"]
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { scryptSync } from 'node:crypto'
-import { MAX_LENGTH, checkPassword, hashPassword, verifyPassword } from './password'
+import { MAX_LENGTH, checkPassword, hashPassword, verifyPassword, describePassword } from './password'
 
 describe('해싱', () => {
   it('맞는 비밀번호만 통과한다', async () => {
@@ -130,5 +130,54 @@ describe('구성 규칙 (대문자·숫자·특수문자)', () => {
 
   it('한글도 특수문자로 치지 않는다 — 영문·숫자가 아니면 통과시키되 나머지 규칙은 그대로', () => {
     expect(checkPassword('비밀번호1234')?.code).toBe('needs-upper')
+  })
+})
+
+describe('describePassword — 화면에 보여줄 규칙 상태', () => {
+  const ids = (pw: string, email?: string) =>
+    describePassword(pw, email)
+      .rules.filter((r) => r.met)
+      .map((r) => r.id)
+
+  it('빈 값이면 아무것도 채워지지 않았다', () => {
+    const r = describePassword('')
+    expect(r.metCount).toBe(0)
+    expect(r.ok).toBe(false)
+    // 아직 아무것도 안 친 사람에게 "흔한 비밀번호" 라고 하지 않는다
+    expect(r.problem).toBeNull()
+  })
+
+  it('채운 것만 표시한다', () => {
+    expect(ids('abcdefgh')).toEqual(['length'])
+    expect(ids('Abcdefgh')).toEqual(['length', 'upper'])
+    expect(ids('Abcdefg1')).toEqual(['length', 'upper', 'digit'])
+    expect(ids('Abcdefg1!')).toEqual(['length', 'upper', 'digit', 'symbol'])
+  })
+
+  it('checkPassword 와 답이 갈리지 않는다', () => {
+    // 두 벌이 되면 "다 초록인데 거부당함" 이 난다. 그걸 막는 시험이다.
+    for (const pw of ['', 'short', 'abcdefgh', 'Abcdefg1!', 'Password1!', 'aaaaaaaA1!', 'x'.repeat(200)]) {
+      expect(describePassword(pw).ok).toBe(checkPassword(pw) === null)
+    }
+  })
+
+  it('조건을 다 채워도 뻔한 모양이면 문제로 남는다', () => {
+    const r = describePassword('Password1!')
+    expect(r.metCount).toBe(4)
+    expect(r.ok).toBe(false)
+    expect(r.problem?.code).toBe('too-common')
+  })
+
+  it('규칙으로 이미 보여주는 실패는 문제로 또 말하지 않는다', () => {
+    // 대문자가 없는 것은 체크 목록에 이미 회색으로 떠 있다
+    const r = describePassword('abcdefg1!')
+    expect(r.problem).toBeNull()
+    expect(r.ok).toBe(false)
+  })
+
+  it('이메일과 닮은 것은 조건을 다 채워도 걸린다', () => {
+    const r = describePassword('Chulsoo99!', 'chulsoo@example.com')
+    expect(r.metCount).toBe(4)
+    expect(r.problem?.code).toBe('looks-like-email')
   })
 })

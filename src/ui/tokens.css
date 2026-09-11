@@ -113,7 +113,7 @@
     --tint: #162434;
     --ink: #E9EEF4;
     --ink-soft: #9BA9BA;
-    --ink-faint: #78889C;   /* 어두운 판 대비 4.7:1 — 4.04:1 이던 것을 올렸다 */
+    --ink-faint: #8493A5;   /* 가장 밝은 어두운 바탕(sunk)에서도 5.0:1 */
     --rule: #1F2F42;
     --rule-strong: #33465E;
     --edge: #566C86;
@@ -144,7 +144,7 @@
   --tint: #162434;
   --ink: #E9EEF4;
   --ink-soft: #9BA9BA;
-  --ink-faint: #78889C;   /* 어두운 판 대비 4.7:1 — 4.04:1 이던 것을 올렸다 */
+  --ink-faint: #8493A5;   /* 가장 밝은 어두운 바탕(sunk)에서도 5.0:1 */
   --rule: #1F2F42;
   --rule-strong: #33465E;
   --edge: #566C86;

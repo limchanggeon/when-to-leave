@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { describePassword } from '../../auth/passwordRules'
 import { checkEmailAvailable, loginWithEmail, registerWithEmail, resendVerification } from '../../auth/api'
 import { useAuthContext } from '../../auth/AuthContext'
 import type { I18nShape } from '../../i18n'
@@ -31,6 +32,12 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
   const [needsVerify, setNeedsVerify] = useState(false)
 
   const mismatch = tab === 'register' && password2.length > 0 && password !== password2
+
+  /*
+   * 무엇을 채웠는지 입력하는 동안 보여준다. 규칙은 서버와 같은 파일에서
+   * 온다(src/auth/passwordRules.ts) — 두 벌이면 "다 초록인데 거부당함" 이 난다.
+   */
+  const pw = describePassword(password, email.trim() || undefined)
   const canSubmit =
     email.trim().length > 0 &&
     password.length > 0 &&
@@ -211,7 +218,39 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
           autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
           required
         />
-        {tab === 'register' && <em className="emailauth__hint">{t.emailAuth.passwordHint}</em>}
+        {tab === 'register' && (
+          <>
+            <ul className="pwrules" aria-label={t.emailAuth.passwordRules.label}>
+              {pw.rules.map((r) => (
+                <li
+                  key={r.id}
+                  className={`pwrules__item ${r.met ? 'is-met' : ''}`}
+                  /* 색만으로 알리지 않는다 — 보조기기와 색각 이상 모두에게 */
+                  aria-label={`${t.emailAuth.passwordRules[r.id]} ${
+                    r.met ? t.emailAuth.passwordRules.done : t.emailAuth.passwordRules.todo
+                  }`}
+                >
+                  <span className="pwrules__mark" aria-hidden="true">
+                    {r.met ? '✓' : '·'}
+                  </span>
+                  {t.emailAuth.passwordRules[r.id]}
+                </li>
+              ))}
+            </ul>
+            {/* 다 채웠다는 사실도 말해준다. 표시가 없으면 눌러봐야 안다. */}
+            <span className="pwrules__status" role="status">
+              {password.length > 0 && pw.ok ? t.emailAuth.passwordRules.allMet : ''}
+            </span>
+            {/* 조건은 지켰는데 걸리는 것 — 흔한 비밀번호·연속·이메일 닮음 */}
+            {pw.problem && (
+              <em className="emailauth__hint emailauth__hint--bad" role="alert">
+                {t.emailAuth.passwordProblem[
+                  pw.problem.code as keyof typeof t.emailAuth.passwordProblem
+                ] ?? pw.problem.message}
+              </em>
+            )}
+          </>
+        )}
       </label>
 
       {tab === 'register' && (
