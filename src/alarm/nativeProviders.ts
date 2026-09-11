@@ -1,3 +1,4 @@
+import { clockTime } from './clockTime'
 import { platform } from '../native/platform'
 import type { AlarmProvider, AlarmResult } from './types'
 
@@ -20,10 +21,23 @@ interface ClockAlarm {
 /*
  * 부를 때 불러온다. 위에서 import 하면 @capacitor/core 가 웹 번들에도
  * 실려 나가는데, 웹에서는 이 provider 가 아예 쓰이지 않는다.
+ *
+ * ⚠ **플러그인을 async 함수가 그대로 return 하면 안 된다.**
+ * 카파시터가 주는 것은 Proxy 라서 어떤 속성을 물어도 메서드로 받아준다.
+ * async 함수는 반환값이 thenable 인지 보려고 `.then` 을 건드리는데,
+ * 그 순간 프록시가 그것마저 플러그인 메서드로 여기고
+ * `"ClockAlarm.then()" is not implemented on android` 를 던진다.
+ * 그래서 알람 단추가 아무 일도 안 했다(에뮬레이터에서 잡았다).
+ * 상자에 담아 돌려주면 thenable 검사가 상자를 보고 끝난다.
  */
-const clockAlarm = async (): Promise<ClockAlarm> => {
-  const { registerPlugin } = await import('@capacitor/core')
-  return registerPlugin<ClockAlarm>('ClockAlarm')
+let cached: ClockAlarm | null = null
+
+const clockAlarm = async (): Promise<{ plugin: ClockAlarm }> => {
+  if (!cached) {
+    const { registerPlugin } = await import('@capacitor/core')
+    cached = registerPlugin<ClockAlarm>('ClockAlarm')
+  }
+  return { plugin: cached }
 }
 
 /**
@@ -46,17 +60,22 @@ export const androidClockProvider: AlarmProvider = {
     if (platform() !== 'android') {
       return unavailable('Android 앱에서만 시계 알람을 만들 수 있습니다 (브라우저에는 해당 API 가 없습니다)')
     }
+    const invalid = clockTime(req.at)
+    if (invalid) return unavailable(invalid === 'past'
+      ? '출발 시각이 지났습니다. 다시 계산해 주세요.'
+      : '기기 시계는 날짜를 지정할 수 없습니다. 이 여정은 캘린더를 이용해 주세요.')
     try {
       /*
        * 시각만 넘긴다. 시계 알람은 "몇 시 몇 분" 이지 날짜가 없다 —
        * 오늘 그 시각이 지났으면 시계 앱이 알아서 내일로 잡는다.
        */
-      await (await clockAlarm()).schedule({
+      const { plugin } = await clockAlarm()
+      const result = await plugin.schedule({
         hour: req.at.getHours(),
         minute: req.at.getMinutes(),
         label: req.title,
       })
-      return { ok: true }
+      return result.opened ? { ok: true } : { ok: false, failure: { code: 'failed', message: '시계 앱을 열지 못했습니다' } }
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e)
       return { ok: false, failure: { code: 'failed', message } }
