@@ -98,6 +98,12 @@ export const ja: I18nShape = {
     sentMailNote: '確認メールは送れませんでしたが、申請は受け付けました。',
   },
   alarm: {
+    nativeAdd: '出発アラームを設定',
+    nativeHint: '時計アプリで出発時刻を確認して保存してください。',
+    nativeOpened: '時計アプリを開きました。アラームの保存をご確認ください。',
+    nativePast: '出発時刻を過ぎました。経路を再計算してください。',
+    nativeDate: '時計アプリでは日付を指定できません。この旅程はカレンダーに登録してください。',
+
     add: 'カレンダーに追加',
     adding: '追加中…',
     added: 'カレンダーに追加しました',
@@ -175,6 +181,7 @@ export const ja: I18nShape = {
     backToAppAction: 'アプリを開く',
   },
   geo: {
+    nativeDenied: '端末の設定 → アプリ → 언제나가 → 権限で位置情報を許可してください。',
     staleCoords: '位置情報が失われました。◎ 現在地をもう一度押してください。',
     use: '現在地',
     locating: '位置を確認中…',

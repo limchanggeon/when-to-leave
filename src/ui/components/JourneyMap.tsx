@@ -1,3 +1,5 @@
+import { platform } from '../../native/platform'
+import { locate, type Coords, type GeoFailure } from '../../geo'
 import { useEffect, useRef, useState } from 'react'
 import type { CountryCode } from '../../adapters/types'
 import type { Leg } from '../../engine/types'
@@ -38,21 +40,45 @@ export function JourneyMap({
   const handleRef = useRef<MapHandle | null>(null)
   const [failure, setFailure] = useState<MapFailure | null>(null)
   const provider = pickMap(country)
+  const native = platform() === 'android'
+  const [location, setLocation] = useState<Coords | null>(null)
+  const [locating, setLocating] = useState(false)
+  const [geoError, setGeoError] = useState<GeoFailure | null>(null)
+  const requestId = useRef(0)
+  async function refreshLocation() {
+    const id = ++requestId.current
+    setLocating(true)
+    const r = await locate(15000)
+    if (id !== requestId.current) return
+    setLocating(false)
+    setGeoError(r.ok ? null : r.failure)
+    setLocation(r.ok ? r.data : null)
+  }
+  useEffect(() => {
+    if (native) void refreshLocation()
+    return () => { requestId.current++ }
+  }, [native])
 
   useEffect(() => {
     let cancelled = false
     const el = ref.current
-    if (!el || !provider) return
+    if (!el || !provider || (!legs.length && !location)) return
+    setFailure(null)
+    el.replaceChildren()
+    const controller = new AbortController()
 
-    provider.render(el, legs).then((r) => {
-      if (cancelled) return
+    provider.render(el, legs, native ? location ?? undefined : undefined, controller.signal).then((r) => {
+      if (cancelled) { if (r.ok) r.handle.destroy?.(); return }
       setFailure(r.ok ? null : r.failure)
       handleRef.current = r.ok ? r.handle : null
     })
     return () => {
       cancelled = true
+      controller.abort()
+      handleRef.current?.destroy?.()
+      handleRef.current = null
     }
-  }, [legs, provider])
+  }, [legs, provider, location, native])
 
   // 여정에서 짚은 지점을 지도에 반영한다
   useEffect(() => {
@@ -72,15 +98,17 @@ export function JourneyMap({
       <div className="map__head">
         <span className="map__label">{t.sections.map}</span>
         <span className="map__provider">{provider.label}</span>
+        {native && <button type="button" className="map__locate" onClick={refreshLocation} disabled={locating}>
+          ◎ {locating ? t.geo.locating : t.geo.use}
+        </button>}
       </div>
-      {failure ? (
-        <div className="map__gap" role="status">
-          <span aria-hidden="true">🗺</span>
-          <span>{failureText(failure)}</span>
-        </div>
-      ) : (
-        <div className="map__canvas" ref={ref} />
-      )}
+      {native && <p className="map__location-status" role="status">
+        {geoError ? (geoError.code === 'denied' ? t.geo.nativeDenied : t.geo.err[geoError.code])
+          : location ? `● ${t.geo.currentLocation}${location.accuracyM === null ? '' : ` · ${t.geo.accuracy(Math.round(location.accuracyM))}`}`
+          : t.geo.locating}
+      </p>}
+      {failure && <div className="map__gap" role="status">{failureText(failure)}</div>}
+      <div className="map__canvas" ref={ref} hidden={!!failure || (!legs.length && !location)} />
     </div>
   )
 }

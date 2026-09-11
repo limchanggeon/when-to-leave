@@ -102,6 +102,12 @@ export const ko = {
     sentMailNote: '지금은 확인 메일을 보내지 못했지만, 신청은 그대로 접수됐습니다.',
   },
   alarm: {
+    nativeAdd: '출발 알람 설정',
+    nativeHint: '시계 앱에서 출발 시각을 확인하고 저장해 주세요.',
+    nativeOpened: '시계 앱을 열었습니다. 알람이 저장됐는지 확인해 주세요.',
+    nativePast: '출발 시각이 지났습니다. 경로를 다시 계산해 주세요.',
+    nativeDate: '기기 시계는 날짜를 지정할 수 없습니다. 이 날짜의 여정은 캘린더에 등록해 주세요.',
+
     add: '캘린더에 추가',
     adding: '추가하는 중…',
     added: '캘린더에 넣었습니다',
@@ -179,6 +185,7 @@ export const ko = {
     backToAppAction: '언제나가 앱 열기',
   },
   geo: {
+    nativeDenied: '휴대전화 설정 → 앱 → 언제나가 → 권한에서 위치를 허용해 주세요.',
     staleCoords: '위치 정보가 사라졌습니다. ◎ 현재 위치를 다시 눌러주세요.',
     use: '현재 위치',
     locating: '위치 확인 중…',

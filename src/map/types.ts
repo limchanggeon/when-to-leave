@@ -1,3 +1,4 @@
+import type { Coords } from '../geo/types'
 import type { CountryCode } from '../adapters/types'
 import type { Leg, Place } from '../engine/types'
 
@@ -27,12 +28,15 @@ export interface MapProvider {
   render(
     el: HTMLElement,
     legs: Leg[],
+    currentLocation?: Coords,
+    signal?: AbortSignal,
   ): Promise<{ ok: true; handle: MapHandle } | { ok: false; failure: MapFailure }>
 }
 
 export interface MapHandle {
   /** index 번째 지점을 강조한다. null 이면 강조를 푼다. */
   highlight(index: number | null): void
+  destroy?(): void
 }
 
 /** 좌표가 있는 지점만 추린다. 도보 구간의 "집" 같은 곳은 좌표가 없다. */

@@ -1,3 +1,4 @@
+import { platform } from '../../native/platform'
 import { useEffect, useState } from 'react'
 import { resolveWhen } from '../../parse/parse'
 import { dayOffset, diffMin, formatClock, hhmm, humanDuration } from '../../engine/time'
@@ -359,6 +360,9 @@ export function HomePage() {
       </Hero>
 
       <div className="shell">
+        {platform() === 'android' && outcome?.kind !== 'trip' && (
+          <JourneyMap legs={EMPTY_MAP_LEGS} country="KR" t={t} />
+        )}
         {verifyNotice && t.verifyNotice[verifyNotice] && (
           <div
             className={`notice ${verifyNotice === 'ok' ? 'notice--ok' : 'notice--warn'}`}
@@ -454,3 +458,5 @@ export function HomePage() {
     </div>
   )
 }
+
+const EMPTY_MAP_LEGS: import('../../engine/types').Leg[] = []

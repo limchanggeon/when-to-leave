@@ -108,6 +108,12 @@ export const en: I18nShape = {
     sentMailNote: 'We could not send the confirmation email just now, but your request was received.',
   },
   alarm: {
+    nativeAdd: 'Set departure alarm',
+    nativeHint: 'Check the departure time and save it in the Clock app.',
+    nativeOpened: 'Clock app opened. Please check that the alarm is saved.',
+    nativePast: 'The departure time has passed. Calculate the route again.',
+    nativeDate: 'The device clock cannot set a specific date. Use a calendar for this trip.',
+
     add: 'Add to calendar',
     adding: 'Adding…',
     added: 'Added to your calendar',
@@ -185,6 +191,7 @@ export const en: I18nShape = {
     backToAppAction: 'Open whenigo',
   },
   geo: {
+    nativeDenied: 'Allow location in phone Settings → Apps → 언제나가 → Permissions.',
     staleCoords: 'Your location was lost. Press ◎ current location again.',
     use: 'Current location',
     locating: 'Finding you…',

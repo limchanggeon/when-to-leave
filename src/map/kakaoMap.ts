@@ -1,3 +1,4 @@
+import type { Coords } from '../geo/types'
 import { config } from '../config'
 import { loadScript } from '../auth/types'
 import type { Leg } from '../engine/types'
@@ -26,6 +27,7 @@ type KakaoMaps = {
       fillColor: string
       fillOpacity: number
     }) => { setMap(m: object | null): void; setPosition(p: object): void }
+    CustomOverlay: new (o: { position: object; content: HTMLElement; map: object; zIndex: number }) => { setMap(m: object | null): void }
     Polyline: new (o: {
       path: object[]
       strokeWeight: number
@@ -43,14 +45,14 @@ export const kakaoMap: MapProvider = {
   configured: Boolean(config.kakao.jsKey),
   supports: (country) => country === 'KR',
 
-  async render(el: HTMLElement, legs: Leg[]) {
+  async render(el: HTMLElement, legs: Leg[], currentLocation?: Coords, signal?: AbortSignal) {
     const key = config.kakao.jsKey
     if (!key) {
       return { ok: false as const, failure: { code: 'not-configured', provider: 'kakao-map', envVar: 'VITE_KAKAO_JS_KEY' } as MapFailure }
     }
 
     const points = withCoords(placesOf(legs))
-    if (points.length === 0) {
+    if (points.length === 0 && !currentLocation) {
       return { ok: false as const, failure: { code: 'no-coords', provider: 'kakao-map' } as MapFailure }
     }
 
@@ -69,14 +71,32 @@ export const kakaoMap: MapProvider = {
       { ok: true; handle: MapHandle } | { ok: false; failure: MapFailure }
     >((resolve) => {
       kakao.maps.load(() => {
+        if (signal?.aborted) {
+          resolve({ ok: false, failure: { code: 'failed', provider: 'kakao-map' } })
+          return
+        }
         try {
           const coords = points.map((p) => new kakao.maps.LatLng(p.lat, p.lng))
-          const map = new kakao.maps.Map(el, { center: coords[0], level: 7 })
+          const here = currentLocation ? new kakao.maps.LatLng(currentLocation.lat, currentLocation.lng) : null
+          const map = new kakao.maps.Map(el, { center: here ?? coords[0], level: coords.length ? 7 : 4 })
 
           coords.forEach((position) => new kakao.maps.Marker({ position, map }))
 
           const bounds = new kakao.maps.LatLngBounds()
           coords.forEach((c) => bounds.extend(c))
+          if (here && currentLocation) {
+            bounds.extend(here)
+            const dot = document.createElement('span')
+            dot.className = 'map__current-dot'
+            dot.setAttribute('aria-hidden', 'true')
+            new kakao.maps.CustomOverlay({ position: here, content: dot, map, zIndex: 10 })
+            if (currentLocation.accuracyM && currentLocation.accuracyM > 0) {
+              const accuracy = new kakao.maps.Circle({ center: here, radius: currentLocation.accuracyM,
+                strokeWeight: 1, strokeColor: '#2F6BFF', strokeOpacity: 0.25,
+                fillColor: '#2F6BFF', fillOpacity: 0.12 })
+              accuracy.setMap(map)
+            }
+          }
 
           /*
            * 구간마다 따로 그린다.
@@ -115,11 +135,11 @@ export const kakaoMap: MapProvider = {
             })
           }
 
-          if (coords.length > 1) map.setBounds(bounds)
+          if (coords.length > 1 || (coords.length && here)) map.setBounds(bounds)
 
           // 강조용 원을 하나만 만들어 위치만 옮긴다 — 매번 새로 만들면 쌓인다
           const ring = new kakao.maps.Circle({
-            center: coords[0],
+            center: here ?? coords[0],
             radius: 900,
             strokeWeight: 3,
             strokeColor: '#2F6BFF',
@@ -153,6 +173,7 @@ export const kakaoMap: MapProvider = {
           observer.observe(el, { childList: true, subtree: true })
 
           const handle: MapHandle = {
+            destroy() { observer.disconnect() },
             highlight(index) {
               if (index === null || !coords[index]) {
                 ring.setMap(null)

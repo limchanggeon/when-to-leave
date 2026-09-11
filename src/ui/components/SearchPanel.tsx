@@ -1,3 +1,4 @@
+import { platform } from '../../native/platform'
 import { useEffect, useRef, useState } from 'react'
 import type { I18nShape } from '../../i18n'
 import { parseUtterance } from '../../parse/parse'
@@ -355,7 +356,7 @@ export function SearchPanel({
 
       {geoError && (
         <p className="panel__geoerror" role="alert">
-          {t.geo.err[geoError.code]}
+          {geoError.code === 'denied' && platform() === 'android' ? t.geo.nativeDenied : t.geo.err[geoError.code]}
         </p>
       )}
       {staleGeoName && (

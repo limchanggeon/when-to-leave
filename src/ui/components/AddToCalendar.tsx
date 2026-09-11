@@ -1,3 +1,5 @@
+import { platform } from '../../native/platform'
+import { NativeAlarmButton } from './NativeAlarmButton'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { calendarProvider, connectCalendar } from '../../alarm/calendarProvider'
@@ -14,7 +16,7 @@ type State =
   | { phase: 'error'; message: string }
 
 /** 여정을 구글 캘린더 일정으로 만든다. 출발 시각에 알림이 울린다. */
-export function AddToCalendar({
+function CalendarButton({
   legs,
   now,
   t,
@@ -106,4 +108,12 @@ export function AddToCalendar({
       {state.phase === 'error' && <p className="calendar__error">{state.message}</p>}
     </div>
   )
+}
+
+/** Android에서는 로그인이나 캘린더 연결 없이 기기 알람을 설정한다. */
+export function AddToCalendar(props: { legs: Leg[]; now: Date; t: I18nShape }) {
+  if (!props.legs.length) return null
+  return platform() === 'android'
+    ? <NativeAlarmButton key={`${props.legs[0].departAt.getTime()}:${props.legs.at(-1)?.to.name}`} {...props} />
+    : <CalendarButton {...props} />
 }

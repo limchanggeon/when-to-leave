@@ -1,3 +1,4 @@
+import { platform } from '../native/platform'
 import type { Coords, GeoResult } from './types'
 
 /**
@@ -7,6 +8,7 @@ import type { Coords, GeoResult } from './types'
  * Permissions API 가 없는 브라우저에서는 'unknown'.
  */
 export async function permissionState(): Promise<'granted' | 'denied' | 'prompt' | 'unknown'> {
+  if (platform() === 'android') return (await import('./native')).nativePermissionState()
   try {
     if (typeof navigator === 'undefined' || !navigator.permissions?.query) return 'unknown'
     const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName })
@@ -24,6 +26,7 @@ export async function permissionState(): Promise<'granted' | 'denied' | 'prompt'
  * HTTPS 또는 localhost 에서만 동작한다.
  */
 export function locate(timeoutMs = 10_000): Promise<GeoResult<Coords>> {
+  if (platform() === 'android') return import('./native').then((m) => m.locateNative(timeoutMs))
   if (typeof navigator === 'undefined' || !navigator.geolocation) {
     return Promise.resolve({ ok: false, failure: { code: 'unsupported' } })
   }
