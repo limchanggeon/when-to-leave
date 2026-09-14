@@ -68,6 +68,43 @@
       필요한 출처는 이미 Caddyfile 에 들어 있다.
     -->
     <!--ADSENSE-->
+    <!--
+      구조화 데이터.
+
+      브랜드 이름을 검색엔진에 **명시적으로 알려주는** 거의 유일한 수단이다.
+      "언제나가" 는 그 자체로 흔한 말이라("언제 나가?"), 본문에 몇 번 적는
+      것만으로는 이것이 서비스 이름이라는 사실이 전달되지 않는다.
+      name 과 alternateName 으로 같은 대상의 여러 표기를 한데 묶어준다.
+    -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://whenigo.p-e.kr/#website",
+            "url": "https://whenigo.p-e.kr/",
+            "name": "언제나가",
+            "alternateName": ["whenigo", "언제 나가", "언제나가 출발 시각 역산"],
+            "description": "도착 시각에서 출발 시각을 거꾸로 계산하는 이동 비서",
+            "inLanguage": "ko-KR"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://whenigo.p-e.kr/#app",
+            "name": "언제나가",
+            "alternateName": "whenigo",
+            "url": "https://whenigo.p-e.kr/",
+            "applicationCategory": "TravelApplication",
+            "operatingSystem": "Web, Android",
+            "inLanguage": ["ko-KR", "ja-JP", "en"],
+            "description": "\"11시까지 부산\" 이라고 하면 \"19:06에 나가세요\" 라고 답합니다. 열차·버스 시각표와 환승·도보를 거꾸로 짚어 나가야 할 시각을 계산합니다.",
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "KRW" },
+            "isPartOf": { "@id": "https://whenigo.p-e.kr/#website" }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
