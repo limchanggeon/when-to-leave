@@ -1,0 +1,15 @@
+{
+  "sampleCount": 5,
+  "milliseconds": [
+    48,
+    36,
+    36,
+    38,
+    36
+  ],
+  "health": {
+    "ok": true,
+    "missingEnv": [],
+    "mail": null
+  }
+}

@@ -1,0 +1,92 @@
+[
+  {
+    "path": "/",
+    "status": 200,
+    "ms": 68,
+    "type": "text/html; charset=utf-8"
+  },
+  {
+    "path": "/login",
+    "status": 200,
+    "ms": 127,
+    "type": "text/html; charset=utf-8"
+  },
+  {
+    "path": "/privacy",
+    "status": 200,
+    "ms": 46,
+    "type": "text/html; charset=utf-8"
+  },
+  {
+    "path": "/settings",
+    "status": 200,
+    "ms": 43,
+    "type": "text/html; charset=utf-8"
+  },
+  {
+    "path": "/.env",
+    "status": 404,
+    "ms": 48,
+    "type": "text/html; charset=utf-8"
+  },
+  {
+    "path": "/.git/config",
+    "status": 404,
+    "ms": 46,
+    "type": "text/html; charset=utf-8"
+  },
+  {
+    "path": "/server/index.ts",
+    "status": 404,
+    "ms": 42,
+    "type": "text/html; charset=utf-8"
+  },
+  {
+    "path": "/data/app.db",
+    "status": 404,
+    "ms": 49,
+    "type": "text/html; charset=utf-8"
+  },
+  {
+    "path": "/api/missing",
+    "status": 404,
+    "ms": 41,
+    "type": "text/html; charset=utf-8"
+  },
+  {
+    "path": "/api/health",
+    "status": 200,
+    "ms": 44,
+    "type": "application/json; charset=utf-8",
+    "health": {
+      "ok": true,
+      "missingEnv": [],
+      "mail": null
+    }
+  },
+  {
+    "path": "/api/app/releases",
+    "status": 200,
+    "ms": 45,
+    "type": "application/json; charset=utf-8",
+    "versions": [
+      "0.1.2-alpha",
+      "0.1.0-alpha"
+    ]
+  },
+  {
+    "path": "/api/route",
+    "fixture": "대전역→대전시청",
+    "status": 200,
+    "ms": 2559,
+    "routes": 6,
+    "legs": [
+      3,
+      4,
+      4,
+      3,
+      4,
+      4
+    ]
+  }
+]
