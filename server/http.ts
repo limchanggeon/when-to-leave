@@ -41,7 +41,8 @@ export async function fetchJson<T>(
   opts: { timeoutMs?: number; retries?: number; budgetMs?: number; label?: string } = {},
 ): Promise<HttpResult<T>> {
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
-  const retries = opts.retries ?? DEFAULT_RETRIES
+  // 일정 등록/인가 코드 교환 같은 POST는 재시도하면 중복 부작용이 생긴다.
+  const retries = opts.retries ?? (['GET', 'HEAD'].includes((init.method ?? 'GET').toUpperCase()) ? DEFAULT_RETRIES : 0)
   const budgetMs = opts.budgetMs ?? DEFAULT_BUDGET_MS
   const label = opts.label ?? '외부 서비스'
 
@@ -56,11 +57,10 @@ export async function fetchJson<T>(
     const timer = setTimeout(() => controller.abort(), Math.min(timeoutMs, left))
     try {
       const res = await fetch(url, { ...init, signal: controller.signal })
-      clearTimeout(timer)
 
       if (!res.ok) {
         // 4xx 는 재시도해도 같은 답이 온다. 5xx 만 다시 시도할 값어치가 있다.
-        const body = await res.text().catch(() => '')
+        const body = await res.text()
         const message = `${label} 응답 ${res.status}${body ? `: ${body.slice(0, 120)}` : ''}`
         if (res.status < 500 || attempt === retries) {
           return { ok: false, kind: 'status', status: res.status, message }
@@ -83,6 +83,9 @@ export async function fetchJson<T>(
           message: `${lastMessage} (${retries + 1}회 시도)`,
         }
       }
+    } finally {
+      // 헤더뿐 아니라 JSON/오류 본문을 끝까지 읽을 때까지 시간을 제한한다.
+      clearTimeout(timer)
     }
   }
   // 예산을 다 써서 빠져나온 경우. 마지막으로 본 실패를 그대로 전한다.

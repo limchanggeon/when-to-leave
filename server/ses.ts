@@ -44,7 +44,7 @@ export async function sendViaSes(mail: Mail): Promise<SendResult> {
   })
 
   try {
-    const res = await fetch(`https://${host}${path}`, { method: 'POST', headers, body })
+    const res = await fetch(`https://${host}${path}`, { method: 'POST', headers, body, signal: AbortSignal.timeout(8000) })
     if (res.ok) return { ok: true }
 
     /*

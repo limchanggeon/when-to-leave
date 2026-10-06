@@ -2,6 +2,7 @@ import { tagoCall } from './tago'
 import { serverEnv } from './env'
 import { fetchJson } from './http'
 import { distanceM } from './terminalIndex'
+import { BoundedCache, cachedAsync } from './cache'
 
 /**
  * 시내버스 노선의 경유 정류소. TAGO 버스노선정보(1613000)를 쓴다.
@@ -40,9 +41,9 @@ const inSeoul = (p: { lat: number; lng: number }) =>
   p.lat >= SEOUL_BOX.minLat && p.lat <= SEOUL_BOX.maxLat &&
   p.lng >= SEOUL_BOX.minLng && p.lng <= SEOUL_BOX.maxLng
 
-/* 노선 정보는 거의 바뀌지 않는다. 프로세스가 사는 동안 들고 있는다. */
-const cityCache = new Map<string, number | null>()
-const routeCache = new Map<string, Stop[][]>()
+/* 하루마다 갱신하며, 좌표/노선 종류가 늘어도 메모리를 제한한다. */
+const cityCache = new BoundedCache<string, Promise<number | null>>(512, 24 * 60 * 60_000)
+const routeCache = new BoundedCache<string, Promise<Stop[][]>>(512, 24 * 60 * 60_000)
 
 /** 이 좌표의 버스 노선을 어느 자료에서 찾을지. */
 export async function busRegionFor(point: { lat: number; lng: number }): Promise<BusRegion | null> {
@@ -54,17 +55,14 @@ export async function busRegionFor(point: { lat: number; lng: number }): Promise
 /** 이 좌표가 어느 지자체인가. 근처 정류소가 알려준다. */
 export async function cityCodeNear(point: { lat: number; lng: number }): Promise<number | null> {
   const key = `${point.lat.toFixed(2)},${point.lng.toFixed(2)}`
-  const hit = cityCache.get(key)
-  if (hit !== undefined) return hit
-
-  const rows = await tagoCall<{ citycode?: number }>(
-    'BusSttnInfoInqireService',
-    'getCrdntPrxmtSttnList',
-    { gpsLati: String(point.lat), gpsLong: String(point.lng), numOfRows: '5' },
-  )
-  const code = rows?.find((r) => r.citycode)?.citycode ?? null
-  cityCache.set(key, code)
-  return code
+  return cachedAsync(cityCache, key, async () => {
+    const rows = await tagoCall<{ citycode?: number }>(
+      'BusSttnInfoInqireService',
+      'getCrdntPrxmtSttnList',
+      { gpsLati: String(point.lat), gpsLong: String(point.lng), numOfRows: '5' },
+    )
+    return rows?.find((r) => r.citycode)?.citycode ?? null
+  }, (code) => code !== null)
 }
 
 
@@ -129,12 +127,13 @@ async function seoulRouteStops(routeNo: string): Promise<Stop[][]> {
  */
 export async function routeStops(region: BusRegion, routeNo: string): Promise<Stop[][]> {
   const key = `${region.kind === 'seoul' ? 'seoul' : region.cityCode}:${routeNo}`
-  const hit = routeCache.get(key)
-  if (hit) return hit
+  return cachedAsync(routeCache, key, () => fetchRouteStops(region, routeNo), (out) => !!out.length)
+}
+
+async function fetchRouteStops(region: BusRegion, routeNo: string): Promise<Stop[][]> {
 
   if (region.kind === 'seoul') {
     const out = await seoulRouteStops(routeNo)
-    routeCache.set(key, out)
     return out
   }
   const cityCode = region.cityCode
@@ -171,7 +170,6 @@ export async function routeStops(region: BusRegion, routeNo: string): Promise<St
       .sort((a, b) => a.ord - b.ord)
     if (stops.length) out.push(stops)
   }
-  routeCache.set(key, out)
   return out
 }
 

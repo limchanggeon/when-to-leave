@@ -1,4 +1,5 @@
 import { serverEnv } from './env'
+import { BoundedCache } from './cache'
 import { fetchJson } from './http'
 import { geocode, type GeoPoint } from './geocode'
 import type { RouteResult, WireLeg, WireRoute } from './routeTypes'
@@ -90,7 +91,7 @@ interface KeywordDoc {
   category_name?: string
 }
 
-const hubCache = new Map<string, Hub[]>()
+const hubCache = new BoundedCache<string, Hub[]>(512, 60 * 60_000)
 
 /**
  * 공항은 키워드 검색으로 못 찾는다.

@@ -122,16 +122,17 @@ function memo<T>(limit: number): (key: string, load: () => Promise<T>) => Promis
 }
 
 /** 목록은 거의 바뀌지 않으므로 한 번 받아 프로세스가 사는 동안 들고 있는다. */
-function once<T>(load: () => Promise<T>): () => Promise<T> {
+function once<T>(load: () => Promise<T>, keep: (value: T) => boolean): () => Promise<T> {
   let cached: T | null = null
   let inflight: Promise<T> | null = null
   return () => {
     if (cached) return Promise.resolve(cached)
     if (!inflight) {
       inflight = load().then((v) => {
-        cached = v
-        inflight = null
+        if (keep(v)) cached = v
         return v
+      }).finally(() => {
+        inflight = null
       })
     }
     return inflight
@@ -146,21 +147,21 @@ const expTerminals = once(async () => {
   const l = indexBy(rows, (r) => r.terminalId ?? '', (r) => r.terminalNm ?? '')
   console.log(`[tago] 고속버스 터미널 ${l.byExact.size}곳`)
   return l
-})
+}, (lookup) => lookup.byExact.size > 0)
 
 const suburbsTerminals = once(async () => {
   const rows = (await tagoCall<TerminalRow>(TAGO.suburbsBus, 'GetSuberbsBusTrminlList', { numOfRows: '2000' })) ?? []
   const l = indexBy(rows, (r) => r.terminalId ?? '', (r) => r.terminalNm ?? '')
   console.log(`[tago] 시외버스 터미널 ${l.byExact.size}곳`)
   return l
-})
+}, (lookup) => lookup.byExact.size > 0)
 
 const airports = once(async () => {
   const rows = (await tagoCall<AirportRow>(TAGO.flight, 'GetArprtList', { numOfRows: '200' })) ?? []
   const l = indexBy(rows, (r) => r.airportId ?? '', (r) => r.airportNm ?? '')
   console.log(`[tago] 공항 ${l.byExact.size}곳`)
   return l
-})
+}, (lookup) => lookup.byExact.size > 0)
 
 /**
  * TAGO 가 이 이름의 터미널을 아는지.

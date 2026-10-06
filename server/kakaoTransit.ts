@@ -5,6 +5,7 @@ import type { LatLng, RouteResult, WireLeg, WireRoute } from './routeTypes'
 import { encodePolyline } from './polyline'
 import { betterAlightStop, busRegionFor } from './busRoutes'
 import { distanceM } from './terminalIndex'
+import { BoundedCache } from './cache'
 
 /**
  * 카카오 대중교통 길찾기.
@@ -75,7 +76,7 @@ const toLatLng = (points: [number, number][] | undefined): LatLng[] =>
 const auth = () => ({ Authorization: `KakaoAK ${serverEnv.kakaoRestKey}` })
 
 const CACHE_TTL_MS = 5 * 60_000
-const cache = new Map<string, { at: number; routes: WireRoute[] }>()
+const cache = new BoundedCache<string, { at: number; routes: WireRoute[] }>(512, CACHE_TTL_MS)
 const cacheKey = (a: GeoPoint, b: GeoPoint) =>
   `${a.lat.toFixed(5)},${a.lng.toFixed(5)}>${b.lat.toFixed(5)},${b.lng.toFixed(5)}`
 
@@ -110,7 +111,7 @@ const ACCESS_MIN_M = 120
  * 겹침 1.0배). 프라미스를 담으면 먼저 나간 요청에 나머지가 올라타므로,
  * 중복 없이 한꺼번에 보낼 수 있다.
  */
-const walkCache = new Map<string, Promise<WireLeg | null>>()
+const walkCache = new BoundedCache<string, Promise<WireLeg | null>>(1024, CACHE_TTL_MS)
 const walkKey = (a: GeoPoint, b: GeoPoint) =>
   `${a.lat.toFixed(4)},${a.lng.toFixed(4)}>${b.lat.toFixed(4)},${b.lng.toFixed(4)}`
 
@@ -170,7 +171,10 @@ export async function walkLeg(from: GeoPoint, to: GeoPoint): Promise<WireLeg | n
   if (!pending) {
     // 이 프라미스는 거절되지 않는다 — askWalk 이 실패를 어림값으로 바꾼다.
     // 거절되는 프라미스를 담으면 그 자리가 영영 실패로 굳는다.
-    pending = askWalk(from, to)
+    pending = askWalk(from, to).catch((error) => {
+      if (walkCache.get(key) === pending) walkCache.delete(key)
+      throw error
+    })
     walkCache.set(key, pending)
   }
 

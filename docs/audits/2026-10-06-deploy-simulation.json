@@ -1,0 +1,29 @@
+[
+  {
+    "case": "success",
+    "exit": 0,
+    "runtime": [
+      "new",
+      "new"
+    ],
+    "source": "new"
+  },
+  {
+    "case": "preflight-failure",
+    "exit": 1,
+    "runtime": [
+      "old",
+      "old"
+    ],
+    "source": "old"
+  },
+  {
+    "case": "health-failure",
+    "exit": 1,
+    "runtime": [
+      "old",
+      "old"
+    ],
+    "source": "old"
+  }
+]

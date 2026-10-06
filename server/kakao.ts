@@ -35,6 +35,7 @@ export async function exchangeKakaoCode(
   if (serverEnv.kakaoClientSecret) body.set('client_secret', serverEnv.kakaoClientSecret)
 
   const tokenRes = await fetch(TOKEN_URL, {
+    signal: AbortSignal.timeout(8000),
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' },
     body,
@@ -57,6 +58,7 @@ export async function exchangeKakaoCode(
   }
 
   const meRes = await fetch(ME_URL, {
+    signal: AbortSignal.timeout(8000),
     headers: { Authorization: `Bearer ${tokenJson.access_token}` },
   })
   if (!meRes.ok) {

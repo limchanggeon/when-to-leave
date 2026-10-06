@@ -6,6 +6,11 @@
 # 이 줄은 지워도 된다.
 overrides:
   tinyspy: 4.0.4
+  qs: ^6.16.0
+  proxy-addr: ^2.0.8
+  source-map-js: ^1.2.2
+  brace-expansion: ^5.0.12
+  uuid: ^11.1.1
 
 # esbuild 는 설치할 때 자기 바이너리를 내려받는 스크립트를 돌린다.
 # 허용하지 않으면 pnpm 11 이 ERR_PNPM_IGNORED_BUILDS 로 멈춰 배포가 안 된다.

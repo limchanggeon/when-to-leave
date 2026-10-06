@@ -1,0 +1,52 @@
+[
+  {
+    "width": 1440,
+    "path": "/",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "path": "/login",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "path": "/privacy",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "path": "/settings",
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "routeFixture": "603",
+    "runtimeErrors": 0
+  },
+  {
+    "width": 390,
+    "path": "/",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "path": "/login",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "path": "/privacy",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "path": "/settings",
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "routeFixture": "603",
+    "runtimeErrors": 0
+  }
+]

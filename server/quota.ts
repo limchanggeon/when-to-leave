@@ -34,13 +34,36 @@ export function quotaOf(userId: string, tier: string | null): QuotaState {
 }
 
 /** 한 번 썼다고 센다. 답이 나온 뒤에만 부른다. */
-export function bumpSearch(userId: string): void {
+export function bumpSearch(userId: string, day = today()): void {
   db()
     .prepare(
       `INSERT INTO user_daily_searches (user_id, day, count) VALUES (?, ?, 1)
        ON CONFLICT(user_id, day) DO UPDATE SET count = count + 1`,
     )
-    .run(userId, today())
+    .run(userId, day)
+}
+
+// 단일 프로세스에서 await 전에 예약한다. 여러 탭의 동시 조회도 한도를 지킨다.
+const pendingSearches = new Map<string, number>()
+export function reserveSearch(userId: string, tier: string | null):
+  | { ok: false; quota: QuotaState }
+  | { ok: true; finish: (success: boolean) => void } {
+  const quota = quotaOf(userId, tier)
+  const day = today()
+  const key = `${day}:${userId}`
+  const pending = pendingSearches.get(key) ?? 0
+  if (quota.limit !== null && quota.used + pending >= quota.limit) return { ok: false, quota }
+  pendingSearches.set(key, pending + 1)
+  let finished = false
+  return { ok: true, finish(success) {
+    if (finished) return
+    finished = true
+    const left = (pendingSearches.get(key) ?? 1) - 1
+    if (left) pendingSearches.set(key, left)
+    else pendingSearches.delete(key)
+    // 자정을 넘긴 응답은 예약한 날짜에만 센다.
+    if (success) bumpSearch(userId, day)
+  } }
 }
 
 /* ---------------- 등급 올려달라는 요청 ---------------- */

@@ -1,6 +1,7 @@
 // 반드시 첫 import. 다른 모듈이 Date 를 만지기 전에 시간대를 못 박는다.
 import './timezone'
 import express from 'express'
+import { guardBody } from './requestGuard'
 import { serverEnv, missingServerEnv } from './env'
 import { exchangeKakaoCode } from './kakao'
 import { verifyGoogleIdToken } from './googleAuth'
@@ -12,7 +13,7 @@ import {
   isConnected,
 } from './googleCalendar'
 import { randomBytes } from 'node:crypto'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import {
   COOKIE_NAME,
@@ -36,7 +37,7 @@ import {
   unapproveUser,
 } from './users'
 import { checkPassword } from './password'
-import { bumpSearch, closeRequest, openRequests, quotaOf, requestTier, setTier } from './quota'
+import { closeRequest, openRequests, quotaOf, requestTier, reserveSearch, setTier } from './quota'
 import { TIERS, isTier } from './tiers'
 import * as limiter from './rateLimit'
 import * as admin from './admin'
@@ -92,6 +93,7 @@ const app = express()
 app.disable('x-powered-by')
 
 app.use(express.json({ limit: '16kb' }))
+app.use(guardBody)
 
 // Caddy 뒤에 선다. 이게 없으면 req.ip 가 늘 프록시 주소로 보인다.
 app.set('trust proxy', 1)
@@ -102,7 +104,9 @@ function cookie(req: express.Request, name: string): string | undefined {
   if (!raw) return undefined
   for (const part of raw.split(';')) {
     const [k, ...v] = part.trim().split('=')
-    if (k === name) return decodeURIComponent(v.join('='))
+    if (k === name) {
+      try { return decodeURIComponent(v.join('=')) } catch { return undefined }
+    }
   }
   return undefined
 }
@@ -149,6 +153,32 @@ function requireUser(req: express.Request, res: express.Response): User | null {
   }
   return user
 }
+
+/**
+ * 안드로이드 판 목록과 패치노트.
+ *
+ * 앱이 켜질 때 이걸 받아 자기 versionCode 와 견준다. **서버에 두는 이유:**
+ * 앱 안에 넣어두면 이미 깔린 옛 앱은 새 판이 나왔다는 사실을 영영 모른다.
+ * 웹의 /patch-notes 도 같은 것을 본다 — 적는 곳은 한 곳이어야 한다.
+ *
+ * 요청마다 파일을 읽는다. 새 판을 낼 때 서버를 다시 띄우지 않아도
+ * 파일만 바꾸면 되고, 크기가 몇 KB 라 부담이 없다.
+ */
+const RELEASES_FILE = new URL('./appReleases.json', import.meta.url)
+
+app.get('/api/app/releases', (_req, res) => {
+  try {
+    const data = JSON.parse(readFileSync(RELEASES_FILE, 'utf-8')) as {
+      android?: { published?: boolean }[]
+    }
+    // 새 판이 퍼지는 데 몇 분 늦는 건 괜찮다. 앱이 켜질 때마다 서버를 때릴 이유는 없다.
+    res.set('Cache-Control', 'public, max-age=300')
+    res.json({ android: (data.android ?? []).filter((release) => release.published !== false) })
+  } catch (e) {
+    console.error('[releases] 목록을 읽지 못했다:', e)
+    res.status(500).json({ error: { code: 'unavailable', message: '판 목록을 읽지 못했습니다' } })
+  }
+})
 
 app.get('/api/health', (_req, res) => {
   /*
@@ -260,19 +290,23 @@ app.post('/api/route', async (req, res) => {
    * 받은 것 없이 한도만 줄어든다.
    */
   const me = readSession(cookie(req, COOKIE_NAME))
-  if (me) {
-    const q = quotaOf(me.id, me.tier)
-    if (q.limit !== null && q.used >= q.limit) {
-      res.status(429).json({
-        error: {
-          code: 'quota-exceeded',
-          message: `오늘 조회 ${q.limit}번을 다 쓰셨어요. 내일 다시 열립니다`,
-          quota: q,
-        },
-      })
-      return
-    }
+  const reservation = me ? reserveSearch(me.id, me.tier) : null
+  if (reservation && !reservation.ok) {
+    const q = reservation.quota
+    res.status(429).json({
+      error: {
+        code: 'quota-exceeded',
+        message: q.used >= q.limit! ? `오늘 조회 ${q.limit}번을 다 쓰셨어요. 내일 다시 열립니다` : '진행 중인 조회가 있습니다. 완료 후 다시 시도해 주세요',
+        quota: q,
+      },
+    })
+    return
   }
+  const finishSearch = (success = false) => {
+    if (reservation?.ok) reservation.finish(success)
+  }
+  // 400 등 조기 반환도 예약을 해제한다. 응답 중단은 외부 조회가 끝날 때 정리한다.
+  res.once('finish', () => finishSearch())
   const { from, to } = req.body as {
     from?: { name?: string; lat?: number; lng?: number }
     to?: { name?: string; lat?: number; lng?: number }
@@ -412,7 +446,7 @@ app.post('/api/route', async (req, res) => {
     // 이게 없으면 역산이 "몇 분마다 온다" 수준에 머문다.
     const enriched = await withTimetables(route.routes)
     // 답이 나왔을 때만 한 번을 센다. 못 찾았는데 한도가 줄면 안 된다.
-    if (me) bumpSearch(me.id)
+    finishSearch(true)
     res.json({ routes: enriched, from: start, to: end })
   } catch (e) {
     // 여기까지 온 건 예상 못 한 오류다. 원본은 서버 로그에만 남기고
@@ -421,6 +455,8 @@ app.post('/api/route', async (req, res) => {
     res.status(500).json({
       error: { code: 'upstream-error', message: '경로를 계산하는 중 서버에서 오류가 났습니다' },
     })
+  } finally {
+    finishSearch()
   }
 })
 
@@ -778,6 +814,8 @@ async function searchKorea(start: GeoPoint, end: GeoPoint) {
  * 줄을 세우고 있었다. 프라미스를 담으면 먼저 나간 쪽에 나머지가 올라탄다.
  */
 async function withTimetables(routes: WireRoute[]): Promise<WireRoute[]> {
+  // 원본은 카카오 경로 캐시가 공유한다. 날짜별 시각표로 캐시를 오염시키지 않는다.
+  routes = routes.map((route) => ({ ...route, legs: route.legs.map((leg) => ({ ...leg })) }))
   const cache = new Map<string, Promise<Run[] | null>>()
   const now = new Date()
 
@@ -1104,7 +1142,8 @@ app.get('/api/me/quota', (req, res) => {
     res.status(401).json({ error: { code: 'unauthorized', message: '로그인이 필요합니다' } })
     return
   }
-  res.json({ ...quotaOf(me.id, me.tier), label: TIERS[quotaOf(me.id, me.tier).tier].label })
+  const quota = quotaOf(me.id, me.tier)
+  res.json({ ...quota, label: TIERS[quota.tier].label })
 })
 
 /*
@@ -1254,6 +1293,10 @@ app.post('/api/admin/users/:id/admin', (req, res) => {
   const me = requireAdmin(req, res)
   if (!me) return
   const { on } = req.body as { on?: boolean }
+  if (typeof on !== 'boolean') {
+    res.status(400).json({ error: { code: 'bad-request', message: '권한 변경 여부가 필요합니다' } })
+    return
+  }
   const target = findById(req.params.id)
   if (!target) {
     res.status(404).json({ error: { code: 'not-found', message: '없는 계정입니다' } })
@@ -1438,13 +1481,23 @@ if (hasWeb) {
     if (req.method !== 'GET' && req.method !== 'HEAD') return next()
     // 없는 API 는 index.html 이 아니라 404 여야 한다.
     if (req.path === '/api' || req.path.startsWith('/api/')) return next()
+    if (req.path.split('/').some((segment) => segment.startsWith('.'))) return next()
     if (looksLikeFile.test(req.path)) return next()
     // sendFile 기본값은 max-age=0 이라 의도가 흐릿하다. 명시해 둔다.
     res.sendFile(join(webRoot, 'index.html'), { headers: { 'Cache-Control': 'no-cache' } })
   })
 }
 
-app.listen(serverEnv.port, () => {
+app.use((error: { status?: number }, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const status = error.status === 400 || error.status === 413 ? error.status : 500
+  if (status === 500) console.error('[server] 요청 오류:', error)
+  res.status(status).json({ error: {
+    code: status === 413 ? 'body-too-large' : status === 400 ? 'bad-request' : 'server-error',
+    message: status === 500 ? '요청을 처리하지 못했습니다' : '요청 형식이 올바르지 않습니다',
+  } })
+})
+
+app.listen(serverEnv.port, '127.0.0.1', () => {
   console.log(`[server] http://localhost:${serverEnv.port}`)
   console.log(hasWeb ? '[server] dist/ 서빙 중' : '[server] dist/ 없음 — API 만 응답합니다')
   /*

@@ -25,6 +25,33 @@ const hangs = () =>
   )
 
 describe('외부 호출 재시도', () => {
+  it('POST는 5xx에도 기본 재시도를 하지 않아 중복 일정을 만들지 않는다', async () => {
+    const spy = vi.fn(async () => new Response('{}', { status: 503 }))
+    globalThis.fetch = spy as typeof fetch
+    expect((await fetchJson('https://example.test/events', { method: 'POST' })).ok).toBe(false)
+    expect(spy).toHaveBeenCalledTimes(1)
+  })
+  it.each([200, 503])('헤더 이후 본문이 멈춰도 타임아웃이 적용된다 (%s)', async (status) => {
+    vi.useFakeTimers()
+    globalThis.fetch = vi.fn(async (_url, init) => {
+      const body = new ReadableStream({
+        start(controller) {
+          init?.signal?.addEventListener('abort', () =>
+            controller.error(new DOMException('aborted', 'AbortError')),
+          )
+        },
+      })
+      return new Response(body, { status })
+    }) as typeof fetch
+    let result: Awaited<ReturnType<typeof fetchJson>> | undefined
+    const pending = fetchJson('https://example.test/body', {}, {
+      timeoutMs: 50, budgetMs: 120, retries: 0,
+    }).then((r) => { result = r })
+    await vi.advanceTimersByTimeAsync(150)
+    expect(result).toMatchObject({ ok: false, kind: 'timeout' })
+    await pending
+  })
+
   it('매번 타임아웃이 나도 예산 안에서 멈춘다', async () => {
     const spy = hangs()
     globalThis.fetch = spy as unknown as typeof fetch
