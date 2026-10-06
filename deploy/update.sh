@@ -15,7 +15,8 @@ run() { sudo -u "$APP_USER" "$@"; }
 run git fetch origin main:refs/remotes/origin/main
 TARGET=$(run git rev-parse --verify "${1:-origin/main}^{commit}")
 PREVIOUS=$(run git rev-parse HEAD)
-STAGE=$(mktemp -d /srv/whenigo-stage.XXXXXX)
+install -d -m 700 -o "$APP_USER" -g "$APP_USER" /srv/whenigo-staging
+STAGE=$(mktemp -d /srv/whenigo-staging/stage.XXXXXX)
 chown "$APP_USER:$APP_USER" "$STAGE"
 ROLLBACK=$(mktemp -d /srv/whenigo-rollback.XXXXXX)
 chmod 700 "$ROLLBACK"

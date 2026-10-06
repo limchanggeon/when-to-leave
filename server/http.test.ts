@@ -53,17 +53,20 @@ describe('외부 호출 재시도', () => {
   })
 
   it('매번 타임아웃이 나도 예산 안에서 멈춘다', async () => {
+    vi.useFakeTimers()
     const spy = hangs()
     globalThis.fetch = spy as unknown as typeof fetch
 
     const began = Date.now()
-    const r = await fetchJson('https://example.test/x', {}, { timeoutMs: 50, budgetMs: 120 })
+    const pending = fetchJson('https://example.test/x', {}, { timeoutMs: 50, budgetMs: 120 })
+    await vi.advanceTimersByTimeAsync(120)
+    const r = await pending
     const took = Date.now() - began
 
     expect(r.ok).toBe(false)
-    // 50ms 두 번이면 예산이 끝난다. 재시도 3회를 다 돌면 200ms 가 된다.
-    expect(took).toBeLessThan(180)
-    expect(spy.mock.calls.length).toBeLessThanOrEqual(3)
+    // 50+50+20ms. 실제 타이머의 조기 발화/CPU 부하와 무관하게 예산을 확인한다.
+    expect(took).toBe(120)
+    expect(spy).toHaveBeenCalledTimes(3)
   })
 
   it('빨리 실패하는 상대는 예산이 남아 재시도를 다 쓴다 — 죽은 IP 를 다시 뽑으려는 것', async () => {
