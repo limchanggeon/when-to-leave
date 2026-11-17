@@ -13,7 +13,8 @@
  * 못 쓰게 하는 것보다, 세지 못하면 그냥 쓰게 두는 편이 맞다.
  */
 const KEY = 'wtl_free_searches'
-export const FREE_LIMIT = 1
+// shortcut: 학술제 발표(관객 체험) 동안 무제한, 발표 끝나면 1로 되돌릴 것
+export const FREE_LIMIT = Infinity
 
 const read = (): number => {
   try {
