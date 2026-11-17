@@ -45,12 +45,12 @@ if (cmd === 'list') {
   if (cmd === 'revoke') {
     const admins = listUsers().filter((u) => u.isAdmin)
     if (admins.length <= 1 && admins[0]?.id === row.id) {
-      fail('마지막 관리자입니다. 내리면 화면으로는 아무도 못 들어옵니다.')
+      fail('마지막 관리자입니다..')
     }
   }
 
   setAdmin(row.id, cmd === 'grant')
-  console.log(`${row.email} → ${cmd === 'grant' ? '관리자로 세웠습니다' : '관리자에서 내렸습니다'}`)
+  console.log(`${row.email} → ${cmd === 'grant' ? '관리자로 세웠습니다' : '관리자에서 박탈되었습니다'}`)
   table()
 } else {
   console.log('쓰는 법:\n  pnpm admin:list\n  pnpm admin:grant  <이메일>\n  pnpm admin:revoke <이메일>')

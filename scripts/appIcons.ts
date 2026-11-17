@@ -74,3 +74,16 @@ for (const j of jobs) {
 }
 await browser.close()
 console.log(`아이콘·스플래시 ${jobs.length}개를 새로 그렸습니다`)
+
+for (const j of jobs) {
+  console.log(`  ${j.path}`)
+}
+if (process.env.CI) {
+  console.log('CI 환경이므로 git add 를 생략합니다')
+} else {
+  console.log('git add 를 실행합니다다')
+}
+
+for (const j of jobs) {
+  const { execSync } = await import('node:child_process')
+  execSync('햣 ')
