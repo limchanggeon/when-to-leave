@@ -31,6 +31,8 @@ interface Overview {
   stats: Record<string, number>
   users: AdminUser[]
   log: { id: number; actorEmail: string; action: string; targetEmail: string | null; detail: string | null; createdAt: number }[]
+  /** 비회원 무료 1회 제한이 켜져 있는지 */
+  guestLimit: boolean
 }
 
 interface ContactRow {
@@ -97,6 +99,7 @@ const ACTION_LABEL: Record<string, string> = {
   'revoke-sessions': '세션 끊기',
   'grant-admin': '관리자 세움',
   'set-tier': '등급 바꿈',
+  'guest-limit': '비회원 제한',
   'revoke-admin': '관리자 내림',
   approve: '가입 승인',
   unapprove: '승인 거둠',
@@ -266,6 +269,29 @@ export function AdminPage() {
                   )}
                 </p>
                 <AreaTrend title="최근 30일 검색" points={searches} />
+              </section>
+
+              <section className="panel">
+                <h2 className="panel__title">비회원 조회 제한</h2>
+                <p>
+                  {data.guestLimit
+                    ? '켜짐 — 로그인하지 않은 사람은 브라우저당 1번만 조회할 수 있습니다'
+                    : '꺼짐 — 로그인하지 않아도 횟수 제한 없이 조회할 수 있습니다'}
+                </p>
+                <button type="button" className="btn" disabled={busy === 'guest-limit'}
+                  onClick={async () => {
+                    setBusy('guest-limit')
+                    await fetch('/api/admin/guest-limit', {
+                      method: 'POST',
+                      credentials: 'include',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ on: !data.guestLimit }),
+                    })
+                    setBusy(null)
+                    await load()
+                  }}>
+                  {data.guestLimit ? '제한 끄기' : '제한 켜기'}
+                </button>
               </section>
 
               <section className="panel">

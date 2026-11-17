@@ -14,7 +14,7 @@ import { HowItWorks } from '../components/HowItWorks'
 import { SiteFooter } from '../components/SiteFooter'
 import { SignUpWall } from '../components/SignUpWall'
 import { QuotaWall } from '../components/QuotaWall'
-import { markFreeSearchUsed, usedUpFreeSearch } from '../freeSearch'
+import { guestLimitOn, markFreeSearchUsed, usedUpFreeSearch } from '../freeSearch'
 import { rememberSearch, takeSearch } from '../pendingSearch'
 import { refreshQuota } from '../quota'
 import { useAuthContext } from '../../auth/AuthContext'
@@ -144,7 +144,7 @@ export function HomePage() {
      * 결과를 만들어 놓고 덮으면 볼 수 없는 답을 위해 카카오·TAGO 를 부르는
      * 셈이고, 사람은 몇 초 기다린 끝에 담을 만난다. 누르는 즉시 권한다.
      */
-    if (!account && usedUpFreeSearch()) {
+    if (!account && usedUpFreeSearch() && (await guestLimitOn())) {
       // 로그인하고 돌아오면 이 조회를 대신 마쳐준다
       rememberSearch(query)
       setWall(true)

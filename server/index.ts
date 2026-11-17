@@ -65,6 +65,7 @@ import { geocode, reverseGeocode, type GeoPoint } from './geocode'
 import type { WireRoute } from './routeTypes'
 import { searchTransitKakao } from './kakaoTransit'
 import { searchIntercity, warmAirports } from './intercity'
+import { guestLimitOn, setGuestLimit } from './settings'
 import { loadStations, trainsBetween } from './tago'
 import {
   expressBusesBetween,
@@ -190,6 +191,11 @@ app.get('/api/health', (_req, res) => {
     ? { lastFailureAt: new Date(lastMailFailure.at).toISOString(), reason: lastMailFailure.reason }
     : null
   res.json({ ok: true, missingEnv: missingServerEnv(), mail })
+})
+
+/** 비회원 무료 조회 제한이 켜져 있는지. 브라우저가 무료 1회를 다 쓴 뒤에만 묻는다. */
+app.get('/api/guest-limit', (_req, res) => {
+  res.json({ on: guestLimitOn() })
 })
 
 /** 현재 로그인 상태. 클라이언트가 새로고침 후 호출한다. */
@@ -1211,7 +1217,21 @@ app.get('/api/admin/overview', (req, res) => {
     users: admin.listUsers(),
     log: admin.recentLog(),
     days: metrics.recentDays(30),
+    guestLimit: guestLimitOn(),
   })
+})
+
+app.post('/api/admin/guest-limit', (req, res) => {
+  const me = requireAdmin(req, res)
+  if (!me) return
+  const { on } = req.body as { on?: unknown }
+  if (typeof on !== 'boolean') {
+    res.status(400).json({ error: { code: 'bad-request', message: 'on 은 true/false 여야 합니다' } })
+    return
+  }
+  setGuestLimit(on)
+  admin.log(me, 'guest-limit', undefined, on ? 'on' : 'off')
+  res.json({ ok: true, guestLimit: on })
 })
 
 /** 한 사람에 대한 상세. 저장한 장소의 주소는 담기지 않는다(server/admin.ts 참고). */

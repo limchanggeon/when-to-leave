@@ -13,8 +13,7 @@
  * 못 쓰게 하는 것보다, 세지 못하면 그냥 쓰게 두는 편이 맞다.
  */
 const KEY = 'wtl_free_searches'
-// shortcut: 학술제 발표(관객 체험) 동안 무제한, 발표 끝나면 1로 되돌릴 것
-export const FREE_LIMIT = Infinity
+export const FREE_LIMIT = 1
 
 const read = (): number => {
   try {
@@ -26,6 +25,19 @@ const read = (): number => {
 
 /** 무료 조회를 다 썼는가. 저장을 못 읽으면 안 쓴 것으로 본다. */
 export const usedUpFreeSearch = (): boolean => read() >= FREE_LIMIT
+
+/**
+ * 관리자가 비회원 제한을 켜 두었는가(관리자 화면에서 발표 등에 끈다).
+ * 서버에 묻지 못하면 켜진 것으로 본다 — 원래 정책대로 가입을 권한다.
+ */
+export async function guestLimitOn(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/guest-limit')
+    return res.ok ? ((await res.json()) as { on: boolean }).on !== false : true
+  } catch {
+    return true
+  }
+}
 
 /** 한 번 썼다고 표시한다. 저장이 막혀 있으면 조용히 넘어간다. */
 export function markFreeSearchUsed(): void {

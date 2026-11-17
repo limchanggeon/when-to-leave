@@ -81,6 +81,7 @@ export function stats(): AdminStats {
 export type AdminAction =
   
   | 'set-tier'| 'verify-email'
+  | 'guest-limit'
   | 'delete-user'
   | 'revoke-sessions'
   | 'grant-admin'

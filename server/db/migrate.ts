@@ -301,6 +301,17 @@ const MIGRATIONS: Migration[] = [
       CREATE INDEX idx_tier_req_open ON tier_requests (handled_at, created_at DESC);
     `,
   },
+  {
+    id: 10,
+    name: 'settings',
+    sql: `
+      /* 관리자 화면에서 켜고 끄는 값. 지금은 비회원 조회 제한(guest_limit) 하나뿐이다. */
+      CREATE TABLE settings (
+        key   TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+    `,
+  },
 ]
 
 export function migrate(conn: DatabaseSync): void {
