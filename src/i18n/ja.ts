@@ -385,7 +385,7 @@ export const ja: I18nShape = {
   },
   footer: {
     operator: '制作',
-    operatorName: 'イム・チャンゴン',
+    operatorName: 'Changgeon Lim',
     contactLabel: 'お問い合わせ',
     contactEmail: 'ckdrjs0101@mokwon.ac.kr',
     nonprofit: '個人が制作・運営しています。サーバー費用のため Google アドセンス広告を掲載しています',

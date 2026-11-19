@@ -397,7 +397,7 @@ export const ko = {
   footer: {
     /* 아래는 안내판 옆에 붙은 고지문이다. 없는 사업자 정보를 지어내지 않는다. */
     operator: '만든 사람',
-    operatorName: '임창건',
+    operatorName: 'Changgeon Lim',
     contactLabel: '문의',
     contactEmail: 'ckdrjs0101@mokwon.ac.kr',
     nonprofit: '개인이 만들어 운영합니다. 서버 비용을 대려고 구글 애드센스 광고를 답니다',
