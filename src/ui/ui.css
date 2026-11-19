@@ -818,10 +818,10 @@
 /* 남의 마크에는 여백을 준다 — 글자에 붙으면 마크가 아니라 글자의 일부로 읽힌다 */
 .sitefooter__brandlink { display: inline-flex; align-items: center; gap: var(--sp-2); }
 .sitefooter__mark--gh { flex: 0 0 auto; }
-.sitefooter__logo { width: 34px; height: 34px; color: var(--brand); margin-left: auto; }
+.sitefooter__logo { display: block; width: 34px; height: 34px; color: var(--brand); margin-left: auto; }
 /* 표어는 안내판의 숫자가 아니므로 크게 가지 않는다 — 한 급만 올린다 */
 .sitefooter__sign {
-  margin: var(--sp-3) 0 0; font-size: 1.02rem; font-weight: 700; color: var(--ink);
+  margin: var(--sp-1) 0 0; font-size: 1.02rem; font-weight: 700; color: var(--ink);
 }
 
 /* 승강장 옆 고지문. 링크 판과 가는 선 하나로 나눈다 */
