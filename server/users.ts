@@ -15,6 +15,8 @@ export interface User {
   approved: boolean
   /** 등급. 하루 조회 한도가 여기서 갈린다(server/tiers.ts). */
   tier: string
+  /** 개인정보 처리방침에 동의했는지. 아니면 화면이 동의 창을 띄운다. */
+  privacyAgreed: boolean
 }
 
 interface UserRow {
@@ -28,6 +30,7 @@ interface UserRow {
   approved_at: number | null
   approved_by: string | null
   tier: string
+  privacy_agreed_at: number | null
 }
 
 const toUser = (r: UserRow): User => ({
@@ -39,7 +42,13 @@ const toUser = (r: UserRow): User => ({
   isAdmin: r.is_admin === 1,
   approved: r.approved_at !== null,
   tier: r.tier ?? 'free',
+  privacyAgreed: r.privacy_agreed_at != null,
 })
+
+/** 개인정보 처리방침 동의를 기록한다. 처음 동의한 시각을 남기고 덮어쓰지 않는다. */
+export function agreePrivacy(id: string): void {
+  db().prepare('UPDATE users SET privacy_agreed_at = ? WHERE id = ? AND privacy_agreed_at IS NULL').run(Date.now(), id)
+}
 
 /** 이메일은 대소문자를 구분하지 않는다. 저장도 조회도 소문자로 통일한다. */
 const normalizeEmail = (email: string) => email.trim().toLowerCase()
@@ -130,6 +139,7 @@ export async function registerWithPassword(
     approved_at: null,
     approved_by: null,
     tier: 'free',
+    privacy_agreed_at: null,
   }
   db()
     .prepare(
@@ -240,6 +250,7 @@ export function upsertSocialUser(input: {
       isAdmin: false,
       approved: false,
       tier: 'free',
+      privacyAgreed: false,
     }
   } else if (verifiedAt && !user.emailVerified) {
     // 미인증 가입자가 미리 심은 비밀번호와 인증 링크가 소셜 인증 후 살아나면

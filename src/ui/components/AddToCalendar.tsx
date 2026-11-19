@@ -71,6 +71,8 @@ function CalendarButton({
   }
 
   async function connect() {
+    // 개인정보 국외 이전(Google LLC, 미국)에 대한 별도 동의 — 처리방침의 국외 이전 항목과 같은 내용
+    if (!window.confirm(t.calendar.abroadConsent)) return
     const url = await connectCalendar()
     if (url) window.location.href = url
     else setState({ phase: 'error', message: t.alarm.connect })

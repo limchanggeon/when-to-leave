@@ -15,6 +15,7 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
   /** 가입에서만 쓴다. 오타로 못 들어가는 계정이 생기는 걸 막는다. */
   const [password2, setPassword2] = useState('')
   const [name, setName] = useState('')
+  const [agreed, setAgreed] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   /**
@@ -42,7 +43,7 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
     email.trim().length > 0 &&
     password.length > 0 &&
     !busy &&
-    (tab === 'login' || (password2.length > 0 && !mismatch))
+    (tab === 'login' || (password2.length > 0 && !mismatch && agreed))
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -282,6 +283,16 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
             placeholder={t.emailAuth.namePlaceholder}
             autoComplete="name"
           />
+        </label>
+      )}
+
+      {tab === 'register' && (
+        <label className="emailauth__consent">
+          <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} required />
+          <span>
+            {t.emailAuth.consent}{' '}
+            <a href="/privacy" target="_blank" rel="noreferrer">{t.emailAuth.consentView}</a>
+          </span>
         </label>
       )}
 

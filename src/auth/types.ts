@@ -10,6 +10,8 @@ export interface Account {
   avatarUrl: string | null
   /** 관리자인지. /admin 링크를 보일지 여기서 갈린다. */
   isAdmin?: boolean
+  /** 개인정보 처리방침에 동의했는지. false 면 동의 창을 띄운다(ConsentGate). */
+  privacyAgreed?: boolean
 }
 
 export type ProviderId = 'kakao' | 'google'

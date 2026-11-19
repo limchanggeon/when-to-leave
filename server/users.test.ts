@@ -10,7 +10,7 @@ import { randomUUID } from 'node:crypto'
 process.env.DB_PATH = `/tmp/whenigo-users-test-${randomUUID()}.db`
 
 const { db } = await import('./db/index')
-const { registerWithPassword, emailAvailable } = await import('./users')
+const { registerWithPassword, emailAvailable, agreePrivacy, findById } = await import('./users')
 
 const seed = (email: string, opts: { verified?: boolean; approved?: boolean }) => {
   const now = Date.now()
@@ -24,6 +24,17 @@ const seed = (email: string, opts: { verified?: boolean; approved?: boolean }) =
 
 beforeEach(() => {
   db().prepare('DELETE FROM users').run()
+})
+
+it('처리방침 동의는 기록되기 전까지 false 이고, 한 번 기록되면 처음 시각을 지킨다', async () => {
+  const r = await registerWithPassword('consent@example.com', 'Whenigo-2026!', '동의')
+  if (!r.ok) throw new Error('가입 실패')
+  expect(findById(r.user.id)?.privacyAgreed).toBe(false)
+  agreePrivacy(r.user.id)
+  const first = (db().prepare('SELECT privacy_agreed_at AS t FROM users WHERE id = ?').get(r.user.id) as { t: number }).t
+  agreePrivacy(r.user.id)
+  expect(findById(r.user.id)?.privacyAgreed).toBe(true)
+  expect((db().prepare('SELECT privacy_agreed_at AS t FROM users WHERE id = ?').get(r.user.id) as { t: number }).t).toBe(first)
 })
 
 describe('계정 인계', () => {

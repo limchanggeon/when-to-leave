@@ -1593,3 +1593,11 @@ body:has(.apptabs) .page { padding-bottom: calc(56px + max(env(safe-area-inset-b
 .map__locate { margin-left: auto; min-height: 44px; padding: 6px 10px; background: transparent; color: inherit; border: 1px solid currentColor; border-radius: 4px; cursor: pointer; }
 .map__locate:disabled { opacity: .55; cursor: wait; }
 .map__location-status { margin: 0; padding: 8px 12px; font-size: 12px; }
+
+/* 처리방침 동의: 이메일 가입 칸과 동의 창(ConsentGate)이 같이 쓴다 */
+.emailauth__consent { display: flex; gap: var(--sp-2); align-items: flex-start; font-size: 0.84rem; line-height: 1.5; }
+.emailauth__consent input { margin-top: 0.25em; accent-color: var(--signal); }
+.emailauth__consent a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.wall .emailauth__consent { margin-bottom: var(--sp-4); }
+button.wall__go { border: 0; cursor: pointer; font-family: inherit; }
+.wall__go:disabled { opacity: 0.5; cursor: default; }

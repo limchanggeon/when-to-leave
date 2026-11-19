@@ -35,6 +35,7 @@ import {
   emailAvailable,
   approveUser,
   unapproveUser,
+  agreePrivacy,
 } from './users'
 import { checkPassword } from './password'
 import { closeRequest, openRequests, quotaOf, requestTier, reserveSearch, setTier } from './quota'
@@ -191,6 +192,14 @@ app.get('/api/health', (_req, res) => {
     ? { lastFailureAt: new Date(lastMailFailure.at).toISOString(), reason: lastMailFailure.reason }
     : null
   res.json({ ok: true, missingEnv: missingServerEnv(), mail })
+})
+
+/** 동의 기록이 없는 계정(소셜 가입·예전 가입)이 동의 창에서 동의했을 때. */
+app.post('/api/auth/consent', (req, res) => {
+  const me = requireUser(req, res)
+  if (!me) return
+  agreePrivacy(me.id)
+  res.json({ ok: true })
 })
 
 /** 비회원 무료 조회 제한이 켜져 있는지. 브라우저가 무료 1회를 다 쓴 뒤에만 묻는다. */
@@ -519,12 +528,17 @@ const ipOf = (req: express.Request) => req.ip ?? 'unknown'
 
 /** 이메일·비밀번호 회원가입. */
 app.post('/api/auth/register', async (req, res) => {
-  const { email, password, name } = req.body as {
+  const { email, password, name, agreed } = req.body as {
     email?: string
     password?: string
     name?: string
+    agreed?: unknown
   }
 
+  if (agreed !== true) {
+    res.status(400).json({ error: { code: 'consent-required', message: '개인정보 처리방침에 동의해 주세요' } })
+    return
+  }
   if (!email || !EMAIL_RE.test(email.trim())) {
     res.status(400).json({ error: { code: 'bad-email', message: '이메일 형식이 올바르지 않습니다' } })
     return
@@ -568,6 +582,7 @@ app.post('/api/auth/register', async (req, res) => {
    */
   let sent
   if (result.ok) {
+    agreePrivacy(result.user.id)
     metrics.bump('signup')
     const token = issue(result.user.id, result.user.email, 'verify', VERIFY_TTL_MS)
     sent = await sendMail(verifyMail(result.user.email, token))

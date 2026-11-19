@@ -83,7 +83,7 @@ export async function resendVerification(email: string): Promise<EmailAuthResult
 }
 
 export const registerWithEmail = (email: string, password: string, name: string) =>
-  post('/api/auth/register', { email, password, name })
+  post('/api/auth/register', { email, password, name, agreed: true })
 
 export const loginWithEmail = (email: string, password: string) =>
   post('/api/auth/login', { email, password })

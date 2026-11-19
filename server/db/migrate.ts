@@ -312,6 +312,14 @@ const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: 11,
+    name: 'privacy-consent',
+    sql: `
+      /* 개인정보 처리방침에 동의한 시각. 비어 있으면 다음 로그인 때 한 번 묻는다(기존·소셜 계정). */
+      ALTER TABLE users ADD COLUMN privacy_agreed_at INTEGER;
+    `,
+  },
 ]
 
 export function migrate(conn: DatabaseSync): void {

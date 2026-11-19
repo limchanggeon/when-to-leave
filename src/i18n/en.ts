@@ -52,7 +52,7 @@ export const en: I18nShape = {
     back: '← Back',
     eyebrow: 'Work backwards from arrival',
     sub: ['Sign in to save the places you go often,', 'and put departure alarms on your calendar.'],
-    terms: 'Signing in means you agree to the terms of service and the privacy policy.',
+    terms: 'We ask for your consent to the privacy policy when you first sign up.',
     notConfigured: (envVar: string) => `${envVar} is not set — pressing this shows what to do`,
     googleFallback: 'Continue with Google',
     kakaoLabel: 'Sign in with Kakao',
@@ -65,6 +65,8 @@ export const en: I18nShape = {
     },
   },
   emailAuth: {
+    consent: '[Required] I am 14 or older and agree to the privacy policy',
+    consentView: 'View',
     tabLogin: 'Sign in',
     tabRegister: 'Sign up',
     email: 'Email',
@@ -127,6 +129,8 @@ export const en: I18nShape = {
     unsupportedNative: 'Clock alarms are only available in the mobile app',
   },
   calendar: {
+    abroadConsent:
+      'Connecting Google Calendar transfers personal data abroad as follows. Do you agree?\n\n· Recipient: Google LLC\n· Country: United States\n· Items: event title, departure/arrival times, origin/destination names\n· When/how: sent over the network when you ask to add an event\n· Purpose/retention: adding departure events to your calendar; per Google LLC privacy policy\n\nYou can still calculate departure times without agreeing.',
     section: 'Google Calendar',
     hint: 'Connect it to create events that remind you at departure time.',
     connected: 'Connected',
@@ -231,6 +235,12 @@ export const en: I18nShape = {
     doneBody: 'We will reply to the address you gave',
     close: 'OK',
     failed: 'Could not send. Please try again shortly',
+  },
+  consentGate: {
+    title: 'Privacy policy consent',
+    lead: 'Please agree once to keep using the service.',
+    agree: 'Agree and continue',
+    logout: 'Sign out',
   },
   wall: {
     title: 'Sign in to see the result',

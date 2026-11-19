@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, type ComponentType } from 'react'
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthProvider } from '../auth/AuthContext'
+import { ConsentGate } from './components/ConsentGate'
 import { PrefsProvider, usePrefs } from './PrefsContext'
 import { HomePage } from './pages/HomePage'
 import { AppTabs } from './components/AppTabs'
@@ -84,6 +85,7 @@ export default function App() {
       <PrefsProvider>
         <AuthProvider>
           <ScrollTop />
+          <ConsentGate />
           {/*
             * 받는 사이 빈 화면을 두지 않는다. 판을 그대로 두고 안쪽만
             * 비워야 화면이 덜컹거리지 않는다.

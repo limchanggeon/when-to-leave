@@ -44,7 +44,7 @@ export const ko = {
     back: '← 돌아가기',
     eyebrow: '출발 시각 역산',
     sub: ['로그인하면 자주 가는 곳과 계산한 여정을 저장하고,', '출발 알람을 캘린더에 걸어둘 수 있습니다.'],
-    terms: '로그인하면 서비스 이용약관과 개인정보 처리방침에 동의하는 것으로 봅니다.',
+    terms: '처음 가입할 때 개인정보 처리방침 동의를 받습니다.',
     notConfigured: (envVar: string) => `${envVar} 미설정 — 눌러보면 안내가 표시됩니다`,
     googleFallback: 'Google로 계속하기',
     kakaoLabel: '카카오 로그인',
@@ -57,6 +57,8 @@ export const ko = {
     },
   },
   emailAuth: {
+    consent: '[필수] 만 14세 이상이며, 개인정보 처리방침에 동의합니다',
+    consentView: '보기',
     tabLogin: '로그인',
     tabRegister: '회원가입',
     email: '이메일',
@@ -121,6 +123,8 @@ export const ko = {
     unsupportedNative: '시계 앱 알람은 모바일 앱에서만 가능합니다',
   },
   calendar: {
+    abroadConsent:
+      '구글 캘린더를 연결하면 아래와 같이 개인정보가 국외로 이전됩니다. 동의하십니까?\n\n· 이전받는 자: Google LLC\n· 이전 국가: 미국\n· 이전 항목: 일정 제목, 출발·도착 시각, 출발지·도착지 명칭\n· 이전 일시·방법: 일정 등록을 요청할 때 네트워크로 전송\n· 이용 목적·보유 기간: 캘린더에 출발 일정 등록, Google LLC 개인정보 처리방침에 따름\n\n동의하지 않아도 출발 시각 계산은 그대로 이용할 수 있습니다.',
     section: '구글 캘린더',
     hint: '연결하면 출발 시각에 알림이 울리는 일정을 만들 수 있습니다.',
     connected: '연결됨',
@@ -228,6 +232,12 @@ export const ko = {
   },
 
   /* 무료 조회를 다 쓴 사람에게 보이는 창. 담이 아니라 권유다. */
+  consentGate: {
+    title: '개인정보 처리방침 동의',
+    lead: '서비스를 계속 이용하려면 한 번 동의가 필요합니다.',
+    agree: '동의하고 계속',
+    logout: '로그아웃',
+  },
   wall: {
     title: '결과를 보려면 로그인하세요',
     lead: '무료 조회 한 번은 다 쓰셨어요. 로그인하면 계속 쓸 수 있습니다.',
