@@ -16,6 +16,7 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
   const [password2, setPassword2] = useState('')
   const [name, setName] = useState('')
   const [agreed, setAgreed] = useState(false)
+  const [transfer, setTransfer] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   /**
@@ -43,7 +44,7 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
     email.trim().length > 0 &&
     password.length > 0 &&
     !busy &&
-    (tab === 'login' || (password2.length > 0 && !mismatch && agreed))
+    (tab === 'login' || (password2.length > 0 && !mismatch && agreed && transfer))
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -291,6 +292,15 @@ export function EmailAuthForm({ t }: { t: I18nShape }) {
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} required />
           <span>
             {t.emailAuth.consent}{' '}
+            <a href="/privacy" target="_blank" rel="noreferrer">{t.emailAuth.consentView}</a>
+          </span>
+        </label>
+      )}
+      {tab === 'register' && (
+        <label className="emailauth__consent">
+          <input type="checkbox" checked={transfer} onChange={(e) => setTransfer(e.target.checked)} required />
+          <span>
+            {t.emailAuth.transferConsent}{' '}
             <a href="/privacy" target="_blank" rel="noreferrer">{t.emailAuth.consentView}</a>
           </span>
         </label>

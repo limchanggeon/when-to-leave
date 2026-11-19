@@ -320,6 +320,14 @@ const MIGRATIONS: Migration[] = [
       ALTER TABLE users ADD COLUMN privacy_agreed_at INTEGER;
     `,
   },
+  {
+    id: 12,
+    name: 'transfer-consent',
+    sql: `
+      /* 개인정보 국외 이전(AWS) 동의 시각. 처리방침 동의와 따로 받는다(제28조의8). */
+      ALTER TABLE users ADD COLUMN transfer_agreed_at INTEGER;
+    `,
+  },
 ]
 
 export function migrate(conn: DatabaseSync): void {

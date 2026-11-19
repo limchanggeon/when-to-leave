@@ -67,6 +67,7 @@ export const en: I18nShape = {
   emailAuth: {
     consent: '[Required] I am 14 or older and agree to the privacy policy',
     consentView: 'View',
+    transferConsent: '[Required] I agree to the overseas transfer of personal data (Amazon Web Services)',
     tabLogin: 'Sign in',
     tabRegister: 'Sign up',
     email: 'Email',

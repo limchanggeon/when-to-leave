@@ -57,6 +57,7 @@ export const ja: I18nShape = {
   emailAuth: {
     consent: '[必須] 14歳以上であり、プライバシーポリシーに同意します',
     consentView: '見る',
+    transferConsent: '[必須] 個人情報の国外移転に同意します（Amazon Web Services）',
     tabLogin: 'ログイン',
     tabRegister: '新規登録',
     email: 'メールアドレス',

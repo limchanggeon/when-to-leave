@@ -12,6 +12,8 @@ export interface Account {
   isAdmin?: boolean
   /** 개인정보 처리방침에 동의했는지. false 면 동의 창을 띄운다(ConsentGate). */
   privacyAgreed?: boolean
+  /** 개인정보 국외 이전(AWS)에 동의했는지 */
+  transferAgreed?: boolean
 }
 
 export type ProviderId = 'kakao' | 'google'

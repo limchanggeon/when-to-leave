@@ -59,6 +59,7 @@ export const ko = {
   emailAuth: {
     consent: '[필수] 만 14세 이상이며, 개인정보 처리방침에 동의합니다',
     consentView: '보기',
+    transferConsent: '[필수] 개인정보 국외 이전에 동의합니다 (Amazon Web Services)',
     tabLogin: '로그인',
     tabRegister: '회원가입',
     email: '이메일',

@@ -17,6 +17,8 @@ export interface User {
   tier: string
   /** 개인정보 처리방침에 동의했는지. 아니면 화면이 동의 창을 띄운다. */
   privacyAgreed: boolean
+  /** 개인정보 국외 이전(AWS)에 동의했는지. 처리방침 동의와 따로 센다. */
+  transferAgreed: boolean
 }
 
 interface UserRow {
@@ -31,6 +33,7 @@ interface UserRow {
   approved_by: string | null
   tier: string
   privacy_agreed_at: number | null
+  transfer_agreed_at: number | null
 }
 
 const toUser = (r: UserRow): User => ({
@@ -43,11 +46,15 @@ const toUser = (r: UserRow): User => ({
   approved: r.approved_at !== null,
   tier: r.tier ?? 'free',
   privacyAgreed: r.privacy_agreed_at != null,
+  transferAgreed: r.transfer_agreed_at != null,
 })
 
-/** 개인정보 처리방침 동의를 기록한다. 처음 동의한 시각을 남기고 덮어쓰지 않는다. */
+/** 처리방침·국외 이전 동의를 기록한다(화면이 둘 다 체크해야 부른다). 처음 동의한 시각은 덮어쓰지 않는다. */
 export function agreePrivacy(id: string): void {
-  db().prepare('UPDATE users SET privacy_agreed_at = ? WHERE id = ? AND privacy_agreed_at IS NULL').run(Date.now(), id)
+  const now = Date.now()
+  db()
+    .prepare('UPDATE users SET privacy_agreed_at = COALESCE(privacy_agreed_at, ?), transfer_agreed_at = COALESCE(transfer_agreed_at, ?) WHERE id = ?')
+    .run(now, now, id)
 }
 
 /** 이메일은 대소문자를 구분하지 않는다. 저장도 조회도 소문자로 통일한다. */
@@ -140,6 +147,7 @@ export async function registerWithPassword(
     approved_by: null,
     tier: 'free',
     privacy_agreed_at: null,
+    transfer_agreed_at: null,
   }
   db()
     .prepare(
@@ -251,6 +259,7 @@ export function upsertSocialUser(input: {
       approved: false,
       tier: 'free',
       privacyAgreed: false,
+      transferAgreed: false,
     }
   } else if (verifiedAt && !user.emailVerified) {
     // 미인증 가입자가 미리 심은 비밀번호와 인증 링크가 소셜 인증 후 살아나면

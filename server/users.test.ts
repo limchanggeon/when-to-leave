@@ -30,10 +30,12 @@ it('처리방침 동의는 기록되기 전까지 false 이고, 한 번 기록�
   const r = await registerWithPassword('consent@example.com', 'Whenigo-2026!', '동의')
   if (!r.ok) throw new Error('가입 실패')
   expect(findById(r.user.id)?.privacyAgreed).toBe(false)
+  expect(findById(r.user.id)?.transferAgreed).toBe(false)
   agreePrivacy(r.user.id)
   const first = (db().prepare('SELECT privacy_agreed_at AS t FROM users WHERE id = ?').get(r.user.id) as { t: number }).t
   agreePrivacy(r.user.id)
   expect(findById(r.user.id)?.privacyAgreed).toBe(true)
+  expect(findById(r.user.id)?.transferAgreed).toBe(true)
   expect((db().prepare('SELECT privacy_agreed_at AS t FROM users WHERE id = ?').get(r.user.id) as { t: number }).t).toBe(first)
 })
 

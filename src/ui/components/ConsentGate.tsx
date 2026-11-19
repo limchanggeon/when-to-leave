@@ -14,8 +14,9 @@ export function ConsentGate() {
   const { t } = usePrefs()
   const ref = useRef<HTMLDialogElement>(null)
   const [agreed, setAgreed] = useState(false)
+  const [transfer, setTransfer] = useState(false)
   const [busy, setBusy] = useState(false)
-  const open = account?.privacyAgreed === false
+  const open = account?.privacyAgreed === false || account?.transferAgreed === false
 
   useEffect(() => {
     const el = ref.current
@@ -29,7 +30,7 @@ export function ConsentGate() {
     setBusy(true)
     const res = await fetch('/api/auth/consent', { method: 'POST', credentials: 'include' }).catch(() => null)
     setBusy(false)
-    if (res?.ok) applyResult({ ok: true, account: { ...account, privacyAgreed: true } })
+    if (res?.ok) applyResult({ ok: true, account: { ...account, privacyAgreed: true, transferAgreed: true } })
   }
 
   const g = t.consentGate
@@ -45,8 +46,15 @@ export function ConsentGate() {
             <a href="/privacy" target="_blank" rel="noreferrer">{t.emailAuth.consentView}</a>
           </span>
         </label>
+        <label className="emailauth__consent">
+          <input type="checkbox" checked={transfer} onChange={(e) => setTransfer(e.target.checked)} />
+          <span>
+            {t.emailAuth.transferConsent}{' '}
+            <a href="/privacy" target="_blank" rel="noreferrer">{t.emailAuth.consentView}</a>
+          </span>
+        </label>
         <div className="wall__acts">
-          <button type="button" className="wall__go" disabled={!agreed || busy} onClick={agree}>
+          <button type="button" className="wall__go" disabled={!agreed || !transfer || busy} onClick={agree}>
             {g.agree}
           </button>
           <button type="button" className="wall__later" onClick={() => void signOut()}>
